@@ -3,9 +3,7 @@
 %       s184.plotxdy(184)                            plot deriv sweep 184
 %       s184.plotxy([184,185])                       plot sweeps 184 & 185 in same figure
 %       s184.plotxy([184:187])                       plot sweeps 184-187 in same figure
-%       data.ff(109,0,7,10)                          prints firing frequency from sweep 109, threshold 0 mV, from 7-10 s     
-
-%       s96.plotps(99,0,5)                           plots sweep 99, threshold 0, light onset at 5 s
+%       data.ff(109,0,7,10)                          prints firing frequency from sweep 109, threshold 0 mV, from 7-10 s                   
 
 %       arrayfun(@(x) s184.plotxy(x),[184:187])      plot sweeps 184-187 in different figures
 
@@ -134,10 +132,10 @@ classdef WSfile
         end
         
         
-        % plots selected peaks: 3 APs prior to light pulse, all APs during
+        % plot selected peaks: 3 APs prior to light pulse, all APs during
         % light pulse, and 3 APs after light pulse. Displays firing
-        % frequency as 1/ISI (ISI: Inter Spike Interval).
-        function plotps(self,sweepNumber,MinPeakHeight,LightOnsetTime)
+        % frequency as 1/ISI (ISI: Inter Spike Interval)
+        function plotps(self,sweepNumber,MinPeakHeight, LightOnsetTime)
             
             [x,y] = self.xy(sweepNumber);
             [pks,locs,w,p] = findpeaks(y,x,'MinPeakHeight',MinPeakHeight);
@@ -166,10 +164,15 @@ classdef WSfile
             locsBaseline1(1:length(locsBaseline1)-3)=[];
             pksBaseline1(1:length(pksBaseline1)-3)=[];
             
+            %locsBaseline2
             indicesBaseline2 = find(locs<=(LightOnsetTime+1.75));
             locsBaseline2(indicesBaseline2) = [];
+            
+            %locsBaseline2
             pksBaseline2(indicesBaseline2) = [];
             locsBaseline2(4:length(locsBaseline2))=[];
+            
+            %locsBaseline2
             pksBaseline2(4:length(pksBaseline2))=[];
             
             inverseISIforLight = 1/mean(diff(locsLight));
@@ -181,15 +184,15 @@ classdef WSfile
             plot(locsLight,pksLight,'o','color','red');
             plot(locsBaseline1,pksBaseline1,'o','color','blue');
             plot(locsBaseline2,pksBaseline2,'o','color','blue');
-            rectangle('Position',[LightOnsetTime,-85,1,145],'FaceColor', [0 0 1 0.05],'LineStyle','none');
+            rectangle('Position',[15,-85,1,145],'FaceColor', [0 0 1 0.05],'LineStyle','none');
             hold off;
-            axis([LightOnsetTime-2 LightOnsetTime+3 -85 45]);
+            axis([LightOnsetTime-2 18 -85 45]);
             xlabel('Time (s)');
             ylabel('Voltage (mV)');
-            text(LightOnsetTime-1.75,-75,'1/ISI (Hz)');
-            text(LightOnsetTime+0.25,-75,num2str(inverseISIforLight),'color','red');
-            text(LightOnsetTime-0.75,-75,num2str(inverseISIforBaseline1),'color','blue');
-            text(LightOnsetTime+2,-75,num2str(inverseISIforBaseline2),'color','blue');
+            text(13.25,-75,'1/ISI (Hz)');
+            text(15.25,-75,num2str(inverseISIforLight),'color','red');
+            text(14.25,-75,num2str(inverseISIforBaseline1),'color','blue');
+            text(17,-75,num2str(inverseISIforBaseline2),'color','blue');
         end
         
         
