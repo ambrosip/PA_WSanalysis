@@ -14,6 +14,7 @@ classdef WSfile
     properties
         header   
         sweeps
+        file
     end
     
     methods
@@ -29,6 +30,8 @@ classdef WSfile
             
             % sweeps is what is left after you remove header
             obj.sweeps = rmfield(loadedFile,'header');
+            
+            obj.file = fileName;
         end
         
         
@@ -155,22 +158,24 @@ classdef WSfile
             % indices are integers. Need to find indices at which the value
             % of locs is between 15 and 16. Remember that locs stores the
             % time stamp at which a peak was detected
-            indicesLight = find(locs<LightOnsetTime | locs>(LightOnsetTime+1));
+            indicesLight = find(locs<LightOnsetTime | locs>(LightOnsetTime+1.25));
             % deletes all peaks that happen before or after the light pulse
+            % UPDATE: get data beyond light pulse (0.25 s after light pulse
+            % ended)
             locsLight(indicesLight) = [];
             pksLight(indicesLight) = [];
             
             indicesBaseline1 = find(locs>=LightOnsetTime);
             locsBaseline1(indicesBaseline1) = [];
             pksBaseline1(indicesBaseline1) = [];
-            locsBaseline1(1:length(locsBaseline1)-3)=[];
-            pksBaseline1(1:length(pksBaseline1)-3)=[];
+            locsBaseline1(1:length(locsBaseline1)-5)=[];
+            pksBaseline1(1:length(pksBaseline1)-5)=[];
             
-            indicesBaseline2 = find(locs<=(LightOnsetTime+1.75));
+            indicesBaseline2 = find(locs<=(LightOnsetTime+2));
             locsBaseline2(indicesBaseline2) = [];
             pksBaseline2(indicesBaseline2) = [];
-            locsBaseline2(4:length(locsBaseline2))=[];
-            pksBaseline2(4:length(pksBaseline2))=[];
+            locsBaseline2(6:length(locsBaseline2))=[];
+            pksBaseline2(6:length(pksBaseline2))=[];
             
             inverseISIforLight = 1/mean(diff(locsLight));
             inverseISIforBaseline1 = 1/mean(diff(locsBaseline1));
@@ -183,15 +188,41 @@ classdef WSfile
             plot(locsBaseline2,pksBaseline2,'o','color','blue');
             rectangle('Position',[LightOnsetTime,-85,1,145],'FaceColor', [0 0 1 0.05],'LineStyle','none');
             hold off;
-            axis([LightOnsetTime-2 LightOnsetTime+3 -85 45]);
+            axis([LightOnsetTime-4 LightOnsetTime+5 -85 45]);
             xlabel('Time (s)');
             ylabel('Voltage (mV)');
-            text(LightOnsetTime-1.75,-75,'1/ISI (Hz)');
-            text(LightOnsetTime+0.25,-75,num2str(inverseISIforLight),'color','red');
-            text(LightOnsetTime-0.75,-75,num2str(inverseISIforBaseline1),'color','blue');
-            text(LightOnsetTime+2,-75,num2str(inverseISIforBaseline2),'color','blue');
+            title([self.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
+            text(LightOnsetTime-3,-75,'1/ISI (Hz)');
+            text(LightOnsetTime+0.25,-75,num2str(round(inverseISIforLight,2)),'color','red');
+            text(LightOnsetTime-1,-75,num2str(round(inverseISIforBaseline1,2)),'color','blue');
+            text(LightOnsetTime+3,-75,num2str(round(inverseISIforBaseline2,2)),'color','blue');
         end
         
+        
+%         function plotpsall(self,MinPeakHeight,LightOnsetTime)
+%             % This converts struct into array so I can use indexing to
+%             % access each sweep. sweepNamesFromFileStruct(1) gives me data
+%             % from first sweep. The data stored is the same as the data
+%             % stored in loadedSweep from function sweep(self, sweepNumber).
+%             % sweepNamesFromFileStruct(1:end) lists the data of all sweeps
+%             % from the file.
+%             sweepNamesFromFileStruct = struct2array(self.sweeps);
+%             numberOfSweepsInFile = size(sweepNamesFromFileStruct,2);
+%             arrayfun(@(x) self.xy(x),[1:end])
+%             
+%         end
+        
+
+        function plotpsall(self,firstSweepNumber,MinPeakHeight,LightOnsetTime)
+            sweepNumber = firstSweepNumber;
+            while sweepNumber <= firstSweepNumber + size(struct2array(self.sweeps),2)-1
+%                 subplotColumnIndex=1;
+%                 subplot(1,size(struct2array(self.sweeps),2),subplotColumnIndex);
+                self.plotps(sweepNumber,MinPeakHeight,LightOnsetTime);
+                sweepNumber = sweepNumber+1;
+%                 subplotColumnIndex = subplotColumnIndex+1;
+            end
+        end 
         
         function firingFrequency = ff(self, sweepNumber, MinPeakHeight, timeStart, timeEnd)
             [pks,locs,w,p] = self.peaks(sweepNumber, MinPeakHeight);
