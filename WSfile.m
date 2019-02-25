@@ -63,7 +63,7 @@ classdef WSfile
         
         % varargin: variable argument input (axes range)
         function plotxy(self, sweepNumbers,varargin)
-            figure;
+%             figure('Name',[self.file ' (' num2str(sweepNumbers) ')'],'NumberTitle','off');
             hold on;
             for sweepNumber = sweepNumbers
                 [x,y] = self.xy(sweepNumber);
@@ -156,7 +156,7 @@ classdef WSfile
             pksBaseline2 = pks;
             
             % indices are integers. Need to find indices at which the value
-            % of locs is between 15 and 16. Remember that locs stores the
+            % of locs is between LightOnsetTime and LightOnsetTime+1.25. Remember that locs stores the
             % time stamp at which a peak was detected
             indicesLight = find(locs<LightOnsetTime | locs>(LightOnsetTime+1.25));
             % deletes all peaks that happen before or after the light pulse
@@ -180,7 +180,7 @@ classdef WSfile
             inverseISIforLight = 1/mean(diff(locsLight));
             inverseISIforBaseline1 = 1/mean(diff(locsBaseline1));
             inverseISIforBaseline2 = 1/mean(diff(locsBaseline2));
-            
+                        
             self.plotxy(sweepNumber);
             hold on;
             plot(locsLight,pksLight,'o','color','red');
@@ -213,16 +213,30 @@ classdef WSfile
 %         end
         
 
-        function plotpsall(self,firstSweepNumber,MinPeakHeight,LightOnsetTime)
-            sweepNumber = firstSweepNumber;
-            while sweepNumber <= firstSweepNumber + size(struct2array(self.sweeps),2)-1
-%                 subplotColumnIndex=1;
-%                 subplot(1,size(struct2array(self.sweeps),2),subplotColumnIndex);
+        function plotpsall(self,MinPeakHeight,LightOnsetTime)
+            firstSweepNumber = str2num(self.file(end-11:end-8));
+            lastSweepNumber = str2num(self.file(end-6:end-3));
+            plotIndex = 1;            
+            for sweepNumber = firstSweepNumber:lastSweepNumber
+                subplot(1,lastSweepNumber-firstSweepNumber+1,plotIndex);
+                hold on;
                 self.plotps(sweepNumber,MinPeakHeight,LightOnsetTime);
-                sweepNumber = sweepNumber+1;
-%                 subplotColumnIndex = subplotColumnIndex+1;
+                plotIndex=plotIndex+1;
+%                 set(gcf,'Position',[100 200 1750 375]) % for 3 plots
+                set(gcf,'Position',[100 200 2200 375])  % for 5 plots
             end
-        end 
+            hold off;
+        end    
+            
+            
+%             while firstSweepNumber < firstSweepNumber + size(struct2array(self.sweeps),2)-1
+% %                 subplotColumnIndex=1;
+% %                 subplot(1,size(struct2array(self.sweeps),2),subplotColumnIndex);
+%                 self.plotps(firstSweepNumber,MinPeakHeight,LightOnsetTime);
+%                 firstSweepNumber = firstSweepNumber+1;
+% %                 subplotColumnIndex = subplotColumnIndex+1;
+%             end
+         
         
         function firingFrequency = ff(self, sweepNumber, MinPeakHeight, timeStart, timeEnd)
             [pks,locs,w,p] = self.peaks(sweepNumber, MinPeakHeight);
