@@ -89,7 +89,7 @@ classdef WSfile
             [xmin, xmax, ymin, ymax] = optargs{:};
             axis([xmin xmax ymin ymax])
         end
-          
+        
         
         function [x,dy] = xdy(self, sweepNumber)
             % Derivative of y values from sweep
@@ -140,7 +140,17 @@ classdef WSfile
         % plots selected peaks: 3 APs prior to light pulse, all APs during
         % light pulse, and 3 APs after light pulse. Displays firing
         % frequency as 1/ISI (ISI: Inter Spike Interval).
-        function plotps(self,sweepNumber,MinPeakHeight,LightOnsetTime)
+        function plotps(self,sweepNumber,MinPeakHeight,LightOnsetTime,varargin)
+                       
+            
+            % set defaults for optional inputs 
+            optargs = {1 5};
+            % now put these defaults into the valuesToUse cell array, 
+            % and overwrite the ones specified in varargin.
+            numvarargs = length(varargin);
+            optargs(1:numvarargs) = varargin;
+            % Place optional args in memorable variable names
+            [LightDur, NumPeaksBeforeAfter] = optargs{:};            
             
             [x,y] = self.xy(sweepNumber);
             [pks,locs,w,p] = findpeaks(y,x,'MinPeakHeight',MinPeakHeight);
@@ -158,7 +168,7 @@ classdef WSfile
             % indices are integers. Need to find indices at which the value
             % of locs is between LightOnsetTime and LightOnsetTime+1.25. Remember that locs stores the
             % time stamp at which a peak was detected
-            indicesLight = find(locs<LightOnsetTime | locs>(LightOnsetTime+1.25));
+            indicesLight = find(locs<LightOnsetTime | locs>(LightOnsetTime+LightDur*1.10));
             % deletes all peaks that happen before or after the light pulse
             % UPDATE: get data beyond light pulse (0.25 s after light pulse
             % ended)
@@ -168,14 +178,14 @@ classdef WSfile
             indicesBaseline1 = find(locs>=LightOnsetTime);
             locsBaseline1(indicesBaseline1) = [];
             pksBaseline1(indicesBaseline1) = [];
-            locsBaseline1(1:length(locsBaseline1)-5)=[];
-            pksBaseline1(1:length(pksBaseline1)-5)=[];
+            locsBaseline1(1:length(locsBaseline1)-NumPeaksBeforeAfter)=[];
+            pksBaseline1(1:length(pksBaseline1)-NumPeaksBeforeAfter)=[];
             
-            indicesBaseline2 = find(locs<=(LightOnsetTime+2));
+            indicesBaseline2 = find(locs<=(LightOnsetTime*1.3));
             locsBaseline2(indicesBaseline2) = [];
             pksBaseline2(indicesBaseline2) = [];
-            locsBaseline2(6:length(locsBaseline2))=[];
-            pksBaseline2(6:length(pksBaseline2))=[];
+            locsBaseline2(NumPeaksBeforeAfter+1:length(locsBaseline2))=[];
+            pksBaseline2(NumPeaksBeforeAfter+1:length(pksBaseline2))=[];
             
             inverseISIforLight = 1/mean(diff(locsLight));
             inverseISIforBaseline1 = 1/mean(diff(locsBaseline1));
@@ -186,16 +196,16 @@ classdef WSfile
             plot(locsLight,pksLight,'o','color','red');
             plot(locsBaseline1,pksBaseline1,'o','color','blue');
             plot(locsBaseline2,pksBaseline2,'o','color','blue');
-            rectangle('Position',[LightOnsetTime,-85,1,145],'FaceColor', [0 0 1 0.05],'LineStyle','none');
+            rectangle('Position',[LightOnsetTime,-85,LightDur,145],'FaceColor', [0 0 1 0.05],'LineStyle','none');
             hold off;
-            axis([LightOnsetTime-4 LightOnsetTime+5 -85 45]);
+            axis([LightOnsetTime-4 LightOnsetTime+LightDur+5 -85 45]);
             xlabel('Time (s)');
             ylabel('Voltage (mV)');
             title([self.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
             text(LightOnsetTime-3,-75,'1/ISI (Hz)');
             text(LightOnsetTime+0.25,-75,num2str(round(inverseISIforLight,2)),'color','red');
             text(LightOnsetTime-1,-75,num2str(round(inverseISIforBaseline1,2)),'color','blue');
-            text(LightOnsetTime+3,-75,num2str(round(inverseISIforBaseline2,2)),'color','blue');
+            text(LightOnsetTime+LightDur+3,-75,num2str(round(inverseISIforBaseline2,2)),'color','blue');
         end
         
         
@@ -213,14 +223,24 @@ classdef WSfile
 %         end
         
 
-        function plotpsall(self,MinPeakHeight,LightOnsetTime)
+        function plotpsall(self,MinPeakHeight,LightOnsetTime,varargin)
+            
+            % set defaults for optional inputs 
+            optargs = {1 5};
+            % now put these defaults into the valuesToUse cell array, 
+            % and overwrite the ones specified in varargin.
+            numvarargs = length(varargin);
+            optargs(1:numvarargs) = varargin;
+            % Place optional args in memorable variable names
+            [LightDur, NumPeaksBeforeAfter] = optargs{:};
+            
             firstSweepNumber = str2num(self.file(end-11:end-8));
             lastSweepNumber = str2num(self.file(end-6:end-3));
             plotIndex = 1;            
             for sweepNumber = firstSweepNumber:lastSweepNumber
                 subplot(1,lastSweepNumber-firstSweepNumber+1,plotIndex);
                 hold on;
-                self.plotps(sweepNumber,MinPeakHeight,LightOnsetTime);
+                self.plotps(sweepNumber,MinPeakHeight,LightOnsetTime,LightDur,NumPeaksBeforeAfter);
                 plotIndex=plotIndex+1;
 %                 set(gcf,'Position',[100 200 1750 375]) % for 3 plots
                 set(gcf,'Position',[100 200 2200 375])  % for 5 plots
@@ -246,6 +266,72 @@ classdef WSfile
             
             numPeaks = sum((locs>=timeStart & locs<=timeEnd));
             firingFrequency = numPeaks/(timeEnd-timeStart);          
+        end
+        
+        % plots histogram of firing frequency based on 1/ISI
+        function ploth1(self,sweepNumber,MinPeakHeight,varargin)
+
+            % set defaults for optional inputs 
+            optargs = {6};
+            % now put these defaults into the valuesToUse cell array, 
+            % and overwrite the ones specified in varargin.
+            numvarargs = length(varargin);
+            optargs(1:numvarargs) = varargin;
+            % Place optional args in memorable variable names
+            [ymax] = optargs{:};
+            
+            [x,y] = self.xy(sweepNumber);
+            [pks,locs,w,p] = findpeaks(y,x,'MinPeakHeight',MinPeakHeight);
+
+            sweepDuration = self.header.Acquisition.Duration;
+            sweepTime=0;
+            inverseISIperSecBin=[];
+            
+            while sweepTime <= sweepTime+1 & sweepTime < sweepDuration
+                indicesToDelete = find(locs<sweepTime | locs>=sweepTime+1);
+                locsDuringSweepTime = locs;
+                locsDuringSweepTime(indicesToDelete) = [];
+                inverseISIperSecBin=[inverseISIperSecBin 1/mean(diff(locsDuringSweepTime))];
+%                 inverseISIperSecBin=[inverseISIperSecBin; sweepTime 1/mean(diff(locsDuringSweepTime))];
+%                 locsDuringSweepTime
+%                 diff(locsDuringSweepTime)
+%                 1/mean(diff(locsDuringSweepTime))
+%                 inverseISIperSecBin
+                sweepTime=sweepTime+1;
+            end
+            
+%             histogram(inverseISIperSecBin);
+            bar(1:30,inverseISIperSecBin,1);
+            axis([-inf inf 0 ymax]);
+            
+            xlabel('Bins (1 s long)');
+            ylabel('Firing Frequency (Mean 1/ISI)');
+            title([self.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
+        end
+        
+        
+        % plots histogram of firing frequency based number of action
+        % potentials per second
+        function ploth2(self,sweepNumber,MinPeakHeight,varargin)
+
+            % set defaults for optional inputs 
+            optargs = {6};
+            % now put these defaults into the valuesToUse cell array, 
+            % and overwrite the ones specified in varargin.
+            numvarargs = length(varargin);
+            optargs(1:numvarargs) = varargin;
+            % Place optional args in memorable variable names
+            [ymax] = optargs{:};
+            
+            [x,y] = self.xy(sweepNumber);
+            [pks,locs,w,p] = findpeaks(y,x,'MinPeakHeight',MinPeakHeight);
+
+            histogram(locs,30)
+            axis([-inf inf 0 ymax]);
+            
+            xlabel('Bins (1 s long)');
+            ylabel('Number of Action Potentials');
+            title([self.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
         end
     end
 end
