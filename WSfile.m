@@ -9,6 +9,8 @@
 
 %       arrayfun(@(x) s184.plotxy(x),[184:187])      plot sweeps 184-187 in different figures
 
+% figure;s117.plotpsall(0,15,3);figure;s117.ploth1all(0,10);figure;s117.ploth2all(0,10)
+
 classdef WSfile
    
     properties
@@ -242,8 +244,8 @@ classdef WSfile
                 hold on;
                 self.plotps(sweepNumber,MinPeakHeight,LightOnsetTime,LightDur,NumPeaksBeforeAfter);
                 plotIndex=plotIndex+1;
-%                 set(gcf,'Position',[100 200 1750 375]) % for 3 plots
-                set(gcf,'Position',[100 200 2200 375])  % for 5 plots
+                set(gcf,'Position',[100 200 1750 375]) % for 3 plots
+%                 set(gcf,'Position',[100 200 2200 375])  % for 5 plots
             end
             hold off;
         end    
@@ -267,6 +269,7 @@ classdef WSfile
             numPeaks = sum((locs>=timeStart & locs<=timeEnd));
             firingFrequency = numPeaks/(timeEnd-timeStart);          
         end
+        
         
         % plots histogram of firing frequency based on 1/ISI
         function ploth1(self,sweepNumber,MinPeakHeight,varargin)
@@ -326,12 +329,62 @@ classdef WSfile
             [x,y] = self.xy(sweepNumber);
             [pks,locs,w,p] = findpeaks(y,x,'MinPeakHeight',MinPeakHeight);
 
-            histogram(locs,30)
+            histogram(locs,0:1:30)
             axis([-inf inf 0 ymax]);
             
             xlabel('Bins (1 s long)');
             ylabel('Number of Action Potentials');
             title([self.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
+        end
+        
+        function ploth1all(self,MinPeakHeight,varargin)
+            
+            % set defaults for optional inputs 
+            optargs = {6};
+            % now put these defaults into the valuesToUse cell array, 
+            % and overwrite the ones specified in varargin.
+            numvarargs = length(varargin);
+            optargs(1:numvarargs) = varargin;
+            % Place optional args in memorable variable names
+            [ymax] = optargs{:};
+            
+            firstSweepNumber = str2num(self.file(end-11:end-8));
+            lastSweepNumber = str2num(self.file(end-6:end-3));
+            plotIndex = 1;            
+            for sweepNumber = firstSweepNumber:lastSweepNumber
+                subplot(1,lastSweepNumber-firstSweepNumber+1,plotIndex);
+                hold on;
+                self.ploth1(sweepNumber,MinPeakHeight,ymax);
+                plotIndex=plotIndex+1;
+                set(gcf,'Position',[100 200 1750 375]) % for 3 plots
+%                 set(gcf,'Position',[100 200 2200 375])  % for 5 plots
+            end
+            hold off;
+        end
+        
+        function ploth2all(self,MinPeakHeight,varargin)
+            
+            % set defaults for optional inputs 
+            optargs = {6};
+            % now put these defaults into the valuesToUse cell array, 
+            % and overwrite the ones specified in varargin.
+            numvarargs = length(varargin);
+            optargs(1:numvarargs) = varargin;
+            % Place optional args in memorable variable names
+            [ymax] = optargs{:};
+            
+            firstSweepNumber = str2num(self.file(end-11:end-8));
+            lastSweepNumber = str2num(self.file(end-6:end-3));
+            plotIndex = 1;            
+            for sweepNumber = firstSweepNumber:lastSweepNumber
+                subplot(1,lastSweepNumber-firstSweepNumber+1,plotIndex);
+                hold on;
+                self.ploth2(sweepNumber,MinPeakHeight,ymax);
+                plotIndex=plotIndex+1;
+                set(gcf,'Position',[100 200 1750 375]) % for 3 plots
+%                 set(gcf,'Position',[100 200 2200 375])  % for 5 plots
+            end
+            hold off;
         end
     end
 end
