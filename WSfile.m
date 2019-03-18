@@ -11,6 +11,11 @@
 
 % figure;s117.plotpsall(0,15,3);figure;s117.ploth1all(0,10);figure;s117.ploth2all(0,10)
 
+% To hear the data as a sound
+% First load the data              file = WSfile(...)
+% Then load the sweep data         [x,y] = file.xy(sweepNumber)
+% Then you play by using           soundsc(y, sampleRate)
+
 classdef WSfile
    
     properties

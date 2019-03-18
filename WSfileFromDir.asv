@@ -1,0 +1,15 @@
+function mouseNumber = WSfileFromDir(dirName)
+
+    files=dir(fullfile(dirName, '*.h5'));
+    fileNames={files.name}';
+    
+    mouseNumber = struct;
+    
+    i=1;
+    while i <= length(fileNames)
+        
+%         field = fileNames{i}(end-11:end-8);    
+%         mouseNumber.(i) = WSfile(fileNames{i});
+        i=i+1;
+    end
+end
