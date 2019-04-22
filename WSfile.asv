@@ -445,6 +445,8 @@ classdef WSfile
             % time stamp at which a peak was detected
             indicesLight = find(locs<LightOnsetTime | locs>(LightOnsetTime+LightDur*LightExtensionFactor));
             % deletes all peaks that happen before or after the light pulse
+            % UPDATE: get data beyond light pulse (0.25 s after light pulse
+            % ended)
             locsLight(indicesLight) = [];
             pksLight(indicesLight) = [];
             
@@ -466,9 +468,9 @@ classdef WSfile
                         
             self.plotxy(sweepNumber);
             hold on;
-            plot(locsLight,-pksLight,'o','color','red');
-            plot(locsBaseline1,-pksBaseline1,'o','color','blue');
-            plot(locsBaseline2,-pksBaseline2,'o','color','blue');
+            plot(locsLight,pksLight,'o','color','red');
+            plot(locsBaseline1,pksBaseline1,'o','color','blue');
+            plot(locsBaseline2,pksBaseline2,'o','color','blue');
             rectangle('Position',[LightOnsetTime,-85,LightDur,145],'FaceColor', [0 0 1 0.05],'LineStyle','none');
             hold off;
             axis([LightOnsetTime-4 LightOnsetTime+LightDur+5 -85 45]);
@@ -479,94 +481,6 @@ classdef WSfile
             text(LightOnsetTime+0.25,-75,num2str(round(inverseISIforLight,2)),'color','red');
             text(LightOnsetTime-1,-75,num2str(round(inverseISIforBaseline1,2)),'color','blue');
             text(LightOnsetTime+LightDur+3,-75,num2str(round(inverseISIforBaseline2,2)),'color','blue');
-        end
-        
-        
-        function plotpsONall(self,MinPeakHeight,LightOnsetTime,varargin)
-            
-            % set defaults for optional inputs 
-            optargs = {1 10};
-            % now put these defaults into the valuesToUse cell array, 
-            % and overwrite the ones specified in varargin.
-            numvarargs = length(varargin);
-            optargs(1:numvarargs) = varargin;
-            % Place optional args in memorable variable names
-            [LightDur, NumPeaksBeforeAfter] = optargs{:};
-            
-            firstSweepNumber = str2num(self.file(end-11:end-8));
-            lastSweepNumber = str2num(self.file(end-6:end-3));
-            plotIndex = 1;            
-            for sweepNumber = firstSweepNumber:lastSweepNumber
-                subplot(1,lastSweepNumber-firstSweepNumber+1,plotIndex);
-                hold on;
-                self.plotpsON(sweepNumber,MinPeakHeight,LightOnsetTime,LightDur,NumPeaksBeforeAfter);
-                plotIndex=plotIndex+1;
-                set(gcf,'Position',[100 200 1750 375]) % for 3 plots
-%                 set(gcf,'Position',[100 200 2200 375])  % for 5 plots
-            end
-            hold off;
-        end
-        
-        
-        % plots histogram of firing frequency based on 1/ISI
-        function ploth1ON(self,sweepNumber,MinPeakHeight,varargin)
-
-            % set defaults for optional inputs 
-            optargs = {6};
-            % now put these defaults into the valuesToUse cell array, 
-            % and overwrite the ones specified in varargin.
-            numvarargs = length(varargin);
-            optargs(1:numvarargs) = varargin;
-            % Place optional args in memorable variable names
-            [ymax] = optargs{:};
-            
-            [x,y] = self.xy(sweepNumber);
-            [pks,locs,w,p] = findpeaks(-y,x,'MinPeakHeight',MinPeakHeight);
-
-            sweepDuration = self.header.Acquisition.Duration;
-            sweepTime=0;
-            inverseISIperSecBin=[];
-            
-            while sweepTime <= sweepTime+1 & sweepTime < sweepDuration
-                indicesToDelete = find(locs<sweepTime | locs>=sweepTime+1);
-                locsDuringSweepTime = locs;
-                locsDuringSweepTime(indicesToDelete) = [];
-                inverseISIperSecBin=[inverseISIperSecBin 1/mean(diff(locsDuringSweepTime))];
-
-                sweepTime=sweepTime+1;
-            end
-            
-            bar(1:30,inverseISIperSecBin,1);
-            axis([-inf inf 0 ymax]);
-            
-            xlabel('Bins (1 s long)');
-            ylabel('Firing Frequency (Mean 1/ISI)');
-            title([self.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
-        end
-        
-        function ploth1ONall(self,MinPeakHeight,varargin)
-            
-            % set defaults for optional inputs 
-            optargs = {6};
-            % now put these defaults into the valuesToUse cell array, 
-            % and overwrite the ones specified in varargin.
-            numvarargs = length(varargin);
-            optargs(1:numvarargs) = varargin;
-            % Place optional args in memorable variable names
-            [ymax] = optargs{:};
-            
-            firstSweepNumber = str2num(self.file(end-11:end-8));
-            lastSweepNumber = str2num(self.file(end-6:end-3));
-            plotIndex = 1;            
-            for sweepNumber = firstSweepNumber:lastSweepNumber
-                subplot(1,lastSweepNumber-firstSweepNumber+1,plotIndex);
-                hold on;
-                self.ploth1ON(sweepNumber,MinPeakHeight,ymax);
-                plotIndex=plotIndex+1;
-                set(gcf,'Position',[100 200 1750 375]) % for 3 plots
-%                 set(gcf,'Position',[100 200 2200 375])  % for 5 plots
-            end
-            hold off;
         end
         
         
