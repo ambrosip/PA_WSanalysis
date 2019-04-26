@@ -35,6 +35,9 @@ classdef WSfile
     end
     
     methods
+        plotxyall(self, varargin)
+        plotxdyenvall(self, varargin)
+        
         function obj = WSfile(fileName)
             % Need to put single quotes around file name
             % Ex: WSfile('m282_2019-02-12_0089-0090.h5')
@@ -70,8 +73,11 @@ classdef WSfile
             % variable if you want to choose channel
             rawY = sweepData.analogScans(:,1);
             
-            % Need to scale y values according to Multiclamp gain
-            y = rawY*self.header.Acquisition.AnalogChannelScales(1)*100;
+%             % Need to scale y values according to Multiclamp gain - only
+%             % relevant for early data acquired before reconnecting
+%             % communication between amplifier and digidata.
+%             y = rawY*self.header.Acquisition.AnalogChannelScales(1)*100;
+            y = rawY;
             
             sweepDuration = size(y,1)/samplingFrequency;
             x = linspace(0,sweepDuration,size(y,1))';
@@ -119,7 +125,9 @@ classdef WSfile
             samplingFrequency = self.header.Acquisition.SampleRate;
             sweepData = self.sweep(sweepNumber);
             rawY = sweepData.analogScans(:,1);
-            y = rawY*self.header.Acquisition.AnalogChannelScales(1)*100;
+%             y = rawY*self.header.Acquisition.AnalogChannelScales(1)*100;
+%             scaling no longer applies!
+            y = rawY;
             dy = diff(y);
             
             duration = size(y,1)/samplingFrequency;
