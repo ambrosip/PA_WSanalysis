@@ -1,0 +1,77 @@
+function plotxyallch(obj, varargin)
+
+% EX: plotxyall(m293.s0061);
+    % EX: plotxyallch(m293.s0061,1);
+    % EX: plotxyallch(m293.s0061,1,-inf,inf,-1000,500);    
+    
+    % optional arguments: axis range
+    numvarargs = length(varargin);
+    optargs = {-inf inf -inf inf};
+    optargs(1:numvarargs) = varargin;
+    [xmin, xmax, ymin, ymax] = optargs{:};
+    
+    % finding sweep numbers from file name
+    if length(obj.file) == 28
+        firstSweepNumber = str2num(obj.file(end-11:end-8));
+        lastSweepNumber = str2num(obj.file(end-6:end-3));
+        
+    else
+        firstSweepNumber = str2num(obj.file(end-6:end-3));
+        lastSweepNumber = str2num(obj.file(end-6:end-3));
+        
+    end
+    
+    allSweeps = firstSweepNumber:lastSweepNumber;
+    totalActiveChannels = obj.header.Acquisition.ActiveChannelIndexFromChannelIndex(end);
+    
+    % plotting one figure with all sweeps
+    figure('name', strcat(obj.file,' (all) - all Channels')); % naming figure file
+    
+    for sweepNumber = allSweeps  
+        hold on;
+        [x,y] = obj.xy(sweepNumber, 1);
+        subplot(totalActiveChannels,1,1)
+        plot(x,y);
+        axis([xmin xmax ymin ymax])
+        xlabel('Time (s)');
+        ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+        title([obj.file ' (all)'],'Interpreter','none');
+    end
+    hold off;    
+    
+    for channel = 2:totalActiveChannels
+        for sweepNumber = allSweeps
+        hold on;
+        [x,y] = obj.xy(sweepNumber, channel);     
+        subplot(totalActiveChannels,1,channel)
+        plot(x,y);
+        axis([xmin xmax -inf inf])
+        xlabel('Time (s)');
+        ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(channel), ' (', obj.header.Acquisition.AnalogChannelUnits(channel), ')'));
+        end
+        hold off;
+    end
+    movegui('northwest');
+    
+    % plotting individual figures for all sweeps    
+    for sweepNumber = allSweeps  
+        figure('name', strcat(obj.file,' (',num2str(sweepNumber),') - all Channels'));
+        [x,y] = obj.xy(sweepNumber, 1);
+        subplot(totalActiveChannels,1,1)
+        plot(x,y);
+        axis([xmin xmax ymin ymax])
+        xlabel('Time (s)');
+        ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+        title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
+        
+        for channel = 2:totalActiveChannels
+            [x,y] = obj.xy(sweepNumber, channel);     
+            subplot(totalActiveChannels,1,channel)
+            plot(x,y);
+            axis([xmin xmax -inf inf])
+            xlabel('Time (s)');
+            ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(channel), ' (', obj.header.Acquisition.AnalogChannelUnits(channel), ')'));
+        end
+        movegui('north');
+    end    
+end

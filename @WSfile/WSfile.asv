@@ -37,8 +37,7 @@ classdef WSfile
     methods
         plotxyall(self, varargin)
         plotxdyenvall(self, varargin)
-        plotxyallch(self, varargin)
-        psallch(self, varargin)
+        plo
         
         function obj = WSfile(fileName)
             % Need to put single quotes around file name

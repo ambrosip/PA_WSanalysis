@@ -1,8 +1,7 @@
 function plotxyall(obj, varargin)
 
     % EX: plotxyall(m293.s0061);
-    % EX: plotxyall(m293.s0061,1);
-    % EX: plotxyall(m293.s0061,1,-inf,inf,-1000,500);    
+    % EX: plotxyall(m293.s0061,-inf,inf,-1000,500);    
     
     % optional arguments: axis range
     numvarargs = length(varargin);
@@ -28,7 +27,7 @@ function plotxyall(obj, varargin)
     hold on;
     for sweepNumber = allSweeps
         [x,y] = obj.xy(sweepNumber, channel);
-        plot(x,y);
+        plot(x,y)
     end
 	hold off;
     axis([xmin xmax ymin ymax])
@@ -40,7 +39,7 @@ function plotxyall(obj, varargin)
     % plotting individual figures for all sweeps
     for sweepNumber = allSweeps
         figure('name', strcat(obj.file,' (',num2str(sweepNumber),')'));
-        [x,y] = obj.xy(sweepNumber, channel);
+        [x,y] = obj.xy(sweepNumber);
         plot(x,y)
         axis([xmin xmax ymin ymax])
         xlabel('Time (s)');
