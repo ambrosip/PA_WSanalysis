@@ -1,13 +1,14 @@
-function psallch(obj, varargin)
+function psallONdy(obj, varargin)
 
     % optional arguments
     % set defaults for optional inputs 
-    optargs = {1 0 12 45 15 10 0.005 1 1};
+    %======= NOTE CAPPING OF SIGNAL AT 12 HZ: 1/12 = 0.083
+    optargs = {200 1 12 inf 15 10 0.083 1 1};
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
     % place optional args in memorable variable names
-    [LightDur, MinPeakHeight, ymaxhist, ymax, LightOnsetTime, NumPeaksBeforeAfter, MinPeakDistance, DelayScaleFactor, LightExtensionFactor] = optargs{:};
+    [MinPeakHeight, LightDur, ymaxhist, ymax, LightOnsetTime, NumPeaksBeforeAfter, MinPeakDistance, DelayScaleFactor, LightExtensionFactor] = optargs{:};
 
     % finding sweep numbers from file name
     if length(obj.file) == 28
@@ -26,8 +27,9 @@ function psallch(obj, varargin)
     for sweepNumber = allSweeps
         figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - histogram')); % naming figure file
         subplot(2,1,1)
-        [x,y] = obj.xy(sweepNumber, 1);
-        [pks,locs,w,p] = findpeaks(y,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+        [x,y] = obj.xdy(sweepNumber);
+        [yupper, ylower] = envelope(y);     
+        [pks,locs,w,p] = findpeaks(yupper,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
         
         sweepDuration = obj.header.Acquisition.Duration;
         sweepTime=0;
@@ -68,8 +70,9 @@ function psallch(obj, varargin)
     % plotting one figure per sweep that shows Ch1, Ch2, peaks, and 1/ISI    
     for sweepNumber = allSweeps
         figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - peaks')); % naming figure file
-        [x,y] = obj.xy(sweepNumber, 1);
-        [pks,locs,w,p] = findpeaks(y,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+        [x,y] = obj.xdy(sweepNumber);
+        [yupper, ylower] = envelope(y);          
+        [pks,locs,w,p] = findpeaks(yupper,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
         
         % store locs and pks values in new variables that will be editted
         % acordingly
@@ -114,16 +117,16 @@ function psallch(obj, varargin)
         % Ch1 subplot (recorded data)
         subplot(2,1,1);
         % OLD: subplot(2,lastSweepNumber-firstSweepNumber+1,sweepNumber-firstSweepNumber+1);
-        plot(x,y)
+        plot(x,yupper)
         hold on;
         plot(locsLight,pksLight,'o','color','red');
         plot(locsBaseline1,pksBaseline1,'o','color','blue');
         plot(locsBaseline2,pksBaseline2,'o','color','blue');
 %         rectangle('Position',[LightOnsetTime,-85,LightDur,145],'FaceColor', [0 0 1 0.05],'LineStyle','none');
         hold off;
-        axis([LightOnsetTime-4 LightOnsetTime+LightDur+4 -85 ymax])
+        axis([LightOnsetTime-4 LightOnsetTime+LightDur+4 -inf ymax])
         xlabel('Time (s)');
-        ylabel(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits);
+        ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ' (env)'));
         title([obj.file ' (' num2str(sweepNumber) ') - peaks'],'Interpreter','none');
         text(LightOnsetTime + LightDur/4,-75,num2str(round(inverseISIforLight,2)),'color','red');
         text(LightOnsetTime - 3,-75,num2str(round(inverseISIforBaseline1,2)),'color','blue');

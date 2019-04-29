@@ -2,12 +2,12 @@ function psallch(obj, varargin)
 
     % optional arguments
     % set defaults for optional inputs 
-    optargs = {0 15 1 10 0.005 1 1};
+    optargs = {12 45 1 0 15 10 0.005 1 1};
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
     % place optional args in memorable variable names
-    [MinPeakHeight, LightOnsetTime, LightDur, NumPeaksBeforeAfter, MinPeakDistance, DelayScaleFactor, LightExtensionFactor] = optargs{:};
+    [ymaxhist, ymax, LightDur, MinPeakHeight, LightOnsetTime, NumPeaksBeforeAfter, MinPeakDistance, DelayScaleFactor, LightExtensionFactor] = optargs{:};
 
     % finding sweep numbers from file name
     if length(obj.file) == 28
@@ -22,9 +22,55 @@ function psallch(obj, varargin)
     
     allSweeps = firstSweepNumber:lastSweepNumber;
     
+    % plotting one figure per sweep that shows firing rate histogram for the whole sweep
+    for sweepNumber = allSweeps
+        figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - histogram')); % naming figure file
+        subplot(2,1,1)
+        [x,y] = obj.xy(sweepNumber, 1);
+        [pks,locs,w,p] = findpeaks(y,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+        
+        sweepDuration = obj.header.Acquisition.Duration;
+        sweepTime=0;
+        inverseISIperSecBin=[];
+                   
+        while sweepTime <= sweepTime+1 & sweepTime < sweepDuration
+            indicesToDelete = find(locs<sweepTime | locs>=sweepTime+1);
+            locsDuringSweepTime = locs;
+            locsDuringSweepTime(indicesToDelete) = [];
+            inverseISIperSecBin=[inverseISIperSecBin 1/mean(diff(locsDuringSweepTime))];
+            sweepTime=sweepTime+1;
+        end
+
+        bar(0:29,inverseISIperSecBin,1);
+        axis([-inf inf 0 ymaxhist]);
+            
+        xlabel('Bins (1 s long)');
+%         ylabel('Firing Frequency (Mean 1/ISI)');
+        ylabel('1/ISI (Hz)');
+        title([' (' num2str(sweepNumber) ') - hist'],'Interpreter','none');
+%         title([obj.file ' (' num2str(sweepNumber) ') - histogram'],'Interpreter','none');
+%         set(gcf,'Position',[1 1 560 420]) % default figure size in Matlab
+        
+        subplot(2,1,2)
+        [x,y] = obj.xy(sweepNumber, 2);     
+        plot(x,y);
+            yminhere = min(y)-5;
+            ymaxhere = max(y)+5;
+            axis([xmin xmax yminhere ymaxhere])
+            xlabel('Time (s)');
+            ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(channel), ' (', obj.header.Acquisition.AnalogChannelUnits(channel), ')'));
+        
+        
+        
+
+        set(gcf,'Position',[1 1 280 210])
+        movegui('northwest');
+    end
+    
+    
     % plotting one figure per sweep that shows Ch1, Ch2, peaks, and 1/ISI    
     for sweepNumber = allSweeps
-        figure('name', strcat(obj.file, 'num2str(sweepNumber), ') - peaks')); % naming figure file
+        figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - peaks')); % naming figure file
         [x,y] = obj.xy(sweepNumber, 1);
         [pks,locs,w,p] = findpeaks(y,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
         
@@ -78,10 +124,10 @@ function psallch(obj, varargin)
         plot(locsBaseline2,pksBaseline2,'o','color','blue');
 %         rectangle('Position',[LightOnsetTime,-85,LightDur,145],'FaceColor', [0 0 1 0.05],'LineStyle','none');
         hold off;
-        axis([LightOnsetTime-4 LightOnsetTime+LightDur+4 -85 45])
+        axis([LightOnsetTime-4 LightOnsetTime+LightDur+4 -85 ymax])
         xlabel('Time (s)');
         ylabel(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits);
-        title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
+        title([obj.file ' (' num2str(sweepNumber) ') - peaks'],'Interpreter','none');
         text(LightOnsetTime + LightDur/4,-75,num2str(round(inverseISIforLight,2)),'color','red');
         text(LightOnsetTime - 3,-75,num2str(round(inverseISIforBaseline1,2)),'color','blue');
         text(LightOnsetTime + LightDur + 2,-75,num2str(round(inverseISIforBaseline2,2)),'color','blue');

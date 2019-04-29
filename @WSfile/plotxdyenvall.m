@@ -39,7 +39,7 @@ function plotxyenvall(obj, varargin)
     for sweepNumber = allSweeps
         figure;
         [x,y] = obj.xy(sweepNumber);
-        y = lowpass(y,150,samplingFrequency);
+%         y = lowpass(y,150,samplingFrequency);
         [yupper, ylower] = envelope(y);
         plot(x,yupper)
         axis([xmin xmax ymin ymax])
