@@ -41,6 +41,9 @@ classdef WSfile
         psallch(self, varargin)
         psallON(self, varargin)
         psallONdy(self, varargin)
+        plotxyallch2(self, varargin)    % merges 2 sweeps at a time
+        plotxyall2ch(self, varargin)    % plots only TWO channels
+        plotxyall2ch2(self, varargin)    % plots only TWO channels & merges 2 sweeps
         
         function obj = WSfile(fileName)
             % Need to put single quotes around file name

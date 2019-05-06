@@ -38,7 +38,7 @@ function plotxyallch(obj, varargin)
         subplot(totalActiveChannels,1,1)
         plot(x,y);
         axis([xmin xmax ymin ymax])
-        xlabel('Time (s)');
+%         xlabel('Time (s)');
         ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
         title([obj.file ' (all)'],'Interpreter','none');
     end
@@ -54,9 +54,10 @@ function plotxyallch(obj, varargin)
         yminhere = min(y)-5;
         ymaxhere = max(y)+5;
         axis([xmin xmax yminhere ymaxhere])
-        xlabel('Time (s)');
+%         xlabel('Time (s)');
         ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(channel), ' (', obj.header.Acquisition.AnalogChannelUnits(channel), ')'));
         end
+        xlabel('Time (s)');
         hold off;
     end
     movegui('northwest');
@@ -68,7 +69,7 @@ function plotxyallch(obj, varargin)
         subplot(totalActiveChannels,1,1)
         plot(x,y);
         axis([xmin xmax ymin ymax])
-        xlabel('Time (s)');
+%         xlabel('Time (s)');
         ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
         title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
         
@@ -79,9 +80,12 @@ function plotxyallch(obj, varargin)
             yminhere = min(y)-5;
             ymaxhere = max(y)+5;
             axis([xmin xmax yminhere ymaxhere])
-            xlabel('Time (s)');
+%             xlabel('Time (s)');
             ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(channel), ' (', obj.header.Acquisition.AnalogChannelUnits(channel), ')'));
         end
+        xlabel('Time (s)');
         movegui('north');
-    end    
+    end 
+    
+%     distFig()
 end
