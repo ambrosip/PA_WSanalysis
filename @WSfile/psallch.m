@@ -64,6 +64,31 @@ function psallch(obj, varargin)
         movegui('northwest');
     end
     
+    % plotting one figure per sweep that shows whole sweep
+    for sweepNumber = allSweeps
+        figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - raw')); % naming figure file
+        
+        subplot(2,1,1)
+        [x,y] = obj.xy(sweepNumber, 1);    
+        plot(x,y);
+        axis([-inf inf -85 ymax]);           
+        xlabel('Time (s)');
+        ylabel(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits);
+        title([' (' num2str(sweepNumber) ') - raw'],'Interpreter','none');
+      
+        subplot(2,1,2)
+        [x,y] = obj.xy(sweepNumber, 2);     
+        plot(x,y);
+        yminhere = min(y)-5;
+        ymaxhere = max(y)+5;
+        axis([0 30 yminhere ymaxhere])
+        xlabel('Time (s)');
+        ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(2), ' (', obj.header.Acquisition.AnalogChannelUnits(2), ')'));
+        
+        set(gcf,'Position',[1 1 280 420])
+        movegui('northeast');
+    end
+    
     
     % plotting one figure per sweep that shows Ch1, Ch2, peaks, and 1/ISI    
     for sweepNumber = allSweeps
