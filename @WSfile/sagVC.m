@@ -43,11 +43,11 @@ function [data, dataPerSweepCh1, dataPerSweepCh2] = sagVC(obj,varargin)
     subplot(2,1,1)
     hold on;
     plot(x,y);
-    axis([3.5, 7.5, -1500, 500])
+    axis([3.5, 7.5, -2000, 500])
     line([3.5, 7.5],[leakCurrent, leakCurrent],'Color','red','LineStyle','--')
     plot(xForSagPeak, sagPeak,'o','color','red');
-    text(4.5,250,strcat("Sag Ratio = ", num2str(round(sagRatio,2))),'color','black');
-    text(4.5,0,strcat("Sag Current = ", num2str(round(sagCurrent,2)), " pA"),'color','black');
+%     text(4.5,250,strcat("Sag Ratio = ", num2str(round(sagRatio,2))),'color','black');
+    text(4.5,0,strcat('Sag Current = ', num2str(round(sagCurrent,2)), ' pA'),'color','black');
 %     text(LightOnsetTime + LightDur/4,-75,num2str(round(inverseISIforLight,2)),'color','red');
     hold off;
     ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));

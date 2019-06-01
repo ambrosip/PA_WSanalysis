@@ -28,7 +28,7 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = sag(obj);
     ylabel('Sag Ratio');
     xlabel('Current Step (pA)')
     title([strcat(obj.file, ' - sag ratio per pA')],'Interpreter','none');
-    axis([-inf inf 0 5])
+    axis([-inf inf 0 2])
     set(gca, 'XDir','reverse') % reverses x axis 
     
     figure('name', strcat(obj.file, ' (-150 pA step)'));

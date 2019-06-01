@@ -17,33 +17,40 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = excitability(o
 
     for sweepNumber = allSweeps
         [x,y] = obj.xy(sweepNumber, 1);
-        [xch2,ych2] = obj.xy(sweepNumber, 2);
-
-        [pks,locs,w,p] = findpeaks(y,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
-        currentStep = max(ych2);
-
-        locsCurrentStep = locs;
-    %     pksCurrentStep = pks;
-
-        indicesNotCurrentStep = find(locs<1 | locs>1.5);
-        locsCurrentStep(indicesNotCurrentStep) = [];
-    %     pksCurrentStep(indicesNotCurrentStep) = [];
-
-        numberAP = length(locsCurrentStep);
         
-        if length(locsCurrentStep > 1)       
-            allISI = diff(locsCurrentStep);
-            firstISIinv = 1/allISI(1);
-            lastISIinv = 1/allISI(end);
+                       
+        if length(dataPerSweepCh1) <= length(x)
+            [xch2,ych2] = obj.xy(sweepNumber, 2);
+
+            [pks,locs,w,p] = findpeaks(y,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+            currentStep = max(ych2);
+
+            locsCurrentStep = locs;
+        %     pksCurrentStep = pks;
+
+            indicesNotCurrentStep = find(locs<1 | locs>1.5);
+            locsCurrentStep(indicesNotCurrentStep) = [];
+        %     pksCurrentStep(indicesNotCurrentStep) = [];
+
+            numberAP = length(locsCurrentStep);
+
+            if length(locsCurrentStep) > 1       
+                allISI = diff(locsCurrentStep);
+                firstISIinv = 1/allISI(1);
+                lastISIinv = 1/allISI(end);
+            else
+                allISI = 0;
+                firstISIinv = 0;
+                lastISIinv = 0;
+            end         
+
+            dataPerCurrentStep = [dataPerCurrentStep; currentStep, numberAP, firstISIinv, lastISIinv];
+            dataPerSweepCh1 = [dataPerSweepCh1, x, y];
+            dataPerSweepCh2 = [dataPerSweepCh2, xch2, ych2];
+            
         else
-            allISI = 0;
-            firstISIinv = 0;
-            lastISIinv = 0;
-        end         
-        
-        dataPerCurrentStep = [dataPerCurrentStep; currentStep, numberAP, firstISIinv, lastISIinv];
-        dataPerSweepCh1 = [dataPerSweepCh1, x, y];
-        dataPerSweepCh2 = [dataPerSweepCh2, xch2, ych2];
+            disp('Last sweep was incomplete');
+        end
 
     end
     
