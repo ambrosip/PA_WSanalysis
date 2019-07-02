@@ -1,4 +1,13 @@
-function saveAllFigs(dirName)
+function saveAllFigs(varargin)
+
+    % optional arguments
+    % set defaults for optional inputs 
+    optargs = {'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
+    % overwrite defaults with values specified in varargin
+    numvarargs = length(varargin);
+    optargs(1:numvarargs) = varargin;
+    % place optional args in memorable variable names
+    [dirName] = optargs{:};
 
     % EX:
     % saveAllFigs('R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data
@@ -17,5 +26,7 @@ function saveAllFigs(dirName)
       set(0, 'CurrentFigure', FigHandle);
       saveas(FigHandle,fullfile(FolderName, [FigName '.tiff']));
     end
+    
+    disp('I did it')
 
 end

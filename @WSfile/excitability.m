@@ -2,12 +2,12 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = excitability(o
 
     % optional arguments
     % set defaults for optional inputs 
-    optargs = {-10 0};
+    optargs = {-10 0 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
     % place optional args in memorable variable names
-    [MinPeakHeight, MinPeakDistance] = optargs{:};
+    [MinPeakHeight, MinPeakDistance, savefileto] = optargs{:};
 
     [firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj);
 
@@ -91,7 +91,15 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = excitability(o
     hold off;
     ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(2), ' (', obj.header.Acquisition.AnalogChannelUnits(2), ')'));
     xlabel('Time (s)');
-    
+     
+    % save csv file with dataPerCurrentStep 
+    filename = strcat(obj.file(1:15),'_',num2str(allSweeps(1)),'-',num2str(allSweeps(end))," - excitability");
+    fulldirectory = strcat(savefileto,'\',filename,'.csv');
+    dataPerCurrentStepInCellFormat = {};
+    dataPerCurrentStepInCellFormat = num2cell(dataPerCurrentStep);
+    labeledData = cell2table(dataPerCurrentStepInCellFormat,'VariableNames',{'currentStep', 'numberAP', 'firstISIinv', 'lastISIinv'});
+    writetable(labeledData,fulldirectory);        
+    disp('change directory if you want this saved elsewhere!')    
 
 end
 

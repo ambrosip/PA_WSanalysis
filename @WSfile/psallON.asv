@@ -3,12 +3,12 @@ function psallON(obj, varargin)
     % optional arguments
     % set defaults for optional inputs 
     %======= NOTE CAPPING OF SIGNAL AT 12 HZ: 1/12 = 0.083
-    optargs = {200 1 12 inf 15 10 0.083 1 1};
+    optargs = {200 3 15 0.083 12 inf 10 1 1};
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
     % place optional args in memorable variable names
-    [MinPeakHeight, LightDur, ymaxhist, ymax, LightOnsetTime, NumPeaksBeforeAfter, MinPeakDistance, DelayScaleFactor, LightExtensionFactor] = optargs{:};
+    [MinPeakHeight, LightDur, LightOnsetTime, MinPeakDistance, ymaxhist, ymax, NumPeaksBeforeAfter, DelayScaleFactor, LightExtensionFactor] = optargs{:};
 
     % finding sweep numbers from file name
     if length(obj.file) == 28
@@ -28,6 +28,7 @@ function psallON(obj, varargin)
         figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - histogram')); % naming figure file
         subplot(2,1,1)
         [x,y] = obj.xy(sweepNumber, 1);
+        y = smoothdata(y);
         [yupper, ylower] = envelope(y);     
         [pks,locs,w,p] = findpeaks(yupper,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
         
@@ -65,8 +66,9 @@ function psallON(obj, varargin)
         set(gcf,'Position',[1 1 280 420])
         movegui('northwest');
         
-        figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - histogram2')); % naming figure file
-        histogram(
+%         inverseISIperSecBin
+%         locs
+        
     end
     
     
@@ -127,14 +129,17 @@ function psallON(obj, varargin)
         plot(locsBaseline2,pksBaseline2,'o','color','blue');
 %         rectangle('Position',[LightOnsetTime,-85,LightDur,145],'FaceColor', [0 0 1 0.05],'LineStyle','none');
         hold off;
-        ymax = 1.1*max(yupper);
+%         ymax = 1.1*max(yupper);
         axis([LightOnsetTime-4 LightOnsetTime+LightDur+4 -inf ymax])
         xlabel('Time (s)');
         ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ' (env)'));
         title([obj.file ' (' num2str(sweepNumber) ') - peaks'],'Interpreter','none');
-        text(LightOnsetTime + LightDur/4,max(yupper),num2str(round(inverseISIforLight,2)),'color','red');
-        text(LightOnsetTime - 3,max(yupper),num2str(round(inverseISIforBaseline1,2)),'color','blue');
-        text(LightOnsetTime + LightDur + 2,max(yupper),num2str(round(inverseISIforBaseline2,2)),'color','blue');
+%         text(LightOnsetTime + LightDur/4,max(yupper),num2str(round(inverseISIforLight,2)),'color','red');
+%         text(LightOnsetTime - 3,max(yupper),num2str(round(inverseISIforBaseline1,2)),'color','blue');
+%         text(LightOnsetTime + LightDur + 2,max(yupper),num2str(round(inverseISIforBaseline2,2)),'color','blue');
+        text(LightOnsetTime + LightDur/4,0.9*ymax,num2str(round(inverseISIforLight,2)),'color','red');
+        text(LightOnsetTime - 3,0.9*ymax,num2str(round(inverseISIforBaseline1,2)),'color','blue');
+        text(LightOnsetTime + LightDur + 2,0.9*ymax,num2str(round(inverseISIforBaseline2,2)),'color','blue');
         
         % Ch2 subplot (light stim command)
         subplot(2,1,2);
@@ -146,7 +151,34 @@ function psallON(obj, varargin)
         xlabel('Time (s)');
         ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(2), ' (', obj.header.Acquisition.AnalogChannelUnits(2), ')'));        
         
-%         set(gcf,'Position',[100 200 1750 375]) % for 3 plots
-        
+%         set(gcf,'Position',[100 200 1750 375]) % for 3 plots        
+%         locsLight
     end
+    
+    
+    % plotting one figure per sweep that shows whole sweep
+    for sweepNumber = allSweeps
+        figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - raw')); % naming figure file
+        
+        subplot(2,1,1)
+        [x,y] = obj.xy(sweepNumber, 1);    
+        plot(x,y);
+        axis([-inf inf -inf ymax]);           
+        xlabel('Time (s)');
+        ylabel(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits);
+        title([' (' num2str(sweepNumber) ') - raw'],'Interpreter','none');
+      
+        subplot(2,1,2)
+        [x,y] = obj.xy(sweepNumber, 2);     
+        plot(x,y);
+        yminhere = min(y)-5;
+        ymaxhere = max(y)+5;
+        axis([0 30 yminhere ymaxhere])
+        xlabel('Time (s)');
+        ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(2), ' (', obj.header.Acquisition.AnalogChannelUnits(2), ')'));
+        
+        set(gcf,'Position',[1 1 280 420])
+        movegui('northeast');
+    end
+    
 end

@@ -77,5 +77,20 @@ dataPerSweepCh2 = [];
     ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
     title([obj.file ' (all)'],'Interpreter','none');
     hold off;
+    
+    
+    % plotting figure with only Ch1 niceplot
+    figure('name', strcat(obj.file,' (all) - niceplot')); % naming figure file
+    hold on;
+    plot(x, dataPerSweepCh1,'Color', [0.75, 0.75, 0.75]);
+    plot(x, mean(dataPerSweepCh1,2),'Color','black','LineWidth',1.5); 
+    rectangle('Position', [lightOnsetTime 200 lightDuration 100], 'FaceColor', [0 0.4470 0.7410], 'LineStyle', 'none')
+    axis([lightOnsetTime-0.01 lightOnsetTime+0.1 -2000 500]) % used to be -7000
+    xlabel('Time (s)');
+    ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+    title([obj.file ' (all)'],'Interpreter','none');
+    hold off;
+%     set(gca,'Visible','off')
+    
 
 end

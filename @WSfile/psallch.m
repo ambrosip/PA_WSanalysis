@@ -2,7 +2,7 @@ function psallch(obj, varargin)
 
     % optional arguments
     % set defaults for optional inputs 
-    optargs = {15 1 0 12 45 10 0.005 1 1};
+    optargs = {15 3 0 12 45 10 0.005 1 1};
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;

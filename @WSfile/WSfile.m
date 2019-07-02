@@ -45,13 +45,17 @@ classdef WSfile
         plotxyall2ch(self, varargin)    % plots only TWO channels
         plotxyall2ch2(self, varargin)    % plots only TWO channels & merges 2 sweeps
         phaseplot(self)
-        rs(self)    % plots rs
+        [allRs, allSweeps] = rs(self,varargin)    % plots rs
         [seriesResistance, firstSweepNumber] = calculateRs(self)
         [firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj)
         [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = excitability(self, varargin)
-        [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = sag(self)
+        [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = sag(self,varargin)
         [data, dataPerSweepCh1, dataPerSweepCh2] = sagVC(self, varargin)
         [lightEvokedCurrents,dataPerSweepCh1,dataPerSweepCh2] = mono(self, varargin)
+        [data, dataPerSweepCh1, dataPerSweepCh2] = sagVC2(self,varargin)
+        niceplot(self, varargin)
+        lightvsfiring(self, varargin)
+        lightvsfiringON(self, varargin)
         
         function obj = WSfile(fileName)
             % Need to put single quotes around file name

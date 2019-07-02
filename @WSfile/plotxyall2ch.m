@@ -38,6 +38,7 @@ function plotxyall2ch(obj, varargin)
         hold on;
         [x,y] = obj.xy(sweepNumber, 1);
         subplot(totalActiveChannels,1,1)
+%         plot(x,y,'k');
         plot(x,y);
         axis([xmin xmax ymin ymax])
 %         xlabel('Time (s)');
@@ -69,11 +70,14 @@ function plotxyall2ch(obj, varargin)
         figure('name', strcat(obj.file,' (',num2str(sweepNumber),') - all Channels'));
         [x,y] = obj.xy(sweepNumber, 1);
         subplot(totalActiveChannels,1,1)
+%         plot(x,y,'k','LineWidth',1.5);
+%         plot(x,y,'k');
         plot(x,y);
         axis([xmin xmax ymin ymax])
 %         xlabel('Time (s)');
         ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
         title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
+%         set(gca,'Visible','off')
         
         for channel = 2:totalActiveChannels
             [x,y] = obj.xy(sweepNumber, channel);     

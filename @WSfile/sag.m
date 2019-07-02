@@ -1,4 +1,13 @@
-function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = sag(obj);
+function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = sag(obj,varargin);
+
+    % optional arguments
+    % set defaults for optional inputs 
+    optargs = {'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
+    % overwrite defaults with values specified in varargin
+    numvarargs = length(varargin);
+    optargs(1:numvarargs) = varargin;
+    % place optional args in memorable variable names
+    [savefileto] = optargs{:};
 
     [firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj);
 
@@ -48,5 +57,18 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = sag(obj);
     ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(2), ' (', obj.header.Acquisition.AnalogChannelUnits(2), ')'));
     xlabel('Time (s)');
     
+    % save csv file with dataPerCurrentStep 
+        filename = strcat(obj.file(1:15),'_',num2str(allSweeps(1)),'-',num2str(allSweeps(end))," - CC sag");
+        fulldirectory = strcat(savefileto,'\',filename,'.csv');
+%         csvwrite(fulldirectory,dataPerCurrentStep); 
+%         csvwrite works but does not let me add strings to label the variables
+%         to add labels, I have to use writetable. To use writetable, I
+%         have to convert my array into a cell array...
+        dataPerCurrentStepInCellFormat = {};
+        dataPerCurrentStepInCellFormat = num2cell(dataPerCurrentStep);
+        labeledData = cell2table(dataPerCurrentStepInCellFormat,'VariableNames',{'currentStep', 'sagRatio', 'sagPeakCurrent', 'steadyStateCurrent'})
+        writetable(labeledData,fulldirectory);        
+        disp('I saved it, ur welcome love')
+        disp('Change directory if you want this saved elsewhere!') 
 
 end
