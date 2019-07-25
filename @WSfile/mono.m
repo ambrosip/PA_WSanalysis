@@ -17,6 +17,15 @@ afterLightDataPoint = (lightOnsetTime+0.1)*sampleRate;
 lightEvokedCurrents = [];
 dataPerSweepCh1 = [];
 dataPerSweepCh2 = [];
+
+% checking for incomplete sweeps and not analyzing incomplete sweeps (to
+% avoid this error: "Dimensions of matrices being concatenated are not
+% consistent." when calculating this: "dataPerSweepCh2 = [dataPerSweepCh2,
+% ych2]" and other concatenations.
+if numel(fieldnames(obj.sweeps)) < obj.header.NSweepsPerRun
+    lastSweepNumber = lastSweepNumber - (obj.header.NSweepsPerRun - numel(fieldnames(obj.sweeps)));
+    allSweeps = firstSweepNumber:lastSweepNumber;
+end 
     
     % plotting one figure with all sweeps and average data 
     figure('name', strcat(obj.file,' (all) - 2 channels')); % naming figure file
