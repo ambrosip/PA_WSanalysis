@@ -2,7 +2,8 @@ function [data, dataPerSweepCh1, dataPerSweepCh2] = sagVC2(obj,varargin)
 
     % optional arguments
     % set defaults for optional inputs 
-    optargs = {'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
+%     optargs = {'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
+    optargs = {'D:\Temp\From MATLAB'};
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
@@ -33,7 +34,7 @@ function [data, dataPerSweepCh1, dataPerSweepCh2] = sagVC2(obj,varargin)
         sagRatio = (sagPeak-baselineCurrent)/(leakCurrent-baselineCurrent);    
         sagCurrent = -(sagPeak-leakCurrent);
         
-        data = [data; sagRatio, sagCurrent, leakCurrent, baselineCurrent, sagPeak];
+        data = [data; sweepNumber, sagRatio, sagCurrent, leakCurrent, baselineCurrent, sagPeak];
         dataPerSweepCh1 = [dataPerSweepCh1, x, y];
         dataPerSweepCh2 = [dataPerSweepCh2, xch2, ych2];
     end    
@@ -65,7 +66,7 @@ function [data, dataPerSweepCh1, dataPerSweepCh2] = sagVC2(obj,varargin)
         fulldirectory = strcat(savefileto,'\',filename,'.csv');
         dataInCellFormat = {};
         dataInCellFormat = num2cell(data);
-        labeledData = cell2table(dataInCellFormat,'VariableNames',{'sagRatio', 'sagCurrent', 'leakCurrent', 'baselineCurrent', 'sagPeak'});
+        labeledData = cell2table(dataInCellFormat,'VariableNames',{'sweepNumber', 'sagRatio', 'sagCurrent', 'leakCurrent', 'baselineCurrent', 'sagPeak'});
         writetable(labeledData,fulldirectory);
         disp('I saved it, ur welcome love')
         disp('Change directory if you want this saved elsewhere!')

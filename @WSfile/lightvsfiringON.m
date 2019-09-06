@@ -3,7 +3,8 @@ function lightvsfiringON(obj, varargin)
     % optional arguments
     % set defaults for optional inputs 
     %======= NOTE CAPPING OF SIGNAL AT 12 HZ: 1/12 = 0.083
-    optargs = {10 10 200 3 15 0.083 12 1 1 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
+%     optargs = {10 10 200 3 15 0.05 12 1 1 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
+    optargs = {10 10 200 3 15 0.05 12 1 1 'D:\Temp\From MATLAB'};
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;

@@ -1,0 +1,90 @@
+function concatenateCSVfiles(dirName)
+
+%% concatenating light vs firing rate files
+
+% find all the files in dir that contain the string "firing" and have a
+% .csv extension
+firingfiles=dir(fullfile(dirName, '*firing*.csv'));
+
+% get the names of the files
+firingfilesNames={firingfiles.name}';
+
+% create array to store all csv data
+concatenatedCSVfiring = [];
+
+% append all csv files
+for i=1:numel(firingfilesNames)
+    concatenatedCSVfiring = [concatenatedCSVfiring; readtable(firingfiles(i).name)];
+end
+
+% save csv file with data 
+filename = strcat(firingfiles(1).name(1:15)," - concatenated firing");
+fulldirectory = strcat(dirName,'\',filename,'.csv');
+writetable(concatenatedCSVfiring,fulldirectory);
+
+
+%% concatenating excitability files
+
+excitabilityfiles=dir(fullfile(dirName, '*excitability*.csv'));
+excitabilityfilesNames={excitabilityfiles.name}';
+concatenatedCSVexcitability = [];
+
+for i=1:numel(excitabilityfilesNames)
+    concatenatedCSVexcitability = [concatenatedCSVexcitability; readtable(excitabilityfiles(i).name)];
+end
+
+filename = strcat(excitabilityfiles(1).name(1:15)," - concatenated excitability");
+fulldirectory = strcat(dirName,'\',filename,'.csv');
+writetable(concatenatedCSVexcitability,fulldirectory);
+
+
+%% concatenating CC sag files
+
+CCsagfiles=dir(fullfile(dirName, '*CC sag*.csv'));
+CCsagfilesNames={CCsagfiles.name}';
+concatenatedCSVCCsag = [];
+
+for i=1:numel(CCsagfilesNames)
+    concatenatedCSVCCsag = [concatenatedCSVCCsag; readtable(CCsagfiles(i).name)];
+end
+
+filename = strcat(CCsagfiles(1).name(1:15)," - concatenated CC sag");
+fulldirectory = strcat(dirName,'\',filename,'.csv');
+writetable(concatenatedCSVCCsag,fulldirectory);
+
+
+%% concatenating VC sag files
+
+VCsagfiles=dir(fullfile(dirName, '*VC sag*.csv'));
+VCsagfilesNames={VCsagfiles.name}';
+concatenatedCSVVCsag = [];
+
+for i=1:numel(VCsagfilesNames)
+    concatenatedCSVVCsag = [concatenatedCSVVCsag; readtable(VCsagfiles(i).name)];
+end
+
+filename = strcat(VCsagfiles(1).name(1:15)," - concatenated VC sag");
+fulldirectory = strcat(dirName,'\',filename,'.csv');
+writetable(concatenatedCSVVCsag,fulldirectory);
+
+
+%% concatenating Rs sag files
+
+rsfiles=dir(fullfile(dirName, '*Rs*.csv'));
+rsfilesNames={rsfiles.name}';
+concatenatedCSVrs = [];
+
+for i=1:numel(rsfilesNames)
+    concatenatedCSVrs = [concatenatedCSVrs; readtable(rsfiles(i).name)];
+end
+
+filename = strcat(rsfiles(1).name(1:15)," - concatenated Rs");
+fulldirectory = strcat(dirName,'\',filename,'.csv');
+writetable(concatenatedCSVrs,fulldirectory);
+
+
+%% encouraging statements
+
+disp('I did it =3')   
+
+end

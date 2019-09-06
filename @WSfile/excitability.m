@@ -2,7 +2,9 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = excitability(o
 
     % optional arguments
     % set defaults for optional inputs 
-    optargs = {-10 0 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
+%     optargs = {-10 0 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
+    optargs = {-10 0 'D:\Temp\From MATLAB'};
+
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
@@ -44,7 +46,7 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = excitability(o
                 lastISIinv = 0;
             end         
 
-            dataPerCurrentStep = [dataPerCurrentStep; currentStep, numberAP, firstISIinv, lastISIinv];
+            dataPerCurrentStep = [dataPerCurrentStep; sweepNumber, currentStep, numberAP, firstISIinv, lastISIinv];
             dataPerSweepCh1 = [dataPerSweepCh1, x, y];
             dataPerSweepCh2 = [dataPerSweepCh2, xch2, ych2];
             
@@ -55,7 +57,7 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = excitability(o
     end
     
     figure('name', strcat(obj.file, ' (all) - AP per pA'));
-    plot(dataPerCurrentStep(:,1),dataPerCurrentStep(:,2),'-o')
+    plot(dataPerCurrentStep(:,2),dataPerCurrentStep(:,3),'-o')
     ylabel('# APs');
     xlabel('Current Step (pA)')
 %     title([strcat(objectArray(1).file(1:15)," - #AP/pA: ",num2str(allSweeps(1)),'-',num2str(allSweeps(end)))],'Interpreter','none');
@@ -64,8 +66,8 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = excitability(o
 
     figure('name', strcat(obj.file, ' (all) - first and last ISI per pA'));
     hold on;
-    plot(dataPerCurrentStep(:,1),dataPerCurrentStep(:,3),'-^');
-    plot(dataPerCurrentStep(:,1),dataPerCurrentStep(:,4),'-v');
+    plot(dataPerCurrentStep(:,2),dataPerCurrentStep(:,4),'-^');
+    plot(dataPerCurrentStep(:,2),dataPerCurrentStep(:,5),'-v');
     hold off;
     axis([-inf inf 0 50])
     ylabel('1/ISI (Hz)');
@@ -97,7 +99,7 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = excitability(o
     fulldirectory = strcat(savefileto,'\',filename,'.csv');
     dataPerCurrentStepInCellFormat = {};
     dataPerCurrentStepInCellFormat = num2cell(dataPerCurrentStep);
-    labeledData = cell2table(dataPerCurrentStepInCellFormat,'VariableNames',{'currentStep', 'numberAP', 'firstISIinv', 'lastISIinv'});
+    labeledData = cell2table(dataPerCurrentStepInCellFormat,'VariableNames',{'sweepNumber', 'currentStep', 'numberAP', 'firstISIinv', 'lastISIinv'});
     writetable(labeledData,fulldirectory);        
     disp('change directory if you want this saved elsewhere!')    
 

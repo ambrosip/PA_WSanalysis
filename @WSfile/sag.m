@@ -2,7 +2,8 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = sag(obj,vararg
 
     % optional arguments
     % set defaults for optional inputs 
-    optargs = {'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
+%     optargs = {'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
+    optargs = {'D:\Temp\From MATLAB'};
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
@@ -26,14 +27,14 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = sag(obj,vararg
         currentStep = min(ych2);
         sagRatio = sagPeak/steadyState;    
         
-        dataPerCurrentStep = [dataPerCurrentStep; currentStep, sagRatio, sagPeak, steadyState];
+        dataPerCurrentStep = [dataPerCurrentStep; sweepNumber, currentStep, sagRatio, sagPeak, steadyState];
         dataPerSweepCh1 = [dataPerSweepCh1, x, y];
         dataPerSweepCh2 = [dataPerSweepCh2, xch2, ych2];
 
     end
     
     figure('name', strcat(obj.file, ' - sag ratio per pA'));
-    plot(dataPerCurrentStep(:,1),dataPerCurrentStep(:,2),'-o')
+    plot(dataPerCurrentStep(:,2),dataPerCurrentStep(:,3),'-o')
     ylabel('Sag Ratio');
     xlabel('Current Step (pA)')
     title([strcat(obj.file, ' - sag ratio per pA')],'Interpreter','none');
@@ -44,7 +45,10 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = sag(obj,vararg
     subplot(2,1,1)
     hold on;
     plot(dataPerSweepCh1(:,5),dataPerSweepCh1(:,6));
-    line([0, 3],[dataPerCurrentStep(3,3), dataPerCurrentStep(3,3)],'Color','red','LineStyle','--')
+    line([0, 3],[dataPerCurrentStep(3,4), dataPerCurrentStep(3,4)],'Color','red','LineStyle','--')
+%         before adding "sweeps" to dataPerCurrentStep, this line was like
+%         this:
+%         line([0, 3],[dataPerCurrentStep(3,3), dataPerCurrentStep(3,3)],'Color','red','LineStyle','--')
     plot(1.45, dataPerSweepCh1(1.45*obj.header.Acquisition.SampleRate,6),'o','color','red');
     axis([-inf, inf, -120, 40])
     ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
@@ -66,7 +70,7 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = sag(obj,vararg
 %         have to convert my array into a cell array...
         dataPerCurrentStepInCellFormat = {};
         dataPerCurrentStepInCellFormat = num2cell(dataPerCurrentStep);
-        labeledData = cell2table(dataPerCurrentStepInCellFormat,'VariableNames',{'currentStep', 'sagRatio', 'sagPeakCurrent', 'steadyStateCurrent'})
+        labeledData = cell2table(dataPerCurrentStepInCellFormat,'VariableNames',{'sweepNumber', 'currentStep', 'sagRatio', 'sagPeakCurrent', 'steadyStateCurrent'})
         writetable(labeledData,fulldirectory);        
         disp('I saved it, ur welcome love')
         disp('Change directory if you want this saved elsewhere!') 

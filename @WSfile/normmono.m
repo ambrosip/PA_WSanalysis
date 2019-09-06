@@ -4,7 +4,8 @@ function [lightEvokedCurrents,dataPerSweepCh1,dataPerSweepCh2,seriesResistance] 
 
 % optional arguments
 numvarargs = length(varargin);
-optargs = {1.99 2 0.005 1.94 2.14 -3000 500 1 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
+% optargs = {1.99 2 0.005 1.94 2.14 -3000 500 1 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
+optargs = {1.99 2 0.005 1.94 2.14 -3000 500 1 'D:\Temp\From MATLAB'};
 % optargs = {1.99 2 0.005 1.94 2.14 -3000 500 1 'D:\Temp\Data summaries\2019-07-20 th flp naive'};
 optargs(1:numvarargs) = varargin;
 [baselineOnsetTime, lightOnsetTime, lightDuration, xmin, xmax, ymin, ymax, rsTestPulseOnsetTime, savefileto] = optargs{:};

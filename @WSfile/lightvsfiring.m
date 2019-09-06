@@ -2,7 +2,8 @@ function lightvsfiring(obj, varargin)
 
     % optional arguments
     % set defaults for optional inputs 
-    optargs = {0 15 3 12 45 0.005 1 1 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
+%     optargs = {0 15 3 12 45 0.005 1 1 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
+    optargs = {0 15 3 12 45 0.005 1 1 'D:\Temp\From MATLAB'};
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
@@ -169,12 +170,51 @@ function lightvsfiring(obj, varargin)
         
 %         set(gcf,'Position',[100 200 1750 375]) % for 3 plots
 
+%         data = [data; sweepNumber, ...
+%                 avgInverseISIforBaseline1, avgInverseISIforLight, avgInverseISIforBaseline2, ...
+%                 length(pksBaseline1), length(pksLight), length(pksBaseline2), ...
+%                 1/ISIforBaseline1(1), 1/ISIforBaseline1(end), ...
+%                 1/ISIforLight(1), 1/ISIforLight(end), ...
+%                 1/ISIforBaseline2(1), 1/ISIforBaseline2(end)];
+            
+        placeholder1 = [];
+        placeholder2 = [];
+        placeholder3 = [];
+        placeholder4 = [];
+        placeholder5 = [];
+        placeholder6 = [];
+        
+                if isempty(ISIforBaseline1)
+                    placeholder1 = NaN;
+                    placeholder2 = NaN;
+                else
+                    placeholder1 = 1/ISIforBaseline1(1);
+                    placeholder2 = 1/ISIforBaseline1(end);
+                end
+                
+               if isempty(ISIforLight)
+                    placeholder3 = NaN;
+                    placeholder4 = NaN;
+                else
+                    placeholder3 = 1/ISIforLight(1);
+                    placeholder4 = 1/ISIforLight(end);
+                 end
+                
+                if isempty(ISIforBaseline2)
+                    placeholder5 = NaN;
+                    placeholder6 = NaN;
+                else
+                    placeholder5 = 1/ISIforBaseline2(1);
+                    placeholder6 = 1/ISIforBaseline2(end);
+                end
+
         data = [data; sweepNumber, ...
                 avgInverseISIforBaseline1, avgInverseISIforLight, avgInverseISIforBaseline2, ...
-                length(pksBaseline1), length(pksLight), length(pksBaseline2), ...
-                1/ISIforBaseline1(1), 1/ISIforBaseline1(end), ...
-                1/ISIforLight(1), 1/ISIforLight(end), ...
-                1/ISIforBaseline2(1), 1/ISIforBaseline2(end)];
+                length(pksBaseline1), length(pksLight), length(pksBaseline2),...
+                placeholder1, placeholder2,...
+                placeholder3, placeholder4,...
+                placeholder5, placeholder6];
+            
     end
     
         % save csv file with data 
