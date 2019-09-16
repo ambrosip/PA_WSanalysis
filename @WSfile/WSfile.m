@@ -56,7 +56,7 @@ classdef WSfile
         niceplot(self, varargin)
         lightvsfiring(self, varargin)
         lightvsfiringON(self, varargin)
-        normmono(self, varargin)
+        [lightEvokedCurrents,dataPerSweepCh1,dataPerSweepCh2,seriesResistance] = normmono(self, varargin) % baseline subtracted
         
         function obj = WSfile(fileName)
             % Need to put single quotes around file name

@@ -83,6 +83,21 @@ fulldirectory = strcat(dirName,'\',filename,'.csv');
 writetable(concatenatedCSVrs,fulldirectory);
 
 
+%% concatenating normmono files
+
+normmonofiles=dir(fullfile(dirName, '*Baseline*.csv'));
+normmonofilesNames={normmonofiles.name}';
+concatenatedCSVnormmono = [];
+
+for i=1:numel(normmonofilesNames)
+    concatenatedCSVnormmono = [concatenatedCSVnormmono; readtable(normmonofiles(i).name)];
+end
+
+filename = strcat(normmonofiles(1).name(1:15)," - concatenated normmono");
+fulldirectory = strcat(dirName,'\',filename,'.csv');
+writetable(concatenatedCSVnormmono,fulldirectory);
+
+
 %% encouraging statements
 
 disp('I did it =3')   

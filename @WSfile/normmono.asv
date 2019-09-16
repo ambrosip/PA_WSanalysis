@@ -94,9 +94,10 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
 
         % rationale for finding light evoked response latency: I am looking
         % for a monotonic change of the signal for at least "x" data points 
-        % (x=threshold), and I am selecting the first occurence of this monotonic change.
+        % (# of data points determined by value of threshold), 
+        % and I am selecting the first occurence of this monotonic change.
         
-        % the expected direction of the monotonic change is determined
+        % the expected direction of of the monotonic change is determined
         % by the optarg "inwardORoutward". If the value is 1, the function
         % will look for a monotonic increase (outward current), and if the
         % value is -1, the function will look for a monotonic decrease
@@ -116,16 +117,13 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         % "threshold" points of value equal to the value stored in
         % "inwardORoutward" (-1 or 1). I think conv2 collapses all found 
         % elements into a single element of value "threshold" and moves 
-        % forward in its search. So if threshold=20, inwardORoutward=-1,
-        % and there are 40 elements of value -1 in sequence (one after the
-        % other), conv2 will spit out a vector with 2 elements, both of
-        % value 20.
+        % forward in its search. So if you have 40 elements 
        
-        % function find looks for the index of the elements equal to threshold in the output of the convolution
+        % function find looks for the index of the elements equal to 20 in the output of the convolution
         
         % function min looks for the min index (aka the first data point
-        % that marks the start of a monotonic change in signal for "x"
-        % points (x=threshold).
+        % that marks the start of a monotonic decrease in signal for 20
+        % points).
         lightEvokedResponseLatencyInDataPoints = min(find(conv2(sign(diff(y(lightOnsetDataPoint:afterLightDataPoint))), zeros(threshold,1)+(inwardORoutward), 'valid')==threshold));
         
         % 1000 multiplication is conversion from seconds to milliseconds
@@ -189,7 +187,7 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
     
 
  % save csv file with data 
-        filename = strcat(obj.file(1:15),'_',num2str(allSweeps(1)),'-',num2str(allSweeps(end))," - Baseline Subtracted light evoked currents",'(',num2str(inwardORoutward),')');
+        filename = strcat(obj.file(1:15),'_',num2str(allSweeps(1)),'-',num2str(allSweeps(end))," - Baseline Subtracted light evoked currents");
         fulldirectory = strcat(savefileto,'\',filename,'.csv');        
         dataInCellFormat = {};
         dataInCellFormat = num2cell(data);
@@ -214,14 +212,14 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         movegui('northeast');
         
  % plot light response latency
-        figure('name', strcat(obj.file," (all) - latency ", '(',num2str(inwardORoutward),')')); % naming figure file
+        figure('name', strcat(obj.file,' (all) - latency')); % naming figure file
         plot(allSweeps, allLightEvokedResponseLatencyInMilliSeconds,'-o');
         line([allSweeps(1) allSweeps(end)],[5, 5],'Color','black','LineStyle','--')
         line([allSweeps(1) allSweeps(end)],[1, 1],'Color','red','LineStyle','--')
         axis([allSweeps(1) allSweeps(end) 0 10])
         ylabel('Response Latency (ms)');
         xlabel('Sweeps');
-        title([obj.file ' latency ' '(' num2str(inwardORoutward) ')'],'Interpreter','none');
+        title([obj.file ' latency'],'Interpreter','none');
         movegui('southeast');        
         
 
