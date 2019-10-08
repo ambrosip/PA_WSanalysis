@@ -16,7 +16,7 @@ function [allRs, allSweeps] = rs(objectArray,varargin)
 % uncomment below if you want to look at the test pulse raw data
 % arrayfun(@(obj) plotxyallch(obj,-inf, inf, -1000, 800, false), objectArray);
 
-[allRs, allSweeps] = arrayfun(@(obj) calculateRs(obj), objectArray);
+[allRs, allSweeps, allMouseNumbers, allExperimentDates] = arrayfun(@(obj) calculateRs(obj), objectArray);
 
 figure('name', strcat(objectArray(1).file(1:15)," - Rs for ",num2str(allSweeps(1)),'-',num2str(allSweeps(end)))); % naming figure file
 plot(allSweeps, allRs,'-o');
@@ -45,8 +45,8 @@ title([strcat(objectArray(1).file(1:15)," - Rs: ",num2str(allSweeps(1)),'-',num2
         filename = strcat(objectArray(1).file(1:15),'_',num2str(allSweeps(1)),'-',num2str(allSweeps(end))," - Rs");
         fulldirectory = strcat(savefileto,'\',filename,'.csv');
         dataInCellFormat = {};
-        dataInCellFormat = num2cell([transpose(allSweeps), transpose(allRs)]);
-        labeledData = cell2table(dataInCellFormat,'VariableNames',{'sweep','rs'});
+        dataInCellFormat = num2cell([transpose(allMouseNumbers), transpose(allExperimentDates), transpose(allSweeps), transpose(allRs)]);
+        labeledData = cell2table(dataInCellFormat,'VariableNames',{'mouse', 'date', 'sweep','rs'});
         writetable(labeledData,fulldirectory);     
         disp('I saved it, ur welcome love')
         disp('Change directory if you want this saved elsewhere!')

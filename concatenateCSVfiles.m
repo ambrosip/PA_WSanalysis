@@ -19,7 +19,7 @@ end
 
 % save csv file with data 
 filename = strcat(firingfiles(1).name(1:15)," - concatenated firing");
-fulldirectory = strcat(dirName,'\',filename,'.csv');
+fulldirectory = strcat(dirName,'\',filename,'.xls');
 writetable(concatenatedCSVfiring,fulldirectory);
 
 
@@ -34,7 +34,7 @@ for i=1:numel(excitabilityfilesNames)
 end
 
 filename = strcat(excitabilityfiles(1).name(1:15)," - concatenated excitability");
-fulldirectory = strcat(dirName,'\',filename,'.csv');
+fulldirectory = strcat(dirName,'\',filename,'.xls');
 writetable(concatenatedCSVexcitability,fulldirectory);
 
 
@@ -49,7 +49,7 @@ for i=1:numel(CCsagfilesNames)
 end
 
 filename = strcat(CCsagfiles(1).name(1:15)," - concatenated CC sag");
-fulldirectory = strcat(dirName,'\',filename,'.csv');
+fulldirectory = strcat(dirName,'\',filename,'.xls');
 writetable(concatenatedCSVCCsag,fulldirectory);
 
 
@@ -64,7 +64,7 @@ for i=1:numel(VCsagfilesNames)
 end
 
 filename = strcat(VCsagfiles(1).name(1:15)," - concatenated VC sag");
-fulldirectory = strcat(dirName,'\',filename,'.csv');
+fulldirectory = strcat(dirName,'\',filename,'.xls');
 writetable(concatenatedCSVVCsag,fulldirectory);
 
 
@@ -79,7 +79,7 @@ for i=1:numel(rsfilesNames)
 end
 
 filename = strcat(rsfiles(1).name(1:15)," - concatenated Rs");
-fulldirectory = strcat(dirName,'\',filename,'.csv');
+fulldirectory = strcat(dirName,'\',filename,'.xls');
 writetable(concatenatedCSVrs,fulldirectory);
 
 
@@ -94,7 +94,7 @@ for i=1:numel(normmonofilesNames)
 end
 
 filename = strcat(normmonofiles(1).name(1:15)," - concatenated normmono");
-fulldirectory = strcat(dirName,'\',filename,'.csv');
+fulldirectory = strcat(dirName,'\',filename,'.xls');
 writetable(concatenatedCSVnormmono,fulldirectory);
 
 

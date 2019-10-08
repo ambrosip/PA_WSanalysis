@@ -16,6 +16,10 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = sag(obj,vararg
     dataPerSweepCh1 = [];
     dataPerSweepCh2 = [];
     allSweeps(1)=[];
+    data = [];
+    
+    mouseNumber = getMouseNumber(obj);
+    experimentDate = getExperimentDate(obj);
 
     for sweepNumber = allSweeps
         
@@ -24,13 +28,14 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = sag(obj,vararg
         
         sagPeak = min(y);
         steadyState = y(1.45*obj.header.Acquisition.SampleRate); % index 1.45*10000 corresponds to x=1.45 s
-        currentStep = min(ych2);
+        currentStep = round(min(ych2));
         sagRatio = sagPeak/steadyState;    
         
         dataPerCurrentStep = [dataPerCurrentStep; sweepNumber, currentStep, sagRatio, sagPeak, steadyState];
+        data = [data; mouseNumber, experimentDate, sweepNumber, currentStep, sagRatio, sagPeak, steadyState];
         dataPerSweepCh1 = [dataPerSweepCh1, x, y];
         dataPerSweepCh2 = [dataPerSweepCh2, xch2, ych2];
-
+        
     end
     
     figure('name', strcat(obj.file, ' - sag ratio per pA'));
@@ -69,8 +74,8 @@ function [dataPerCurrentStep, dataPerSweepCh1, dataPerSweepCh2] = sag(obj,vararg
 %         to add labels, I have to use writetable. To use writetable, I
 %         have to convert my array into a cell array...
         dataPerCurrentStepInCellFormat = {};
-        dataPerCurrentStepInCellFormat = num2cell(dataPerCurrentStep);
-        labeledData = cell2table(dataPerCurrentStepInCellFormat,'VariableNames',{'sweepNumber', 'currentStep', 'sagRatio', 'sagPeakCurrent', 'steadyStateCurrent'})
+        dataPerCurrentStepInCellFormat = num2cell(data);
+        labeledData = cell2table(dataPerCurrentStepInCellFormat,'VariableNames',{'mouse', 'date', 'sweepNumber', 'currentStep', 'sagRatio', 'sagPeakCurrent', 'steadyStateCurrent'})
         writetable(labeledData,fulldirectory);        
         disp('I saved it, ur welcome love')
         disp('Change directory if you want this saved elsewhere!') 

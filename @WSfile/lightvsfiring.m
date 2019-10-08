@@ -4,14 +4,16 @@ function lightvsfiring(obj, varargin)
     % set defaults for optional inputs 
 %     optargs = {0 15 3 12 45 0.005 1 1 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
 %     optargs = {0 15 3 12 45 0.005 1 1 'D:\Temp\From MATLAB'};
-    optargs = {0 15 3 60 45 0.005 1 1 'D:\Temp\From MATLAB'};
+    optargs = {0 12 45 15 3 0.005 1 1 'D:\Temp\From MATLAB'};
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
     % place optional args in memorable variable names
-    [MinPeakHeight, LightOnsetTime, LightDur, ymaxhist, ymax, MinPeakDistance, DelayScaleFactor, LightExtensionFactor, savefileto] = optargs{:};
+    [MinPeakHeight, ymaxhist, ymax, LightOnsetTime, LightDur, MinPeakDistance, DelayScaleFactor, LightExtensionFactor, savefileto] = optargs{:};
     
     data = [];
+    mouseNumber = getMouseNumber(obj);
+    experimentDate = getExperimentDate(obj);
 
     % finding sweep numbers from file name
     if length(obj.file) == 28
@@ -208,8 +210,8 @@ function lightvsfiring(obj, varargin)
                     placeholder5 = 1/ISIforBaseline2(1);
                     placeholder6 = 1/ISIforBaseline2(end);
                 end
-
-        data = [data; sweepNumber, ...
+                
+        data = [data; mouseNumber, experimentDate, sweepNumber, ...
                 avgInverseISIforBaseline1, avgInverseISIforLight, avgInverseISIforBaseline2, ...
                 length(pksBaseline1), length(pksLight), length(pksBaseline2),...
                 placeholder1, placeholder2,...
@@ -224,7 +226,7 @@ function lightvsfiring(obj, varargin)
         dataInCellFormat = {};
         dataInCellFormat = num2cell(data);
         labeledData = cell2table(dataInCellFormat,'VariableNames',...
-            {'sweep',...
+            {'mouse', 'date', 'sweep',...
             'invISIpre', 'invISIlight', 'invISIpost',...
             'APsPre', 'APsLight', 'APsPost',...
             'firstInvISIpre','lastInvISIpre',...

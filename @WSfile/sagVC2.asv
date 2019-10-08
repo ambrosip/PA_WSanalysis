@@ -1,4 +1,4 @@
-function [dataDisplay, dataPerSweepCh1, dataPerSweepCh2] = sagVC2(obj,varargin)
+function [data, dataPerSweepCh1, dataPerSweepCh2] = sagVC2(obj,varargin)
 
     % optional arguments
     % set defaults for optional inputs 
@@ -41,7 +41,7 @@ function [dataDisplay, dataPerSweepCh1, dataPerSweepCh2] = sagVC2(obj,varargin)
         dataPerSweepCh2 = [dataPerSweepCh2, xch2, ych2];
     end    
     
-    dataDisplay = data(:,3:end);
+    da
     
     figure('name', strcat(obj.file, ' - Ih'));
     subplot(2,1,1)

@@ -66,7 +66,7 @@ function [dataPerCurrentStepSubset, dataPerSweepCh1, dataPerSweepCh2] = excitabi
     xlabel('Current Step (pA)')
 %     title([strcat(objectArray(1).file(1:15)," - #AP/pA: ",num2str(allSweeps(1)),'-',num2str(allSweeps(end)))],'Interpreter','none');
     title([strcat(obj.file, ' (all) - AP per pA')],'Interpreter','none');
-    axis([min(dataPerCurrentStep(:,4)) max(dataPerCurrentStep(:,4)) 0 ymaxAP])
+    axis([min( inf 0 ymaxAP])
 
     figure('name', strcat(obj.file, ' (all) - first and last ISI per pA'));
     hold on;

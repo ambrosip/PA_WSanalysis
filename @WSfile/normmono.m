@@ -5,7 +5,9 @@ function [lightEvokedCurrents,dataPerSweepCh1,dataPerSweepCh2,seriesResistance] 
 % optional arguments
 numvarargs = length(varargin);
 % optargs = {1.99 2 0.005 1.94 2.14 -3000 500 1 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
-optargs = {-1, 15 1.99 2 0.005 1.94 2.14 -3000 500 1 'D:\Temp\From MATLAB'};
+optargs = {-1, 15 1.99 2 0.005 1.94 2.14 -3000 500 1 'D:\Temp\From MATLAB\test'};
+% optargs = {-1, 15 1.99 2 0.005 1.94 2.14 -10000 500 1 'D:\Temp\From MATLAB'};
+
 % optargs = {1.99 2 0.005 1.94 2.14 -3000 500 1 'D:\Temp\Data summaries\2019-07-20 th flp naive'};
 optargs(1:numvarargs) = varargin;
 [inwardORoutward, threshold, baselineOnsetTime, lightOnsetTime, lightDuration, xmin, xmax, ymin, ymax, rsTestPulseOnsetTime, savefileto] = optargs{:};
@@ -15,11 +17,13 @@ totalActiveChannels = 2;
 sampleRate = obj.header.Acquisition.SampleRate;
 lightOnsetDataPoint = lightOnsetTime*sampleRate;
 lightOffDataPoint = (lightOnsetTime+lightDuration)*sampleRate;
-afterLightDataPoint = (lightOnsetTime+0.01)*sampleRate
-round(afterLightDataPoint)
+afterLightDataPoint = (lightOnsetTime+0.01)*sampleRate;
+round(afterLightDataPoint);
 baselineOnsetDataPoint = baselineOnsetTime*sampleRate;
 rsBaselineDataPointInterval = ((rsTestPulseOnsetTime-0.1)*sampleRate):(rsTestPulseOnsetTime*sampleRate);
 rsFirstTransientDataPointInterval = (rsTestPulseOnsetTime*sampleRate):(rsTestPulseOnsetTime+0.0025)*sampleRate;
+mouseNumber = getMouseNumber(obj);
+experimentDate = getExperimentDate(obj);
 
 % matrixes that will be filled
 lightEvokedCurrents = [];
@@ -43,7 +47,8 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
     % checking for incomplete sweeps and not analyzing incomplete sweeps (to
     % avoid this error: "Dimensions of matrices being concatenated are not
     % consistent." when calculating this: "dataPerSweepCh2 = [dataPerSweepCh2,
-    % ych2]" and other concatenations.
+    % ych2]" and other concatenations.   
+    
     if numel(fieldnames(obj.sweeps)) < obj.header.NSweepsPerRun
         lastSweepNumber = firstSweepNumber + numel(fieldnames(obj.sweeps)) - 2
         allSweeps = firstSweepNumber:lastSweepNumber
@@ -140,10 +145,9 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         dataPerSweepCh1 = [dataPerSweepCh1, y];
         lightEvokedCurrents = [lightEvokedCurrents, min(y(lightOnsetDataPoint:afterLightDataPoint))];  
               
-        data = [data; sweepNumber, seriesResistance, lightEvokedCurrent, lightEvokedResponseLatencyInMilliSeconds];
+        data = [data; mouseNumber, experimentDate, sweepNumber, seriesResistance, lightEvokedCurrent, lightEvokedResponseLatencyInMilliSeconds];
         allRs = [allRs, seriesResistance];
         allLightEvokedResponseLatencyInMilliSeconds = [allLightEvokedResponseLatencyInMilliSeconds, lightEvokedResponseLatencyInMilliSeconds];
-        
         
         
     end
@@ -180,12 +184,29 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         plot(x, dataPerSweepCh1,'Color', [0.75, 0.75, 0.75]);
         plot(x, mean(dataPerSweepCh1,2),'Color','black','LineWidth',1.5); 
         rectangle('Position', [lightOnsetTime 200 lightDuration 100], 'FaceColor', [0 0.4470 0.7410], 'LineStyle', 'none')
-        axis([lightOnsetTime-0.01 lightOnsetTime+0.1 -2000 500]) % used to be -7000
+        axis([lightOnsetTime-0.01 lightOnsetTime+0.1 ymin ymax]) % used to be -7000
         xlabel('Time (s)');
         ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
         title([obj.file ' (all) - Baseline Subtracted'],'Interpreter','none');
+        set(gca,'Visible','off')
+        
+        xminScale = lightOnsetTime-0.01;
+        xmaxScale = lightOnsetTime+0.1;
+        
+        % adding scale bar
+        line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
+        line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
+        text(xmaxScale-(xmaxScale-xminScale)/10,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
+        text(xmaxScale-(xmaxScale-xminScale)/9,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+                
+%         % adding scale bar
+%         line([xminScale,xminScale+(xmaxScale-xminScale)/11],[ymin,ymin],'Color','k')
+%         line([xminScale,xminScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
+%         text(xminScale+(xmaxScale-xminScale)/110,ymin+((ymax-ymin)/30),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
+%         text(xminScale+(xmaxScale-xminScale)/70,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+%         
         hold off;
-%     set(gca,'Visible','off')
+
     
 
  % save csv file with data 
@@ -194,7 +215,7 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         dataInCellFormat = {};
         dataInCellFormat = num2cell(data);
         labeledData = cell2table(dataInCellFormat,'VariableNames',...
-            {'sweep', 'seriesResistance', 'lightEvokedCurrent', 'responseLatency'});
+            {'mouse', 'date', 'sweep', 'seriesResistance', 'lightEvokedCurrent', 'responseLatency'});
         writetable(labeledData,fulldirectory);
         disp('I saved it')
         disp('Change directory if you want this saved elsewhere!')     
@@ -207,7 +228,8 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         % test pulse
         line([allSweeps(1) allSweeps(end)],[allRs(1)*0.7, allRs(1)*0.7],'Color','black','LineStyle','--')
         line([allSweeps(1) allSweeps(end)],[allRs(1)*1.3, allRs(1)*1.3],'Color','black','LineStyle','--')
-        axis([allSweeps(1) allSweeps(end) 0 60])
+%         axis([allSweeps(1) allSweeps(end) 0 60])
+        axis([allSweeps(1) inf 0 60])
         ylabel('Rs (M\Omega)');
         xlabel('Sweeps');
         title([obj.file ' rs'],'Interpreter','none');
@@ -218,7 +240,8 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         plot(allSweeps, allLightEvokedResponseLatencyInMilliSeconds,'-o');
         line([allSweeps(1) allSweeps(end)],[5, 5],'Color','black','LineStyle','--')
         line([allSweeps(1) allSweeps(end)],[1, 1],'Color','red','LineStyle','--')
-        axis([allSweeps(1) allSweeps(end) 0 10])
+%         axis([allSweeps(1) allSweeps(end) 0 10])
+        axis([allSweeps(1) inf 0 10])
         ylabel('Response Latency (ms)');
         xlabel('Sweeps');
         title([obj.file ' latency ' '(' num2str(inwardORoutward) ')'],'Interpreter','none');

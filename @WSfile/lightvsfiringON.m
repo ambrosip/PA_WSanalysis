@@ -5,7 +5,8 @@ function lightvsfiringON(obj, varargin)
     %======= NOTE CAPPING OF SIGNAL AT 12 HZ: 1/12 = 0.083
 %     optargs = {10 10 200 3 15 0.05 12 1 1 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
 %     optargs = {10 10 200 3 15 0.05 12 1 1 'D:\Temp\From MATLAB'};
-    optargs = {10 10 200 3 15 0.005 12 1 1 'D:\Temp\From MATLAB'};
+%     optargs = {10 10 200 3 15 0.005 12 1 1 'D:\Temp\From MATLAB'};
+    optargs = {10 20 200 3 15 0.001 50 1 1 'D:\Temp\From MATLAB'};
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
@@ -13,6 +14,8 @@ function lightvsfiringON(obj, varargin)
     [GaussianFilterWindow, MinPeakHeight, ymax, LightDur, LightOnsetTime, MinPeakDistance, ymaxhist, DelayScaleFactor, LightExtensionFactor, savefileto] = optargs{:};
 
     data = [];
+    mouseNumber = getMouseNumber(obj);
+    experimentDate = getExperimentDate(obj);
     
     % finding sweep numbers from file name
     if length(obj.file) == 28
@@ -192,8 +195,8 @@ y = smoothdata(y,'gaussian',GaussianFilterWindow);
                     placeholder5 = 1/ISIforBaseline2(1);
                     placeholder6 = 1/ISIforBaseline2(end);
                 end
-
-        data = [data; sweepNumber, ...
+                
+        data = [data; mouseNumber, experimentDate, sweepNumber, ...
                 avgInverseISIforBaseline1, avgInverseISIforLight, avgInverseISIforBaseline2, ...
                 length(pksBaseline1), length(pksLight), length(pksBaseline2),...
                 placeholder1, placeholder2,...
@@ -234,7 +237,7 @@ y = smoothdata(y,'gaussian',GaussianFilterWindow);
         dataInCellFormat = {};
         dataInCellFormat = num2cell(data);
         labeledData = cell2table(dataInCellFormat,'VariableNames',...
-            {'sweep',...
+            {'mouse', 'date', 'sweep',...
             'invISIpre', 'invISIlight', 'invISIpost',...
             'APsPre', 'APsLight', 'APsPost',...
             'firstInvISIpre','lastInvISIpre',...

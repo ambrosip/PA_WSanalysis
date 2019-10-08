@@ -1,4 +1,4 @@
-function [seriesResistance, firstSweepNumber] = calculateRs(obj)
+function [seriesResistance, firstSweepNumber, mouseNumber, experimentDate] = calculateRs(obj)
 
     % finding sweep numbers from file name
     if length(obj.file) == 28
@@ -12,6 +12,8 @@ function [seriesResistance, firstSweepNumber] = calculateRs(obj)
     end
     
     allSweeps = firstSweepNumber:lastSweepNumber;
+    mouseNumber = getMouseNumber(obj);
+    experimentDate = getExperimentDate(obj);
     
     % creates empty array to store Rs for all sweeps
     seriesResistance = [];
