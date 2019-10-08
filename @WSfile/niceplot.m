@@ -34,7 +34,8 @@ function niceplot(obj, varargin)
         % adding light stim
 %         rectangle('Position', [lightOnsetTime 55 lightDuration 100], 'FaceColor', [0 0.4470 0.7410], 'LineStyle', 'none')
 %         rectangle('Position', [lightOnsetTime (ymax-((ymax-ymin)/20)) lightDuration ymax], 'FaceColor', [0.4660, 0.6740, 0.1880], 'LineStyle', 'none')
-        line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0.4660, 0.6740, 0.1880],'LineWidth',10)
+%         line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0.4660, 0.6740, 0.1880],'LineWidth',10)
+        line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
 
         % adding scale bar
         line([xmin,xmin+(xmax-xmin)/13],[ymin,ymin],'Color','k')
@@ -48,15 +49,12 @@ function niceplot(obj, varargin)
             axis([xmin xmax ymin ymax+10])
             title([obj.file ' (' num2str(sweepNumber) ") filtered"],'Interpreter','none');
             set(gca,'Visible','off')
-            line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0.4660, 0.6740, 0.1880],'LineWidth',10)
+%             line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0.4660, 0.6740, 0.1880],'LineWidth',10)
+            line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
             line([xmin,xmin+(xmax-xmin)/13],[ymin,ymin],'Color','k')
             line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
             text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str((xmax-xmin)/13)," s"))
             text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))        
-        end
-    
-    end 
-    
-
-        
+        end    
+    end             
 end
