@@ -55,10 +55,6 @@ function niceplot(obj, varargin)
             line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
             text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str((xmax-xmin)/13)," s"))
             text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))        
-        end
-    
-    end 
-    
-
-        
+        end    
+    end             
 end
