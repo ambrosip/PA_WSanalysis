@@ -59,6 +59,8 @@ classdef WSfile
         [lightEvokedCurrents,dataPerSweepCh1,dataPerSweepCh2,seriesResistance] = normmono(self, varargin) % baseline subtracted
         [mouseNumber] = getMouseNumber(self)
         [experimentDate] = getExperimentDate(self)
+        normmonofig(self, varargin)
+        firingrate(self, varargin)
         
         function obj = WSfile(fileName)
             % Need to put single quotes around file name
