@@ -4,7 +4,7 @@ function lightvsfiring(obj, varargin)
     % set defaults for optional inputs 
 %     optargs = {0 15 3 12 45 0.005 1 1 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
 %     optargs = {0 15 3 12 45 0.005 1 1 'D:\Temp\From MATLAB'};
-    optargs = {0 12 45 15 3 0.005 1 1 'D:\Temp\From MATLAB'};
+    optargs = {0 12 45 15 3 0.005 1 1 'D:\Temp\From MATLAB\m001_2019-12-16'};
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;

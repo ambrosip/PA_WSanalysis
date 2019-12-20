@@ -61,6 +61,9 @@ classdef WSfile
         [experimentDate] = getExperimentDate(self)
         normmonofig(self, varargin)
         firingrate(self, varargin)
+        firingrateON(self, varargin)
+        plotfft(self,sweepNumber,highpassThreshold,lowpassThreshold)
+        firingrateONbandpass(self, varargin)
         
         function obj = WSfile(fileName)
             % Need to put single quotes around file name
