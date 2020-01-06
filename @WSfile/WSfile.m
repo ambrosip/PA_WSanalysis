@@ -64,6 +64,7 @@ classdef WSfile
         firingrateON(self, varargin)
         plotfft(self,sweepNumber,highpassThreshold,lowpassThreshold)
         firingrateONbandpass(self, varargin)
+        bandpassplot(obj, varargin)
         
         function obj = WSfile(fileName)
             % Need to put single quotes around file name
