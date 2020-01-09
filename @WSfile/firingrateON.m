@@ -1,4 +1,4 @@
-function firingrate(obj, varargin)
+function firingrateON(obj, varargin)
 
     %% BEFORE USING THIS FUNCTION
     
@@ -24,18 +24,18 @@ function firingrate(obj, varargin)
     
     % optional arguments
     % set defaults for optional inputs 
-    optargs = {0 0 30 12 45 0.08 'D:\Temp\From MATLAB\2019-12-19 plotted on'};
+    optargs = {5 150 0 30 12 -100 300 0.01 'D:\Temp\From MATLAB\2019-12-19 plotted on'};
     
     % NOTE that setting MinPeakDistance to 0.08 caps the firing rate at 12
     % Hz (1/12 = 0.083), so change that if you expect your cell to be
     % firing at higher frequencies - this was added to dismiss artifact in
     % VClamp.
     
-    % overwrite defaults with values specified in varargin
+    % overwrite defaults with values spclose ecified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
     % place optional args in memorable variable names
-    [MinPeakHeight, timeToStartCountingAPs, timeToStopCountingAPs, ymaxhist, ymax, MinPeakDistance, savefileto] = optargs{:};
+    [GaussianFilterWindow, MinPeakHeight, timeToStartCountingAPs, timeToStopCountingAPs, ymaxhist, ymin, ymax, MinPeakDistance, savefileto] = optargs{:};
     
     data = [];
     mouseNumber = getMouseNumber(obj);
@@ -51,14 +51,16 @@ function firingrate(obj, varargin)
     end
     
     allSweeps = firstSweepNumber:lastSweepNumber;
-    
+
     % plotting one figure per sweep that shows firing rate histogram (1s bins) for the whole sweep
     for sweepNumber = allSweeps
         figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - histogram')); % naming figure file
 %         uncomment this if you want to look at the current steps
 %         subplot(2,1,1)
         [x,y] = obj.xy(sweepNumber, 1);
-        [pks,locs,w,p] = findpeaks(y,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+%         y = smoothdata(y,'gaussian',GaussianFilterWindow);
+        [yupper, ylower] = envelope(y);
+        [pks,locs,w,p] = findpeaks(yupper,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
         
         sweepDuration = obj.header.Acquisition.Duration;
         sweepTime=0;
@@ -95,15 +97,18 @@ function firingrate(obj, varargin)
     
     % plotting one figure per sweep that shows whole sweep
     for sweepNumber = allSweeps
-        figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - raw')); % naming figure file
+        figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - filtered')); % naming figure file
 %         uncomment this if you want to look at the current steps
 %         subplot(2,1,1)
-        [x,y] = obj.xy(sweepNumber, 1);    
+        [x,y] = obj.xy(sweepNumber, 1);
+        
+%         y = smoothdata(y,'gaussian',GaussianFilterWindow);
+
         plot(x,y);
-        axis([-inf inf -85 ymax]);           
+        axis([-inf inf ymin ymax]);           
         xlabel('Time (s)');
         ylabel(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits);
-        title([' (' num2str(sweepNumber) ') - raw'],'Interpreter','none');
+        title([' (' num2str(sweepNumber) ') - filtered'],'Interpreter','none');
 
 %         uncomment this if you want to look at the current steps
 %         subplot(2,1,2)
@@ -122,10 +127,13 @@ function firingrate(obj, varargin)
     
     % plotting one figure per sweep that shows Ch1, Ch2, peaks, and 1/ISI    
     for sweepNumber = allSweeps
-        figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - peaks')); % naming figure file
+        figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - peaks filtered envelope')); % naming figure file
         [x,y] = obj.xy(sweepNumber, 1);
-        [pks,locs,w,p] = findpeaks(y,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
         
+%         y = smoothdata(y,'gaussian',GaussianFilterWindow);
+        [yupper, ylower] = envelope(y);
+        [pks,locs,w,p] = findpeaks(yupper,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+       
         % store locs and pks values in new variables that will be editted
         % accordingly
         locsToPlot = locs;
@@ -148,14 +156,14 @@ function firingrate(obj, varargin)
         % Ch1 subplot (recorded data)
 %         uncomment this if you want to look at the current steps
 %         subplot(2,1,1);
-        plot(x,y)
+        plot(x,yupper)
         hold on;
         plot(locsToPlot,pksToPlot,'o','color','red');
         hold off;
-        axis([timeToStartCountingAPs-1 timeToStopCountingAPs+1 -85 ymax])
+        axis([timeToStartCountingAPs-1 timeToStopCountingAPs+1 ymin ymax])
         xlabel('Time (s)');
         ylabel(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits);
-        title([obj.file ' (' num2str(sweepNumber) ') - peaks'],'Interpreter','none');
+        title([obj.file ' (' num2str(sweepNumber) ') - peaks filtered envelope'],'Interpreter','none');
         text(timeToStartCountingAPs+(timeToStopCountingAPs-timeToStartCountingAPs)/2,-75,num2str(round(avgInverseISI,2)),'color','red');
 
 %         uncomment this if you want to look at the current steps
@@ -204,7 +212,7 @@ function firingrate(obj, varargin)
             {'mouse',...
             'date',...
             'sweep',...
-            'timeInterval'...
+            'timeInterval',...
             'avgInvISI',...
             'nAPsperTime',...
             'numberOfAPs',...

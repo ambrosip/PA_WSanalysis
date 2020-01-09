@@ -1,26 +1,26 @@
 function concatenateCSVfiles(dirName)
 
-%% concatenating light vs firing rate files
-
-% find all the files in dir that contain the string "firing" and have a
-% .csv extension
-firingfiles=dir(fullfile(dirName, '*firing*.csv'));
-
-% get the names of the files
-firingfilesNames={firingfiles.name}';
-
-% create array to store all csv data
-concatenatedCSVfiring = [];
-
-% append all csv files
-for i=1:numel(firingfilesNames)
-    concatenatedCSVfiring = [concatenatedCSVfiring; readtable(firingfiles(i).name)];
-end
-
-% save csv file with data 
-filename = strcat(firingfiles(1).name(1:15)," - concatenated firing");
-fulldirectory = strcat(dirName,'\',filename,'.xls');
-writetable(concatenatedCSVfiring,fulldirectory);
+% %% concatenating light vs firing rate files
+% 
+% % find all the files in dir that contain the string "firing" and have a
+% % .csv extension
+% firingfiles=dir(fullfile(dirName, '*firing*.csv'));
+% 
+% % get the names of the files
+% firingfilesNames={firingfiles.name}';
+% 
+% % create array to store all csv data
+% concatenatedCSVfiring = [];
+% 
+% % append all csv files
+% for i=1:numel(firingfilesNames)
+%     concatenatedCSVfiring = [concatenatedCSVfiring; readtable(firingfiles(i).name)];
+% end
+% 
+% % save csv file with data 
+% filename = strcat(firingfiles(1).name(1:15)," - concatenated firing");
+% fulldirectory = strcat(dirName,'\',filename,'.xls');
+% writetable(concatenatedCSVfiring,fulldirectory);
 
 
 %% concatenating excitability files

@@ -6,7 +6,7 @@ function lightvsfiringON(obj, varargin)
 %     optargs = {10 10 200 3 15 0.05 12 1 1 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
 %     optargs = {10 10 200 3 15 0.05 12 1 1 'D:\Temp\From MATLAB'};
 %     optargs = {10 10 200 3 15 0.005 12 1 1 'D:\Temp\From MATLAB'};
-    optargs = {10 20 200 3 15 0.001 50 1 1 'D:\Temp\From MATLAB'};
+    optargs = {10 40 200 3 15 0.01 50 1 1 'D:\Temp\From MATLAB\m001_2019-12-16'};
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
