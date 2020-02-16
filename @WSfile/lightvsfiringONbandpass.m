@@ -1,48 +1,40 @@
-function lightvsfiringON(obj, varargin)
+function lightvsfiringONbandpass(obj, varargin)
 
     % optional arguments
     % set defaults for optional inputs 
-    %======= NOTE CAPPING OF SIGNAL AT 12 HZ: 1/12 = 0.083
-%     optargs = {10 10 200 3 15 0.05 12 1 1 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
-%     optargs = {10 10 200 3 15 0.05 12 1 1 'D:\Temp\From MATLAB'};
-%     optargs = {10 10 200 3 15 0.005 12 1 1 'D:\Temp\From MATLAB'};
-    optargs = {10 40 200 3 15 0.01 50 1 1 'D:\Temp\From MATLAB 2020'};
+    optargs = {100 400 10 50 3 15 0 150 1 1 'D:\Temp\From MATLAB 2020'};
+    
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
+    
     % place optional args in memorable variable names
-    [GaussianFilterWindow, MinPeakHeight, ymax, LightDur, LightOnsetTime, MinPeakDistance, ymaxhist, DelayScaleFactor, LightExtensionFactor, savefileto] = optargs{:};
+    [highpassThreshold, lowpassThreshold, MinPeakHeight, ymax, LightDur, LightOnsetTime, MinPeakDistance, ymaxhist, DelayScaleFactor, LightExtensionFactor, savefileto] = optargs{:};
 
     data = [];
     mouseNumber = getMouseNumber(obj);
     experimentDate = getExperimentDate(obj);
-    
+    samplingFrequency = obj.header.Acquisition.SampleRate;
+
     % finding sweep numbers from file name
-    if length(obj.file) == 28
-        firstSweepNumber = str2num(obj.file(end-11:end-8));
-        lastSweepNumber = str2num(obj.file(end-6:end-3));
-        
-    else
-        firstSweepNumber = str2num(obj.file(end-6:end-3));
-        lastSweepNumber = str2num(obj.file(end-6:end-3));
-        
-    end
+    [firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj);
     
-    allSweeps = firstSweepNumber:lastSweepNumber;
-    
-    % plotting one figure per sweep that shows firing rate histogram for the whole sweep
+
     for sweepNumber = allSweeps
-        figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - histogram')); % naming figure file
-        subplot(2,1,1)
+        
         [x,y] = obj.xy(sweepNumber, 1);
-y = smoothdata(y,'gaussian',GaussianFilterWindow);
-        [yupper, ylower] = envelope(y);     
-        [pks,locs,w,p] = findpeaks(yupper,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+        y = bandpass(y,[highpassThreshold lowpassThreshold],samplingFrequency);
+        [pks,locs,w,p] = findpeaks(y,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+        [xch2,ych2] = obj.xy(sweepNumber, 2);  
         
         sweepDuration = obj.header.Acquisition.Duration;
         sweepTime=0;
         inverseISIperSecBin=[];
-                   
+        
+        % plotting one figure per sweep that shows firing rate histogram for the whole sweep       
+        figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - histogram')); % naming figure file
+        subplot(2,1,1)
+         
         while sweepTime <= sweepTime+1 & sweepTime < sweepDuration
             indicesToDelete = find(locs<sweepTime | locs>=sweepTime+1);
             locsDuringSweepTime = locs;
@@ -51,35 +43,24 @@ y = smoothdata(y,'gaussian',GaussianFilterWindow);
             sweepTime=sweepTime+1;
         end
 
-%         bar(0:29,inverseISIperSecBin,1);
         bar(0:length(inverseISIperSecBin)-1,inverseISIperSecBin,1);
-        axis([-inf inf 0 ymaxhist]);
-            
+        axis([-inf inf 0 ymaxhist]);            
         xlabel('Bins (1 s long)');
         ylabel('1/ISI (Hz)');
-        title([' (' num2str(sweepNumber) ') - hist'],'Interpreter','none');
+        title([' (' num2str(sweepNumber) ') - hist'],'Interpreter','none');        
         
-        subplot(2,1,2)
-        [x,y] = obj.xy(sweepNumber, 2);     
-        plot(x,y);
-        yminhere = min(y)-5;
-        ymaxhere = max(y)+5;
+        subplot(2,1,2)   
+        plot(xch2,ych2);
+        yminhere = min(ych2)-5;
+        ymaxhere = max(ych2)+5;
         axis([0 30 yminhere ymaxhere])
         xlabel('Time (s)');
-        ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(2), ' (', obj.header.Acquisition.AnalogChannelUnits(2), ')'));
-        
+        ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(2), ' (', obj.header.Acquisition.AnalogChannelUnits(2), ')'));        
         set(gcf,'Position',[1 1 280 420])
-        movegui('northwest');        
-    end
-    
-    
-    % plotting one figure per sweep that shows Ch1, Ch2, peaks, and 1/ISI    
-    for sweepNumber = allSweeps
+        movegui('northwest');   
+            
+        % plotting one figure per sweep that shows Ch1, Ch2, peaks, and 1/ISI     
         figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - peaks')); % naming figure file
-        [x,y] = obj.xy(sweepNumber, 1);
-y = smoothdata(y,'gaussian',GaussianFilterWindow);
-        [yupper, ylower] = envelope(y);          
-        [pks,locs,w,p] = findpeaks(yupper,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
         
         % store locs and pks values in new variables that will be editted
         % acordingly
@@ -125,14 +106,13 @@ y = smoothdata(y,'gaussian',GaussianFilterWindow);
      
         % Ch1 subplot (recorded data)
         subplot(2,1,1);
-        plot(x,yupper)
+        plot(x,y)
         hold on;
         plot(locsLight,pksLight,'o','color','red');
         plot(locsBaseline1,pksBaseline1,'o','color','blue');
         plot(locsBaseline2,pksBaseline2,'o','color','blue');
         hold off;
         axis([LightOnsetTime-4 LightOnsetTime+LightDur+4 -inf ymax])
-% axis([15.15 15.4 -inf 50])
         xlabel('Time (s)');
         ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ' (env)'));
         title([obj.file ' (' num2str(sweepNumber) ') - peaks'],'Interpreter','none');
@@ -142,29 +122,13 @@ y = smoothdata(y,'gaussian',GaussianFilterWindow);
         
         % Ch2 subplot (light stim command)
         subplot(2,1,2);
-        [x,y] = obj.xy(sweepNumber, 2);
-        plot(x,y)
-        yminhere = min(y)-5;
-        ymaxhere = max(y)+5;
+        plot(xch2,ych2)
+        yminhere = min(ych2)-5;
+        ymaxhere = max(ych2)+5;
         axis([LightOnsetTime-4 LightOnsetTime+LightDur+4 yminhere ymaxhere])
         xlabel('Time (s)');
         ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(2), ' (', obj.header.Acquisition.AnalogChannelUnits(2), ')'));  
-        
-%         ISIforBaseline1
-%         isempty(ISIforBaseline1)
-%         length(ISIforBaseline1)
-%         ISIforBaseline1(1)
-%         1/ISIforBaseline1(1)
-%         
-%         if isempty(ISIforBaseline1) || isempty(ISIforLight) || isempty(ISIforBaseline2)
-%             data = [data; sweepNumber, ...
-%                     avgInverseISIforBaseline1, avgInverseISIforLight, avgInverseISIforBaseline2, ...
-%                     length(pksBaseline1), length(pksLight), length(pksBaseline2), ...
-%                     NaN, NaN, ...
-%                     NaN, NaN, ...
-%                     NaN, NaN];     
-%         elseif
-%             
+                   
         placeholder1 = [];
         placeholder2 = [];
         placeholder3 = [];
@@ -202,35 +166,30 @@ y = smoothdata(y,'gaussian',GaussianFilterWindow);
                 placeholder1, placeholder2,...
                 placeholder3, placeholder4,...
                 placeholder5, placeholder6];
-                
-    end    
-    
-    % plotting one figure per sweep that shows whole sweep
-    for sweepNumber = allSweeps
-        figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - raw')); % naming figure file
+                        
+        % plotting one figure per sweep that shows whole sweep    
+        figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - raw')); % naming figure file    
         
         subplot(2,1,1)
-        [x,y] = obj.xy(sweepNumber, 1);
-y = smoothdata(y,'gaussian',GaussianFilterWindow);
         plot(x,y);
         axis([-inf inf -inf ymax]);           
         xlabel('Time (s)');
         ylabel(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits);
         title([' (' num2str(sweepNumber) ') - raw'],'Interpreter','none');
       
-        subplot(2,1,2)
-        [x,y] = obj.xy(sweepNumber, 2);     
-        plot(x,y);
-        yminhere = min(y)-5;
-        ymaxhere = max(y)+5;
+        subplot(2,1,2) 
+        plot(xch2,ych2);
+        yminhere = min(ych2)-5;
+        ymaxhere = max(ych2)+5;
         axis([0 30 yminhere ymaxhere])
         xlabel('Time (s)');
         ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(2), ' (', obj.header.Acquisition.AnalogChannelUnits(2), ')'));
         
         set(gcf,'Position',[1 1 280 420])
         movegui('northeast');
+        
     end
-
+    
         % save csv file with data 
         filename = strcat(obj.file(1:15),'_',num2str(allSweeps(1)),'-',num2str(allSweeps(end))," - firing vs light cell attached");
         fulldirectory = strcat(savefileto,'\',filename,'.csv');        

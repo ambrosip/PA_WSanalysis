@@ -4,7 +4,7 @@ function normmonofig(obj, varargin)
 
 % optional arguments
 numvarargs = length(varargin);
-optargs = {-1 15 1.99 2 0.005 1.94 2.14 -10000 500 1 'D:\Temp\From MATLAB\test'};
+optargs = {-1 15 1.99 2 0.005 1.94 2.14 -10000 500 1 'D:\Temp\From MATLAB 2020'};
 optargs(1:numvarargs) = varargin;
 [inwardORoutward, threshold, baselineOnsetTime, lightOnsetTime, lightDuration, xmin, xmax, ymin, ymax, rsTestPulseOnsetTime, savefileto] = optargs{:};
 

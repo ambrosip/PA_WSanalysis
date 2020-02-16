@@ -3,7 +3,7 @@ function [dataPerCurrentStepSubset, dataPerSweepCh1, dataPerSweepCh2] = excitabi
     % optional arguments
     % set defaults for optional inputs 
 %     optargs = {-10 0 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
-    optargs = {12 50 -10 0 'D:\Temp\From MATLAB\m001_2019-12-16'};
+    optargs = {12 50 -10 0 'D:\Temp\From MATLAB 2020'};
 
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);

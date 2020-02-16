@@ -1,4 +1,4 @@
-function bandpassplot(obj, varargin)
+function filteredplot(obj, varargin)
 
     %% BEFORE USING THIS FUNCTION
     
@@ -24,7 +24,7 @@ function bandpassplot(obj, varargin)
     
     % optional arguments
     % set defaults for optional inputs 
-    optargs = {1 2 2500 0 30 -800 -400 100 1 'D:\Temp\From MATLAB 2020'}; 
+    optargs = {1 0.2 1000 5 25 -800 -800 100 1 'D:\Temp\From MATLAB 2020'}; % used for minis data
 %     optargs = {1 2 1000 15 20 -400 -200 100 1 'D:\Temp\From MATLAB 2020'};
 %     optargs = {1 2 1000 0 30 -300 -200 100 1 'D:\Temp\From MATLAB 2020'};
     
@@ -76,21 +76,20 @@ function bandpassplot(obj, varargin)
         allRs = [allRs, seriesResistance];
         
         if filterORnot
-           figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - bandpass filtered')); % naming figure file
-           yFiltered = bandpass(y,[highpassThreshold lowpassThreshold],samplingFrequency);
-           plot(x,yFiltered,'k','LineWidth',1);
-           xminhere=xmin+5; % to not show bandpass edge artifacts
-           xmaxhere=xmax-5;
-           axis([xminhere xmaxhere ymin ymax]);           
+           figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - low and highpass filtered')); % naming figure file
+           yFilteredOnce = highpass(y, highpassThreshold,samplingFrequency);
+           yFilteredTwice = lowpass(yFilteredOnce,lowpassThreshold,samplingFrequency);
+           plot(x,yFilteredTwice,'k','LineWidth',1);
+           axis([xmin xmax ymin ymax]);           
            xlabel('Time (s)');
            ylabel(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits);
-           title([' (' num2str(sweepNumber) ') - bandpass filtered'],'Interpreter','none');
+           title([' (' num2str(sweepNumber) ') - low and highpass filtered'],'Interpreter','none');
            set(gca,'Visible','off')        
            % adding scale bar
-           line([xminhere,xminhere+(xmaxhere-xminhere)/10],[ymin,ymin],'Color','k')
-           line([xminhere,xminhere],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
-           text(xminhere+(xmaxhere-xminhere)/130,ymin+((ymax-ymin)/30),strcat(num2str((xmaxhere-xminhere)/10)," s"))
-           text(xminhere+(xmaxhere-xminhere)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))   
+           line([xmin,xmin+(xmax-xmin)/10],[ymin,ymin],'Color','k')
+           line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
+           text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str((xmax-xmin)/10)," s"))
+           text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))   
         end        
     end
     

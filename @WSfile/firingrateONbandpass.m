@@ -26,7 +26,7 @@ function firingrateONbandpass(obj, varargin)
     % set defaults for optional inputs 
 %     optargs = {100 500 15 0 30 12 -100 100 0.01 'D:\Temp\From MATLAB 2020'};
 %     optargs = {100 500 3 0 30 12 -30 30 0.08 'D:\Temp\From MATLAB 2020'};
-    optargs = {100 400 5 0 30 12 -30 30 0.08 'D:\Temp\From MATLAB 2020'};
+    optargs = {100 400 10 0 30 12 -50 50 0.08 'D:\Temp\From MATLAB 2020'};
 %     optargs = {100 500 0.4 0 30 12 -1 1 0.05 'D:\Temp\From MATLAB 2020'};
     
     % NOTE that setting MinPeakDistance to 0.08 caps the firing rate at 12
