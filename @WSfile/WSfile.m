@@ -67,6 +67,7 @@ classdef WSfile
         bandpassplot(self, varargin)
         filteredplot(self, varargin)
         lightvsfiringONbandpass(obj, varargin)
+
         
         function obj = WSfile(fileName)
             % Need to put single quotes around file name

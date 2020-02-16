@@ -2,7 +2,7 @@ function lightvsfiringONbandpass(obj, varargin)
 
     % optional arguments
     % set defaults for optional inputs 
-    optargs = {100 400 10 50 3 15 0 150 1 1 'D:\Temp\From MATLAB 2020'};
+    optargs = {100 400 10 30 3 15 0.01 50 1 1 'E:\From MATLAB'};
     
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
@@ -187,9 +187,11 @@ function lightvsfiringONbandpass(obj, varargin)
         
         set(gcf,'Position',[1 1 280 420])
         movegui('northeast');
+
         
     end
     
+
         % save csv file with data 
         filename = strcat(obj.file(1:15),'_',num2str(allSweeps(1)),'-',num2str(allSweeps(end))," - firing vs light cell attached");
         fulldirectory = strcat(savefileto,'\',filename,'.csv');        
