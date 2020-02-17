@@ -29,8 +29,7 @@ function firingrateONbandpass(obj, varargin)
 %     optargs = {100 400 10 0 30 12 -50 50 0.08 'D:\Temp\From MATLAB 2020'};
 %     optargs = {100 500 0.4 0 30 12 -1 1 0.05 'D:\Temp\From MATLAB 2020'};
 %     optargs = {100 2000 20 1 29 100 -100 100 0.01 'D:\Temp\From MATLAB 2020'};
-%     optargs = {100 2000 20 1 29 12 -200 200 0.01 'D:\Temp\From MATLAB 2020'};   % firing < 15 Hz
-    optargs = {100 2000 10 1 29 100 -100 100 0.005 'D:\Temp\From MATLAB 2020'};  % firing > 50 Hz
+    optargs = {100 2000 20 1 29 12 -200 200 0.01 'D:\Temp\From MATLAB 2020'};   % firing < 15 Hz
     
     % NOTE that setting MinPeakDistance to 0.08 caps the firing rate at 12
     % Hz (1/12 = 0.083), so change that if you expect your cell to be
@@ -154,10 +153,9 @@ function firingrateONbandpass(obj, varargin)
         set(gca,'Visible','off');
         
         % adding scale bar
-        xscale = 1;
-        line([xmin,xmin+xscale],[ymin,ymin],'Color','k')
+        line([xmin,xmax],[ymin,ymin],'Color','k')
         line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
-        text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str(xscale)," s"))
+        text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str(ZoomWindow*1000)," s"))
         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
         movegui('south');
         
