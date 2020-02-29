@@ -7,10 +7,11 @@ function lightvsfiringONbandpass(obj, varargin)
 
     % optional arguments (args)
     % set defaults for optional inputs 
-    optargs = {100 2000 10 100 3 15 0.001 150 1 1 0.005 20 0.25 'D:\Temp\From MATLAB 2020'};   % for firing > 100 Hz
-%     optargs = {100 2000 10 100 3 15 0.001 100 1 1 0.005 20 0.25 'D:\Temp\From MATLAB 2020'};   % for firing > 50 Hz
-%     optargs = {100 2000 15 75 3 15 0.01 50 1 1 0.005 20 0.25 'D:\Temp\From MATLAB 2020'};   % for firing > 25 Hz
-%     optargs = {100 2000 50 250 3 15 0.01 12 1 1 0.005 20 0.25 'D:\Temp\From MATLAB 2020'};   % for firing < 15 Hz     
+    optargs = {100 900 7 75 3 15 0.0025 150 1 1 0.005 20 5 'E:\From MATLAB'};   % for firing > 100 Hz
+%     optargs = {100 900 7 75 3 15 0.0025 150 1 1 0.005 20 0.25 'E:\From MATLAB'};   % for firing > 100 Hz
+%     optargs = {100 1000 20 75 3 15 0.001 100 1 1 0.005 20 0.25 'E:\From MATLAB'};   % for firing > 50 Hz
+%     optargs = {100 1000 15 75 3 15 0.005 50 1 1 0.005 20 0.25 'E:\From MATLAB'};   % for firing > 25 Hz
+%     optargs = {100 1000 15 75 3 15 0.005 12 1 1 0.005 20 0.25 'E:\From MATLAB'};   % for firing < 15 Hz     
     
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
@@ -295,6 +296,33 @@ function lightvsfiringONbandpass(obj, varargin)
         ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(2), ' (', obj.header.Acquisition.AnalogChannelUnits(2), ')'));        
         set(gcf,'Position',[1 1 280 420])
         movegui('northeast');
+        
+        
+        
+        % plotting niceplot     
+        figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - niceplot')); % naming figure file
+        plot(x,yFiltered,'k','LineWidth',1)
+        xmin=11;
+        xmax=22;
+        ymin=-ymax;
+        axis([xmin xmax ymin ymax]);
+        title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
+        set(gca,'Visible','off');
+        
+        % adding light stim
+        line([15,18],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+        
+        % adding scale bar
+        line([xmin,xmin+(xmax-xmin)/13],[ymin,ymin],'Color','k')
+        line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
+        text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str((xmax-xmin)/13)," s"))
+        text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+
+%         line([xmin,xmin+1],[ymin,ymin],'Color','k')
+%         line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
+%         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str(ZoomWindow*1000)," ms"))
+%         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+%         movegui('south');
 
         
     end

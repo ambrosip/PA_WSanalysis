@@ -67,6 +67,7 @@ classdef WSfile
         bandpassplot(self, varargin)
         filteredplot(self, varargin)
         lightvsfiringONbandpass(obj, varargin)
+        niceplotBandpass(obj, varargin)
 
         
         function obj = WSfile(fileName)
