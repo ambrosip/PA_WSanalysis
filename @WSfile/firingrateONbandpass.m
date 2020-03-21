@@ -30,7 +30,7 @@ function firingrateONbandpass(obj, varargin)
 %     optargs = {100 500 0.4 0 30 12 -1 1 0.05 'D:\Temp\From MATLAB 2020'};
 %     optargs = {100 2000 20 1 29 100 -100 100 0.01 'D:\Temp\From MATLAB 2020'};
 %     optargs = {100 2000 20 1 29 12 -200 200 0.01 'D:\Temp\From MATLAB 2020'};   % firing < 15 Hz
-    optargs = {100 2000 10 1 29 100 -100 100 0.005 'D:\Temp\From MATLAB 2020'};  % firing > 50 Hz
+    optargs = {100 2000 10 1 29 100 -100 100 0.005 'D:\CORONAVIRUS DATA\From MATLAB'};  % firing > 50 Hz
     optargs = {100 2000 30 1 29 50 -100 100 0.01 'E:\From MATLAB'};  % firing < 50 Hz
     
     % NOTE that setting MinPeakDistance to 0.08 caps the firing rate at 12
