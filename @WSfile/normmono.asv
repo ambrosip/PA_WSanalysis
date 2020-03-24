@@ -4,9 +4,9 @@ function [lightEvokedCurrents,dataPerSweepCh1,dataPerSweepCh2,seriesResistance] 
 
 % optional arguments
 numvarargs = length(varargin);
-% optargs = {-1 0.02 15 0.29 0.3 0.005 0.24 0.44 -10000 500 0.1 'D:\CORONAVIRUS DATA\From MATLAB'}; % Talia's settings
+optargs = {-1 0.02 15 0.29 0.3 0.005 0.24 0.44 -10000 500 0.1 'D:\CORONAVIRUS DATA\From MATLAB'}; % Talia's settings
 % optargs = {-1 0.01 15 1.99 2 0.005 1.94 2.14 -10000 500 1 'D:\CORONAVIRUS DATA\From MATLAB'}; % USED Before 2020-03-20
-optargs = {-1 0.02 15 1.99 2 0.005 1.94 2.14 -10000 500 1 'D:\CORONAVIRUS DATA\From MATLAB'}; % USED AFter 2020-03-20 (due to long latency of chrimson-evoked light responses)
+% optargs = {-1 0.02 15 1.99 2 0.005 1.94 2.14 -10000 500 1 'D:\CORONAVIRUS DATA\From MATLAB'}; % USED AFter 2020-03-20 (due to long latency of chrimson-evoked light responses)
 
 % optargs = {1.99 2 0.005 1.94 2.14 -3000 500 1 'D:\Temp\Data summaries\2019-07-20 th flp naive'};
 optargs(1:numvarargs) = varargin;
@@ -22,8 +22,7 @@ round(afterLightDataPoint);
 baselineOnsetDataPoint = baselineOnsetTime*sampleRate;
 % rsBaselineDataPointInterval =
 % ((rsTestPulseOnsetTime-0.1)*sampleRate):(rsTestPulseOnsetTime*sampleRate);
-% USED TO BE THIS, changed to 0.05 on 2020-03-23 to accomodate Talia's
-% files
+% USED TO BE THIS, changed to 0.05 on Mar 
 rsBaselineDataPointInterval = ((rsTestPulseOnsetTime-0.05)*sampleRate):(rsTestPulseOnsetTime*sampleRate);
 rsFirstTransientDataPointInterval = (rsTestPulseOnsetTime*sampleRate):(rsTestPulseOnsetTime+0.0025)*sampleRate;
 mouseNumber = getMouseNumber(obj);
@@ -201,12 +200,7 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
         line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
         text(xmaxScale-(xmaxScale-xminScale)/10,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
-        text(xmaxScale-(xmaxScale-xminScale)/8,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
-                      
-%         line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
-%         line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
-%         text(xmaxScale-(xmaxScale-xminScale)/10,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
-%         text(xmaxScale-(xmaxScale-xminScale)/9,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+        text(xmaxScale-(xmaxScale-xminScale)/9,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
                 
 %         % adding scale bar
 %         line([xminScale,xminScale+(xmaxScale-xminScale)/11],[ymin,ymin],'Color','k')

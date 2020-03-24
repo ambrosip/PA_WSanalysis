@@ -1,29 +1,24 @@
-function [lightEvokedCurrents,dataPerSweepCh1,dataPerSweepCh2,seriesResistance] = normmono(obj, varargin)
+function newWSnormmono(obj, varargin)
 
 [firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj);
 
 % optional arguments
 numvarargs = length(varargin);
-% optargs = {-1 0.02 15 0.29 0.3 0.005 0.24 0.44 -10000 500 0.1 'D:\CORONAVIRUS DATA\From MATLAB'}; % Talia's settings
-% optargs = {-1 0.01 15 1.99 2 0.005 1.94 2.14 -10000 500 1 'D:\CORONAVIRUS DATA\From MATLAB'}; % USED Before 2020-03-20
-optargs = {-1 0.02 15 1.99 2 0.005 1.94 2.14 -10000 500 1 'D:\CORONAVIRUS DATA\From MATLAB'}; % USED AFter 2020-03-20 (due to long latency of chrimson-evoked light responses)
 
-% optargs = {1.99 2 0.005 1.94 2.14 -3000 500 1 'D:\Temp\Data summaries\2019-07-20 th flp naive'};
+% USED AFter 2020-03-20 (due to long latency of chrimson-evoked light responses)
+% Adjusted for Talia's protocol settings
+optargs = {-1 0.02 15 0.29 0.3 0.005 0.24 0.44 -10000 500 0.1 'D:\CORONAVIRUS DATA\From MATLAB'}; 
 optargs(1:numvarargs) = varargin;
 [inwardORoutward, analysisTimeWindow, threshold, baselineOnsetTime, lightOnsetTime, lightDuration, xmin, xmax, ymin, ymax, rsTestPulseOnsetTime, savefileto] = optargs{:};
 
 % variables that will be used
 totalActiveChannels = 2;
-sampleRate = obj.header.Acquisition.SampleRate;
+sampleRate = obj.header.AcquisitionSampleRate;
 lightOnsetDataPoint = lightOnsetTime*sampleRate;
 lightOffDataPoint = (lightOnsetTime+lightDuration)*sampleRate;
 afterLightDataPoint = (lightOnsetTime+analysisTimeWindow)*sampleRate;
 round(afterLightDataPoint);
 baselineOnsetDataPoint = baselineOnsetTime*sampleRate;
-% rsBaselineDataPointInterval =
-% ((rsTestPulseOnsetTime-0.1)*sampleRate):(rsTestPulseOnsetTime*sampleRate);
-% USED TO BE THIS, changed to 0.05 on 2020-03-23 to accomodate Talia's
-% files
 rsBaselineDataPointInterval = ((rsTestPulseOnsetTime-0.05)*sampleRate):(rsTestPulseOnsetTime*sampleRate);
 rsFirstTransientDataPointInterval = (rsTestPulseOnsetTime*sampleRate):(rsTestPulseOnsetTime+0.0025)*sampleRate;
 mouseNumber = getMouseNumber(obj);
@@ -37,16 +32,7 @@ seriesResistance = [];
 data = [];
 allRs = [];
 lightEvokedResponseLatency = [];
-allLightEvokedResponseLatencyInMilliSeconds = [];
-
-%     % checking for incomplete sweeps and not analyzing incomplete sweeps (to
-%     % avoid this error: "Dimensions of matrices being concatenated are not
-%     % consistent." when calculating this: "dataPerSweepCh2 = [dataPerSweepCh2,
-%     % ych2]" and other concatenations.
-%     if numel(fieldnames(obj.sweeps)) < obj.header.NSweepsPerRun
-%         lastSweepNumber = lastSweepNumber - (obj.header.NSweepsPerRun - numel(fieldnames(obj.sweeps)));
-%         allSweeps = firstSweepNumber:lastSweepNumber;
-%     end    
+allLightEvokedResponseLatencyInMilliSeconds = []; 
 
     % checking for incomplete sweeps and not analyzing incomplete sweeps (to
     % avoid this error: "Dimensions of matrices being concatenated are not
@@ -54,8 +40,8 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
     % ych2]" and other concatenations.   
     
     if numel(fieldnames(obj.sweeps)) < obj.header.NSweepsPerRun
-        lastSweepNumber = firstSweepNumber + numel(fieldnames(obj.sweeps)) - 2
-        allSweeps = firstSweepNumber:lastSweepNumber
+        lastSweepNumber = firstSweepNumber + numel(fieldnames(obj.sweeps)) - 2;
+        allSweeps = firstSweepNumber:lastSweepNumber;
     end 
     
     
@@ -72,7 +58,7 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         yminhere = min(ych2)-5;
         ymaxhere = max(ych2)+5;
         axis([xmin xmax yminhere ymaxhere])
-        ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(channel), ' (', obj.header.Acquisition.AnalogChannelUnits(channel), ')'));
+        ylabel(strcat(obj.header.AIChannelNames(channel), ' (', obj.header.AIChannelUnits(channel), ')'));
         dataPerSweepCh2 = [dataPerSweepCh2, ych2];
         end
         xlabel('Time (s)');
@@ -88,7 +74,8 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         rsBaselineCurrent = mean(y(rsBaselineDataPointInterval));
         rsTransientCurrent = min(y(rsFirstTransientDataPointInterval));
         dCurrent = rsTransientCurrent-rsBaselineCurrent;
-        dVoltage = -5;
+        %%%%%%%%%%%%%%%%%%%% IM NOT SURE ABOUT THE dV!!!!!!
+        dVoltage = -2.5;
         seriesResistance = 1000*dVoltage/dCurrent; %mV/pA equals Gohm
         
         % normalizing data based on mean baseline current between t=1.99 (or whatever was the input time) and t=2
@@ -98,7 +85,7 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         plot(x,y,'Color', [0.75, 0.75, 0.75]);
         axis([xmin xmax ymin ymax])
 %         xlabel('Time (s)');
-        ylabel(strcat("Normalized ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+        ylabel(strcat("Baseline subtracted ", obj.header.AIChannelNames(1), ' (', obj.header.AIChannelUnits(1), ')'));
         title([obj.file ' (all) - 2 channels - Baseline Subtracted'],'Interpreter','none');
 
         % rationale for finding light evoked response latency: I am looking
@@ -166,21 +153,8 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
 %     line(lightOnsetDataPoint:lightOffDataPoint,100:100,'Color','blue','LineWidth',3)
     axis([xmin xmax ymin ymax])
     hold off;    
-    
     movegui('northwest');
-    
-%     % plotting figure with only Ch1
-%         figure('name', strcat(obj.file,' (all) - Normalized')); % naming figure file
-%         hold on;
-%         plot(x, dataPerSweepCh1,'Color', [0.75, 0.75, 0.75]);
-%         plot(x, mean(dataPerSweepCh1,2),'Color','black','LineWidth',1.5); 
-%         rectangle('Position', [lightOnsetTime 200 lightDuration 100], 'FaceColor', [0 0.4470 0.7410], 'LineStyle', 'none')
-%         axis([xmin xmax ymin ymax])
-%         xlabel('Time (s)');
-%         ylabel(strcat("Normalized ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
-%         title([obj.file ' (all) - Normalized'],'Interpreter','none');
-%         hold off;
-    
+      
     
     % plotting figure with only Ch1 niceplot
         figure('name', strcat(obj.file,' (all) - niceplot - Baseline Subtracted')); % naming figure file
@@ -190,7 +164,7 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         rectangle('Position', [lightOnsetTime 200 lightDuration 100], 'FaceColor', [0 0.4470 0.7410], 'LineStyle', 'none')
         axis([lightOnsetTime-0.01 lightOnsetTime+0.1 ymin ymax]) % used to be -7000
         xlabel('Time (s)');
-        ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+        ylabel(strcat("Baseline subtracted ", obj.header.AIChannelNames(1), ' (', obj.header.AIChannelUnits(1), ')'));
         title([obj.file ' (all) - Baseline Subtracted'],'Interpreter','none');
         set(gca,'Visible','off')
         
@@ -201,22 +175,10 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
         line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
         text(xmaxScale-(xmaxScale-xminScale)/10,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
-        text(xmaxScale-(xmaxScale-xminScale)/8,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
-                      
-%         line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
-%         line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
-%         text(xmaxScale-(xmaxScale-xminScale)/10,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
-%         text(xmaxScale-(xmaxScale-xminScale)/9,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
-                
-%         % adding scale bar
-%         line([xminScale,xminScale+(xmaxScale-xminScale)/11],[ymin,ymin],'Color','k')
-%         line([xminScale,xminScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
-%         text(xminScale+(xmaxScale-xminScale)/110,ymin+((ymax-ymin)/30),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
-%         text(xminScale+(xmaxScale-xminScale)/70,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
-%         
+        text(xmaxScale-(xmaxScale-xminScale)/8,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.AIChannelUnits(1)))                      
         hold off;
-
         
+    
     % plotting figure with only Ch1 niceplot - AVG only
         figure('name', strcat(obj.file,' (all) - niceplot - Baseline Subtracted - AVG only')); % naming figure file
         hold on;
@@ -224,7 +186,7 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         rectangle('Position', [lightOnsetTime 200 lightDuration 100], 'FaceColor', [0 0.4470 0.7410], 'LineStyle', 'none')
         axis([lightOnsetTime-0.01 lightOnsetTime+0.1 ymin ymax]) % used to be -7000
         xlabel('Time (s)');
-        ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+        ylabel(strcat("Baseline subtracted ", obj.header.AIChannelNames(1), ' (', obj.header.AIChannelUnits(1), ')'));
         title([obj.file ' (all) - Baseline Subtracted'],'Interpreter','none');
         set(gca,'Visible','off')
         
@@ -235,10 +197,9 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
         line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
         text(xmaxScale-(xmaxScale-xminScale)/10,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
-        text(xmaxScale-(xmaxScale-xminScale)/8,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
-                      
+        text(xmaxScale-(xmaxScale-xminScale)/8,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.AIChannelUnits(1)))                      
         hold off;
-    
+                   
 
  % save csv file with data 
         filename = strcat(obj.file(1:15),'_',num2str(allSweeps(1)),'-',num2str(allSweeps(end))," - Baseline Subtracted light evoked currents",'(',num2str(inwardORoutward),')');

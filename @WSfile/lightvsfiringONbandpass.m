@@ -7,9 +7,9 @@ function lightvsfiringONbandpass(obj, varargin)
 
     % optional arguments (args)
     % set defaults for optional inputs 
-    optargs = {100 900 7 75 3 15 0.0025 150 1 1 0.005 20 5 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 100 Hz
+%     optargs = {100 900 5 75 3 15 0.0025 150 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 100 Hz
 %     optargs = {100 900 7 75 3 15 0.0025 150 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 100 Hz
-%     optargs = {100 1000 20 75 3 15 0.001 100 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 50 Hz
+    optargs = {100 1000 15 75 3 15 0.001 100 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 50 Hz
 %     optargs = {100 1000 15 75 3 15 0.005 50 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 25 Hz
 %     optargs = {100 1000 15 75 3 15 0.005 12 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 15 Hz     
     
