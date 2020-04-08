@@ -2,10 +2,10 @@ function niceplot(obj, varargin)
 
     % optional arguments: axis range for channel 1 (monitor CC or VC)
     numvarargs = length(varargin);
-    optargs = {'black' -120 50 0 20 15 3 10 23};     % for WC data
+%     optargs = {'black' -100 50 0 20 15 3 10 23};     % for WC data
 %     optargs = {'black' -200 200 0 20 15 3 10 23};    % for ON data
-%     optargs = {'black' -600 100 0 20 15 3 10 23};    % for mIPSC data
-%     optargs = {'black' -500 100 1 10 15 3 10 23};    % for filtered mIPSC data
+    optargs = {'k' -600 100 0 20 15 3 10 23};    % for mIPSC data
+%     optargs = {'k' -500 100 1 10 15 3 10 23};    % for filtered mIPSC data
     optargs(1:numvarargs) = varargin;
     [colorName, ymin, ymax, filterORnot, GaussianFilterWindow, lightOnsetTime, lightDuration, xmin, xmax] = optargs{:};
     
