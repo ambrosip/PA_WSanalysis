@@ -29,8 +29,12 @@ function saveAllFigs(varargin)
       FigName = FigList(iFig).Name;
       set(0, 'CurrentFigure', FigHandle);
       saveas(FigHandle,fullfile(FolderName, [FigName '.tiff']));
-%       FigHandle.Renderer = 'painters';
-%       saveas(FigHandle,fullfile(FolderName, [FigName '.svg']));
+      
+      % forces matlab to save fig as a vector
+      FigHandle.Renderer = 'painters';
+      
+      % actually saves a vector file
+      saveas(FigHandle,fullfile(FolderName, [FigName '.svg']));
     end
     
     disp('I did it')

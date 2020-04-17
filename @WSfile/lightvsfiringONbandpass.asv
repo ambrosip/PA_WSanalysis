@@ -8,11 +8,10 @@ function lightvsfiringONbandpass(obj, varargin)
     % optional arguments (args)
     % set defaults for optional inputs 
 %     optargs = {100 900 5 75 3 15 0.0025 150 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 100 Hz
-%     optargs = {100 900 10 75 3 15 0.0025 150 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 100 Hz
-%     optargs = {100 1000 15 75 3 15 0.005 100 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 50 Hz
-    optargs = {100 1000 15 75 3 15 0.005 50 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 25 Hz
-%     optargs = {100 1000 20 100 3 15 0.005 25 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 12 Hz
-%     optargs = {100 1000 25 150 3 15 0.005 12 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 12 Hz     
+%     optargs = {100 900 7 75 3 15 0.0025 150 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 100 Hz
+    optargs = {100 1000 15 75 3 15 0.001 100 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 50 Hz
+%     optargs = {100 1000 15 75 3 15 0.005 50 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 25 Hz
+%     optargs = {100 1000 15 75 3 15 0.005 12 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 15 Hz     
     
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
@@ -56,7 +55,7 @@ function lightvsfiringONbandpass(obj, varargin)
         [x,y] = obj.xy(sweepNumber, 1);
         yFiltered = bandpass(y,[highpassThreshold lowpassThreshold],samplingFrequency);
         [pks,locs,w,p] = findpeaks(yFiltered,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
-        [xch2,ych2] = obj.xy(sweepNumber, 2);        
+        [xch2,ych2] = obj.xy(sweepNumber, 2);  
         
         sweepDuration = obj.header.Acquisition.Duration;
         sweepTime=0;
@@ -303,10 +302,8 @@ function lightvsfiringONbandpass(obj, varargin)
         % plotting niceplot     
         figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - niceplot')); % naming figure file
         plot(x,yFiltered,'k','LineWidth',1)
-%         xmin=11;
-%         xmax=22;
-        xmin=10;
-        xmax=23;
+        xmin=11;
+        xmax=22;
         ymin=-ymax;
         axis([xmin xmax ymin ymax]);
         title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
@@ -320,12 +317,18 @@ function lightvsfiringONbandpass(obj, varargin)
         line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str((xmax-xmin)/13)," s"))
         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+        
+        line([xmin,xmin+(xmax-xmin)/13],[ymin,ymin],'Color','k')
+        line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
+        text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str((xmax-xmin)/13)," s"))
+        text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
 
 %         line([xmin,xmin+1],[ymin,ymin],'Color','k')
 %         line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
 %         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str(ZoomWindow*1000)," ms"))
 %         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
 %         movegui('south');
+
         
     end
     

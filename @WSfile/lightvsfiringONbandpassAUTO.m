@@ -1,18 +1,21 @@
 % Hello, here's the breakdown of my name/usage:
+
 % lightvsfiring: I am used to analyze and display firing rate before, during and after light stim.
+
 % ON: Use me for cell attached and loose seal recordings.
+
 % bandpass: To clean the data from baseline drift and fast artifacts (such as light stim onset/offset,
 % outflow bubbles), I use a bandpass filter.
-function lightvsfiringONbandpass(obj, varargin)
+
+% AUTO: I am smart code, I identify the light stim parameters
+% automatically.
+
+function lightvsfiringONbandpassAUTO(obj, varargin)
 
     % optional arguments (args)
     % set defaults for optional inputs 
-%     optargs = {100 900 5 75 3 15 0.0025 150 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 100 Hz
-%     optargs = {100 900 10 75 3 15 0.0025 150 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 100 Hz
-%     optargs = {100 1000 15 75 3 15 0.005 100 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 50 Hz
-    optargs = {100 1000 15 75 3 15 0.005 50 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 25 Hz
-%     optargs = {100 1000 20 100 3 15 0.005 25 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 12 Hz
-%     optargs = {100 1000 25 150 3 15 0.005 12 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 12 Hz     
+%     optargs = {100 1000 9 75 0.005 50 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 25 Hz
+    optargs = {100 1000 5 75 0.05 12 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 12 Hz
     
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
@@ -23,14 +26,9 @@ function lightvsfiringONbandpass(obj, varargin)
         lowpassThreshold,...
         MinPeakHeight,...
         ymax,...
-        LightDur,...
-        LightOnsetTime,...
         MinPeakDistance,...
         ymaxhist,...
-        DelayScaleFactor,...
-        LightExtensionFactor,...
-        StimDur,...
-        StimFreq,...
+        LightExtensionFactor,...        
         ZoomWindow,...
         savefileto] = optargs{:};
     % lowpassThreshold of 1000 is too low - it causes sinusoidal artifacts in the data
@@ -56,11 +54,20 @@ function lightvsfiringONbandpass(obj, varargin)
         [x,y] = obj.xy(sweepNumber, 1);
         yFiltered = bandpass(y,[highpassThreshold lowpassThreshold],samplingFrequency);
         [pks,locs,w,p] = findpeaks(yFiltered,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
-        [xch2,ych2] = obj.xy(sweepNumber, 2);        
+        [xch2,ych2] = obj.xy(sweepNumber, 2);  
         
         sweepDuration = obj.header.Acquisition.Duration;
         sweepTime=0;
         inverseISIperSecBin=[];
+        
+        % finding info about light stim        
+        lightPulseStart = find(diff(ych2>1)>0)
+        lightPulseEnd = find(diff(ych2<1)>0)
+        LightOnsetTime = lightPulseStart(1)/samplingFrequency                       % in seconds
+        StimDur = (lightPulseEnd(end)-lightPulseStart(end))/samplingFrequency
+        StimInterval = (lightPulseStart(2)-lightPulseStart(1))/samplingFrequency
+        StimFreq = 1/StimInterval
+        LightDur = (lightPulseStart(end)-lightPulseStart(1))/samplingFrequency + StimInterval   
         
         % plotting one figure per sweep that shows firing rate histogram for the whole sweep       
         figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - histogram')); % naming figure file
@@ -250,6 +257,7 @@ function lightvsfiringONbandpass(obj, varargin)
                 end
                 
         data = [data; mouseNumber, experimentDate, sweepNumber, ...
+                StimDur, StimFreq, LightDur, ...
                 avgInverseISIforBaseline1, avgInverseISIforLight, avgInverseISIforBaseline2, ...
                 length(pksBaseline1), length(pksLight), length(pksBaseline2),...
                 placeholder1, placeholder2,...
@@ -312,8 +320,13 @@ function lightvsfiringONbandpass(obj, varargin)
         title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
         set(gca,'Visible','off');
         
+        % adding light stim     
+        for nStim=1:length(lightPulseStart)
+            line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+StimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+        end
+
         % adding light stim
-        line([15,18],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+        line([LightOnsetTime,LightOnsetTime+LightDur],[ymax-10,ymax-10],'Color',[0 0.4470 0.7410],'LineWidth',10)
         
         % adding scale bar
         line([xmin,xmin+(xmax-xmin)/13],[ymin,ymin],'Color','k')
@@ -337,6 +350,7 @@ function lightvsfiringONbandpass(obj, varargin)
         dataInCellFormat = num2cell(data);
         labeledData = cell2table(dataInCellFormat,'VariableNames',...
             {'mouse', 'date', 'sweep',...
+            'LightPulseDur', 'LightStimFreq', 'LightDur', ...
             'invISIpre', 'invISIlight', 'invISIpost',...
             'APsPre', 'APsLight', 'APsPost',...
             'firstInvISIpre','lastInvISIpre',...
