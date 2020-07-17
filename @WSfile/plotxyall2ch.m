@@ -28,7 +28,7 @@ function plotxyall2ch(obj, varargin)
 %     % finding total number of active channels from header
 %     totalActiveChannels = obj.header.Acquisition.ActiveChannelIndexFromChannelIndex(end);
     % forcing total number of active channels to TWO
-    totalActiveChannels = 2;
+    totalActiveChannels = 3;
     
     % plotting one figure with all channels and all sweeps
     figure('name', strcat(obj.file,' (all) - all Channels')); % naming figure file

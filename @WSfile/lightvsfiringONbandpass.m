@@ -7,19 +7,21 @@ function lightvsfiringONbandpass(obj, varargin)
 
     % optional arguments (args)
     % set defaults for optional inputs 
-%     optargs = {100 900 5 75 3 15 0.0025 150 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 100 Hz
-%     optargs = {100 900 10 75 3 15 0.0025 150 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 100 Hz
-%     optargs = {100 1000 15 75 3 15 0.005 100 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 50 Hz
-    optargs = {100 1000 15 75 3 15 0.005 50 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 25 Hz
-%     optargs = {100 1000 20 100 3 15 0.005 25 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 12 Hz
-%     optargs = {100 1000 25 150 3 15 0.005 12 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 12 Hz     
+%     optargs = {'peaks' 100 900 5 75 3 15 0.0025 150 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 100 Hz
+%     optargs = {'peaks' 100 900 10 75 3 15 0.0025 150 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 100 Hz
+%     optargs = {'peaks' 100 1000 15 75 3 15 0.005 100 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 50 Hz
+%     optargs = {'peaks' 100 1000 15 75 3 15 0.005 50 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 25 Hz
+%     optargs = {'peaks' 100 1000 20 100 3 15 0.005 25 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 12 Hz
+%     optargs = {'peaks' 100 1000 25 150 3 15 0.005 12 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 12 Hz
+    optargs = {'v' 100 1000 4 75 3 15 0.05 12 1 1 0.005 20 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 12 Hz TALIAS DATA
     
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
     
     % place optional args in memorable variable names
-    [highpassThreshold,...
+    [peaksOrValleys,...
+        highpassThreshold,...
         lowpassThreshold,...
         MinPeakHeight,...
         ymax,...
@@ -55,7 +57,13 @@ function lightvsfiringONbandpass(obj, varargin)
         
         [x,y] = obj.xy(sweepNumber, 1);
         yFiltered = bandpass(y,[highpassThreshold lowpassThreshold],samplingFrequency);
-        [pks,locs,w,p] = findpeaks(yFiltered,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+        
+        if peaksOrValleys == 'peaks'
+            [pks,locs,w,p] = findpeaks(yFiltered,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+        else
+            [pks,locs,w,p] = findpeaks(-yFiltered,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+        end
+        
         [xch2,ych2] = obj.xy(sweepNumber, 2);        
         
         sweepDuration = obj.header.Acquisition.Duration;
@@ -98,10 +106,17 @@ function lightvsfiringONbandpass(obj, varargin)
         % acordingly
         locsLight = locs;
         locsBaseline1 = locs;
-        locsBaseline2 = locs;
-        pksLight = pks;
-        pksBaseline1 = pks;
-        pksBaseline2 = pks;
+        locsBaseline2 = locs;      
+        
+        if peaksOrValleys == 'peaks'
+            pksLight = pks;
+            pksBaseline1 = pks;
+            pksBaseline2 = pks;
+        else
+            pksLight = -pks;
+            pksBaseline1 = -pks;
+            pksBaseline2 = -pks;
+        end
         
         % find indices at which the value of locs is between the light
         % onset and offset (with optional extension factor to look for

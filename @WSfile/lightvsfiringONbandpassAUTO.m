@@ -12,17 +12,18 @@
 
 function lightvsfiringONbandpassAUTO(obj, varargin)
 
-    % optional arguments (args)
-    % set defaults for optional inputs 
-%     optargs = {100 1000 9 75 0.005 50 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 25 Hz
-    optargs = {100 1000 5 75 0.05 12 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 12 Hz
+    % set defaults for optional arguments (args)
+    optargs = {'peaks' 100 1000 25 75 0.001 50 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 25 Hz
+%     optargs = {'peaks' 100 1000 4 75 0.05 12 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 12 Hz
+%     optargs = {'peaks' 100 1000 10 75 0.05 12 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 12 Hz
     
-    % overwrite defaults with values specified in varargin
+    % overwrite defaults with optional input from user
     numvarargs = length(varargin);
     optargs(1:numvarargs) = varargin;
     
     % place optional args in memorable variable names
-    [highpassThreshold,...
+    [peaksOrValleys,...
+        highpassThreshold,...
         lowpassThreshold,...
         MinPeakHeight,...
         ymax,...
@@ -32,9 +33,6 @@ function lightvsfiringONbandpassAUTO(obj, varargin)
         ZoomWindow,...
         savefileto] = optargs{:};
     % lowpassThreshold of 1000 is too low - it causes sinusoidal artifacts in the data
-    % LightDur is the duration of the whole light train stim (3 s usually)
-    % StimDur is the duration of each light pulse in the train (5 ms = 0.005 s usually)
-    % StimFreq is the frequency (Hz) of the light stim (20 Hz usually)
     % ZoomWindow is the time before/after LightOnsetTime that will be shown in the zoomed plot
     
     % creating matrix that will be filled
@@ -53,7 +51,13 @@ function lightvsfiringONbandpassAUTO(obj, varargin)
         
         [x,y] = obj.xy(sweepNumber, 1);
         yFiltered = bandpass(y,[highpassThreshold lowpassThreshold],samplingFrequency);
-        [pks,locs,w,p] = findpeaks(yFiltered,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+        
+        if peaksOrValleys == 'peaks'
+            [pks,locs,w,p] = findpeaks(yFiltered,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+        else
+            [pks,locs,w,p] = findpeaks(-yFiltered,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+        end
+        
         [xch2,ych2] = obj.xy(sweepNumber, 2);  
         
         sweepDuration = obj.header.Acquisition.Duration;
@@ -61,13 +65,13 @@ function lightvsfiringONbandpassAUTO(obj, varargin)
         inverseISIperSecBin=[];
         
         % finding info about light stim        
-        lightPulseStart = find(diff(ych2>1)>0)
-        lightPulseEnd = find(diff(ych2<1)>0)
-        LightOnsetTime = lightPulseStart(1)/samplingFrequency                       % in seconds
-        StimDur = (lightPulseEnd(end)-lightPulseStart(end))/samplingFrequency
-        StimInterval = (lightPulseStart(2)-lightPulseStart(1))/samplingFrequency
-        StimFreq = 1/StimInterval
-        LightDur = (lightPulseStart(end)-lightPulseStart(1))/samplingFrequency + StimInterval   
+        lightPulseStart = find(diff(ych2>1)>0);
+        lightPulseEnd = find(diff(ych2<1)>0);
+        LightOnsetTime = lightPulseStart(1)/samplingFrequency;                       % in seconds
+        StimDur = (lightPulseEnd(end)-lightPulseStart(end))/samplingFrequency;       % duration of each light pulse in the train (s)
+        StimInterval = (lightPulseStart(2)-lightPulseStart(1))/samplingFrequency;    % interval between each pulse (s)
+        StimFreq = 1/StimInterval;                                                   % frequency of the light stim (Hz)
+        LightDur = (lightPulseStart(end)-lightPulseStart(1))/samplingFrequency + StimInterval;  % duration of the whole light train stim (s)
         
         % plotting one figure per sweep that shows firing rate histogram for the whole sweep       
         figure('name', strcat(obj.file, ' (', num2str(sweepNumber), ') - histogram')); % naming figure file
@@ -106,9 +110,16 @@ function lightvsfiringONbandpassAUTO(obj, varargin)
         locsLight = locs;
         locsBaseline1 = locs;
         locsBaseline2 = locs;
-        pksLight = pks;
-        pksBaseline1 = pks;
-        pksBaseline2 = pks;
+        
+        if peaksOrValleys == 'peaks'
+            pksLight = pks;
+            pksBaseline1 = pks;
+            pksBaseline2 = pks;
+        else
+            pksLight = -pks;
+            pksBaseline1 = -pks;
+            pksBaseline2 = -pks;
+        end
         
         % find indices at which the value of locs is between the light
         % onset and offset (with optional extension factor to look for

@@ -13,6 +13,7 @@ classdef newWSfile
         
         newWSplot(obj, varargin);
         newWSnormmono(obj, varargin);
+        newExcitability(obj,varargin);
         
         function obj = newWSfile(fileName)                        
             % Load file with sweeps and header using load function from WS

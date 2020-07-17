@@ -21,23 +21,23 @@ function concatenateCSVfiles(dirName)
 % filename = strcat(firingfiles(1).name(1:15)," - concatenated firing");
 % fulldirectory = strcat(dirName,'\',filename,'.xls');
 % writetable(concatenatedCSVfiring,fulldirectory);
-% 
-% 
-% %% concatenating excitability files
-% 
-% excitabilityfiles=dir(fullfile(dirName, '*excitability*.csv'));
-% excitabilityfilesNames={excitabilityfiles.name}';
-% concatenatedCSVexcitability = [];
-% 
-% for i=1:numel(excitabilityfilesNames)
-%     concatenatedCSVexcitability = [concatenatedCSVexcitability; readtable(excitabilityfiles(i).name)];
-% end
-% 
-% filename = strcat(excitabilityfiles(1).name(1:15)," - concatenated excitability");
-% fulldirectory = strcat(dirName,'\',filename,'.xls');
-% writetable(concatenatedCSVexcitability,fulldirectory);
-% 
-% 
+
+
+%% concatenating excitability files
+
+excitabilityfiles=dir(fullfile(dirName, '*excitability*.csv'));
+excitabilityfilesNames={excitabilityfiles.name}';
+concatenatedCSVexcitability = [];
+
+for i=1:numel(excitabilityfilesNames)
+    concatenatedCSVexcitability = [concatenatedCSVexcitability; readtable(excitabilityfiles(i).name)];
+end
+
+filename = strcat(excitabilityfiles(1).name(1:15)," - concatenated excitability");
+fulldirectory = strcat(dirName,'\',filename,'.xls');
+writetable(concatenatedCSVexcitability,fulldirectory);
+
+
 % %% concatenating CC sag files
 % 
 % CCsagfiles=dir(fullfile(dirName, '*CC sag*.csv'));
@@ -82,7 +82,7 @@ function concatenateCSVfiles(dirName)
 % fulldirectory = strcat(dirName,'\',filename,'.xls');
 % writetable(concatenatedCSVrs,fulldirectory);
 % 
-
+% 
 %% concatenating normmono files
 
 normmonofiles=dir(fullfile(dirName, '*Baseline*.csv'));

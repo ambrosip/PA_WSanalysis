@@ -6,7 +6,8 @@ function [lightEvokedCurrents,dataPerSweepCh1,dataPerSweepCh2,seriesResistance] 
 numvarargs = length(varargin);
 % optargs = {-1 0.02 15 0.29 0.3 0.005 0.24 0.44 -10000 500 0.1 'D:\CORONAVIRUS DATA\From MATLAB'}; % Talia's settings
 % optargs = {-1 0.01 15 1.99 2 0.005 1.94 2.14 -10000 500 1 'D:\CORONAVIRUS DATA\From MATLAB'}; % USED Before 2020-03-20
-optargs = {-1 0.02 15 1.99 2 0.005 1.94 2.14 -10000 500 1 'D:\CORONAVIRUS DATA\From MATLAB'}; % USED AFter 2020-03-20 (due to long latency of chrimson-evoked light responses)
+% optargs = {-1 0.02 15 1.99 2 0.005 1.94 2.14 -10000 500 1 'D:\CORONAVIRUS DATA\From MATLAB'}; % USED AFter 2020-03-20 (due to long latency of chrimson-evoked light responses)
+optargs = {-1 0.02 15 1.99 2 0.005 1.94 2.14 -10000 500 1 'D:\CORONAVIRUS DATA\From MATLAB'}; % USED at 2020-04-29 for R01 figure
 
 % optargs = {1.99 2 0.005 1.94 2.14 -3000 500 1 'D:\Temp\Data summaries\2019-07-20 th flp naive'};
 optargs(1:numvarargs) = varargin;
@@ -188,14 +189,14 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         plot(x, dataPerSweepCh1,'Color', [0.75, 0.75, 0.75]);
         plot(x, mean(dataPerSweepCh1,2),'Color','black','LineWidth',1.5); 
         rectangle('Position', [lightOnsetTime 200 lightDuration 100], 'FaceColor', [0 0.4470 0.7410], 'LineStyle', 'none')
-        axis([lightOnsetTime-0.01 lightOnsetTime+0.1 ymin ymax]) % used to be -7000
+        axis([lightOnsetTime-0.02 lightOnsetTime+0.2 ymin ymax]) % used to be lightOnsetTime+0.1    % used to be lightOnsetTime-0.01
         xlabel('Time (s)');
         ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
         title([obj.file ' (all) - Baseline Subtracted'],'Interpreter','none');
         set(gca,'Visible','off')
         
-        xminScale = lightOnsetTime-0.01;
-        xmaxScale = lightOnsetTime+0.1;
+        xminScale = lightOnsetTime-0.02;     % used to be lightOnsetTime-0.01
+        xmaxScale = lightOnsetTime+0.2;      % used to be lightOnsetTime+0.1
         
         % adding scale bar
         line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
@@ -222,14 +223,14 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         hold on;
         plot(x, mean(dataPerSweepCh1,2),'Color','black','LineWidth',1.5); 
         rectangle('Position', [lightOnsetTime 200 lightDuration 100], 'FaceColor', [0 0.4470 0.7410], 'LineStyle', 'none')
-        axis([lightOnsetTime-0.01 lightOnsetTime+0.1 ymin ymax]) % used to be -7000
+        axis([lightOnsetTime-0.02 lightOnsetTime+0.2 ymin ymax]) % used to be -7000  % used to be lightOnsetTime+0.1     % used to be lightOnsetTime-0.01
         xlabel('Time (s)');
         ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
         title([obj.file ' (all) - Baseline Subtracted'],'Interpreter','none');
         set(gca,'Visible','off')
         
-        xminScale = lightOnsetTime-0.01;
-        xmaxScale = lightOnsetTime+0.1;
+        xminScale = lightOnsetTime-0.02;    % used to be lightOnsetTime-0.01
+        xmaxScale = lightOnsetTime+0.2;     % used to be lightOnsetTime+0.1
         
         % adding scale bar
         line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')

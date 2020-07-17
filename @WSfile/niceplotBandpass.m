@@ -3,9 +3,9 @@ function niceplotBandpass(obj, varargin)
     % optional arguments: axis range for channel 1 (monitor CC or VC)
     numvarargs = length(varargin);
 %     optargs = {'black' 100 2000 -200 100 15 3 10 23};   % for ON data
-    optargs = {'black' 100 2000 -20 10 15 3 10 23};   % for ON data
+%     optargs = {'black' 100 2000 -20 10 15 3 10 23};   % for ON data
 %     optargs = {'black' 100 1000 -200 150 15 3 10 23};   % for ON data
-%     optargs = {'black' 2 4000 -500 100 15 3 10 23};   % for mIPSC data
+    optargs = {'black' 2 4000 -500 100 15 3 10 23};   % for mIPSC data
     optargs(1:numvarargs) = varargin;
     [colorName, highpassThreshold, lowpassThreshold, ymin, ymax, lightOnsetTime, lightDuration, xmin, xmax] = optargs{:};
     

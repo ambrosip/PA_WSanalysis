@@ -24,8 +24,7 @@ function bandpassplot(obj, varargin)
     
     % optional arguments
     % set defaults for optional inputs 
-%     optargs = {0 2 2500 0 30 -250 -250 50 0.1 'D:\CORONAVIRUS DATA\From MATLAB'}; % for OLD data
-    optargs = {0 2 2500 5 25 -500 -500 50 1 'D:\CORONAVIRUS DATA\From MATLAB'}; 
+    optargs = {1 2 2500  30 -50 -50 150 1 'D:\CORONAVIRUS DATA\From MATLAB'}; 
 %     optargs = {1 2 2500 0 30 -800 -400 100 1 'D:\Temp\From MATLAB 2020'}; 
 %     optargs = {1 2 1000 15 20 -400 -200 100 1 'D:\Temp\From MATLAB 2020'};
 %     optargs = {1 2 1000 0 30 -300 -200 100 1 'D:\Temp\From MATLAB 2020'};
@@ -39,8 +38,7 @@ function bandpassplot(obj, varargin)
 
     samplingFrequency = obj.header.Acquisition.SampleRate;
     sampleRate = samplingFrequency;
-    rsBaselineDataPointInterval = ((rsTestPulseOnsetTime-0.005)*sampleRate):(rsTestPulseOnsetTime*sampleRate); % for OLD data
-%     rsBaselineDataPointInterval = ((rsTestPulseOnsetTime-0.01)*sampleRate):(rsTestPulseOnsetTime*sampleRate);
+    rsBaselineDataPointInterval = ((rsTestPulseOnsetTime-0.1)*sampleRate):(rsTestPulseOnsetTime*sampleRate);
     rsFirstTransientDataPointInterval = (rsTestPulseOnsetTime*sampleRate):(rsTestPulseOnsetTime+0.0025)*sampleRate;
     allRs = [];
 
