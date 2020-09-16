@@ -8,7 +8,8 @@ function newWSplot(obj, varargin)
     
     mouseNumber = getMouseNumber(obj);
     experimentDate = getExperimentDate(obj);
-    [firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj)
+    [firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj);
+    sampleRate = obj.header.AcquisitionSampleRate;
     
     % forcing total number of active channels to THREE
     totalActiveChannels = 3;
@@ -38,7 +39,7 @@ function newWSplot(obj, varargin)
         plot(x,y);
         yminhere = min(y)-5;
         ymaxhere = max(y)+5;
-        axis([xmin xmax yminhere ymaxhere])
+%         axis([xmin xmax yminhere ymaxhere])
         ylabel(strcat(obj.header.AIChannelNames(channel), ' (', obj.header.AIChannelUnits(channel), ')'));
         end
         xlabel('Time (s)');
@@ -62,10 +63,12 @@ function newWSplot(obj, varargin)
             plot(x,y);
             yminhere = min(y)-5;
             ymaxhere = max(y)+5;
-            axis([xmin xmax yminhere ymaxhere])
+%             axis([xmin xmax yminhere ymaxhere])
             ylabel(strcat(obj.header.AIChannelNames(channel), ' (', obj.header.AIChannelUnits(channel), ')'));
         end
         xlabel('Time (s)');
         movegui('north');
     end 
+     
+    
 end

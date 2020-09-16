@@ -13,9 +13,12 @@
 function lightvsfiringONbandpassAUTO(obj, varargin)
 
     % set defaults for optional arguments (args)
-    optargs = {'peaks' 100 1000 25 75 0.001 50 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 25 Hz
-%     optargs = {'peaks' 100 1000 4 75 0.05 12 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 12 Hz
-%     optargs = {'peaks' 100 1000 10 75 0.05 12 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 12 Hz
+%     optargs = {'peaks' 100 1000 15 150 0.005 200 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 100 Hz
+%     optargs = {'peaks' 100 1000 13 75 0.005 100 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 75 Hz
+%     optargs = {'peaks' 100 1000 50 200 0.005 75 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 50 Hz
+    optargs = {'peaks' 100 1500 30 75 0.01 50 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 25 Hz
+%     optargs = {'peaks' 100 1000 50 250 0.05 25 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 12 Hz
+%     optargs = {'peaks' 100 1000 20 150 0.05 12 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 12 Hz
     
     % overwrite defaults with optional input from user
     numvarargs = length(varargin);
@@ -45,6 +48,13 @@ function lightvsfiringONbandpassAUTO(obj, varargin)
 
     % finding sweep numbers from file name
     [firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj); 
+    
+    % checking for incomplete sweeps and not analyzing incomplete sweeps - to
+    % avoid this error: "Index exceeds the number of array elements (0)".      
+    if numel(fieldnames(obj.sweeps)) < obj.header.NSweepsPerRun
+        lastSweepNumber = firstSweepNumber + numel(fieldnames(obj.sweeps)) - 2;
+        allSweeps = firstSweepNumber:lastSweepNumber;
+    end 
     
     % behold this huge 'for loop'
     for sweepNumber = allSweeps

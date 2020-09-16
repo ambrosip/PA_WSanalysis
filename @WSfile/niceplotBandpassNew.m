@@ -1,27 +1,24 @@
-function niceplotBandpass(obj, varargin)
+function niceplotBandpassNew(obj, varargin)
 
     % optional arguments: axis range for channel 1 (monitor CC or VC)
     numvarargs = length(varargin);
-%     optargs = {'k' 100 2000 -200 100 15 3 10 23};     % for ON data
-%     optargs = {'k' 100 2000 -20 10 15 3 10 23};       % for ON data
-%     optargs = {'k' 100 1000 -200 150 15 3 10 23};     % for ON data
-%     optargs = {'k' 2 4000 -500 100 15 3 10 23};          % for mIPSC data
-    optargs = {'k' 0.5 3000 -500 100 15 3 10 23};          % testing
+%     optargs = {'k' 0.5 2000 0.5 10 -800 100 15 3 10 20};          % used for mIPSC and sIPSC data on 20200814
+    optargs = {'k' 0.5 2000 0.5 10 -500 100 15 3 10 20};
     optargs(1:numvarargs) = varargin;
-    [colorName, highpassThreshold, lowpassThreshold, ymin, ymax, lightOnsetTime, lightDuration, xmin, xmax] = optargs{:};
+    [colorName, highpassThreshold, lowpassThreshold, steepness, stopbandAttenuation, ymin, ymax, lightOnsetTime, lightDuration, xmin, xmax] = optargs{:};
     
     % finding sweep numbers from file name
-    [firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj);
+    [~, ~, allSweeps] = getSweepNumbers(obj);
 
     mouseNumber = getMouseNumber(obj);
     experimentDate = getExperimentDate(obj);
-    samplingFrequency = obj.header.Acquisition.SampleRate;
+    samplingFrequency = obj.header.Acquisition.SampleRate
     
     % plotting individual figures for all sweeps    
     for sweepNumber = allSweeps  
-        figure('name', strcat(obj.file,' (',num2str(sweepNumber),") - niceplotBandpass ", colorName));
+        figure('name', strcat(obj.file,' (',num2str(sweepNumber),") - niceplotBandpassNew ", colorName));
         [x,y] = obj.xy(sweepNumber, 1);
-        yFiltered = bandpass(y,[highpassThreshold lowpassThreshold],samplingFrequency);
+        yFiltered = bandpass(y,[highpassThreshold lowpassThreshold],samplingFrequency, 'Steepness', steepness, 'StopbandAttenuation', stopbandAttenuation);
         
         % choosing plot color based on user input        
         if colorName == 'bg'

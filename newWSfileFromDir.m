@@ -3,7 +3,9 @@ function mouseNumber = newWSfileFromDir(dirName, varargin)
     % EX: m011 = WSfileFromDir('D:\Temp\Ephys\20190426')
 
     % set defaults for optional inputs 
-    optargs = {17 20};
+%     optargs = {17 20};  % For files named like m052_2020-08-14_0001-0018
+    optargs = {16 19};  % For files named like m52_2020-08-14_0001-0018
+    
     % now put these defaults into the valuesToUse cell array, 
     % and overwrite the ones specified in varargin.
     numvarargs = length(varargin);

@@ -4,8 +4,8 @@ function niceplot(obj, varargin)
     numvarargs = length(varargin);
 %     optargs = {'k' -100 50 0 20 15 3 10 23};     % for WC data
 %     optargs = {'k' -200 200 0 20 15 3 10 23};    % for ON data
-    optargs = {'k' -600 100 0 20 15 3 10 23};    % for mIPSC data
-%     optargs = {'k' -500 100 1 10 15 3 10 23};    % for filtered mIPSC data
+%     optargs = {'k' -600 100 0 20 15 3 10 23};    % for mIPSC data
+    optargs = {'k' -500 100 1 10 15 3 10 23};    % for filtered mIPSC data
     optargs(1:numvarargs) = varargin;
     [colorName, ymin, ymax, filterORnot, GaussianFilterWindow, lightOnsetTime, lightDuration, xmin, xmax] = optargs{:};
     
@@ -41,11 +41,11 @@ function niceplot(obj, varargin)
         % adding light stim
         % green line
 %         line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0.4660, 0.6740, 0.1880],'LineWidth',10)
-        line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0, 200/255, 0],'LineWidth',10)
+%         line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0, 200/255, 0],'LineWidth',10)
 
         % blue line
 %         line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
-        line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0, 114/255, 178/255],'LineWidth',10)
+%         line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0, 114/255, 178/255],'LineWidth',10)
 
         % adding scale bar
         line([xmin,xmin+(xmax-xmin)/13],[ymin,ymin],'Color','k')
@@ -61,8 +61,9 @@ function niceplot(obj, varargin)
             axis([xmin xmax ymin ymax+10])
             title([obj.file ' (' num2str(sweepNumber) ") filtered"],'Interpreter','none');
             set(gca,'Visible','off')
+            % adding light stim line
 %             line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0.4660, 0.6740, 0.1880],'LineWidth',10)
-            line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+%             line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
             line([xmin,xmin+(xmax-xmin)/13],[ymin,ymin],'Color','k')
             line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
             text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str((xmax-xmin)/13)," s"))

@@ -1,17 +1,15 @@
-function niceplotBandpass(obj, varargin)
+function niceplotHighpass(obj, varargin)
+
+    % highpass(data,0.5,10000,'Steepness', 0.5,'StopbandAttenuation', 10)
 
     % optional arguments: axis range for channel 1 (monitor CC or VC)
     numvarargs = length(varargin);
-%     optargs = {'k' 100 2000 -200 100 15 3 10 23};     % for ON data
-%     optargs = {'k' 100 2000 -20 10 15 3 10 23};       % for ON data
-%     optargs = {'k' 100 1000 -200 150 15 3 10 23};     % for ON data
-%     optargs = {'k' 2 4000 -500 100 15 3 10 23};          % for mIPSC data
-    optargs = {'k' 0.5 3000 -500 100 15 3 10 23};          % testing
+    optargs = {'k' 0.5 0.5 10 -500 100 10 20};          % for mIPSC data
     optargs(1:numvarargs) = varargin;
-    [colorName, highpassThreshold, lowpassThreshold, ymin, ymax, lightOnsetTime, lightDuration, xmin, xmax] = optargs{:};
+    [colorName, passbandFrequency, steepness, stopbandAttenuation, ymin, ymax, xmin, xmax] = optargs{:};
     
     % finding sweep numbers from file name
-    [firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj);
+    [~, ~, allSweeps] = getSweepNumbers(obj);
 
     mouseNumber = getMouseNumber(obj);
     experimentDate = getExperimentDate(obj);
@@ -19,9 +17,9 @@ function niceplotBandpass(obj, varargin)
     
     % plotting individual figures for all sweeps    
     for sweepNumber = allSweeps  
-        figure('name', strcat(obj.file,' (',num2str(sweepNumber),") - niceplotBandpass ", colorName));
+        figure('name', strcat(obj.file,' (',num2str(sweepNumber),") - niceplotHighpass ", colorName));
         [x,y] = obj.xy(sweepNumber, 1);
-        yFiltered = bandpass(y,[highpassThreshold lowpassThreshold],samplingFrequency);
+        yFiltered = highpass(y, passbandFrequency, samplingFrequency, 'Steepness', steepness, 'StopbandAttenuation', stopbandAttenuation);
         
         % choosing plot color based on user input        
         if colorName == 'bg'
@@ -43,22 +41,14 @@ function niceplotBandpass(obj, varargin)
 %         ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
         title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
         set(gca,'Visible','off')
-        
-        % adding light stim
-        % green line
-%         line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0.4660, 0.6740, 0.1880],'LineWidth',10)
-%         line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0, 200/255, 0],'LineWidth',10)
-
-        % blue line
-%         line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
-%         line([lightOnsetTime,lightOnsetTime+lightDuration],[ymax,ymax],'Color',[0, 114/255, 178/255],'LineWidth',10)
 
         % adding scale bar
         line([xmin,xmin+(xmax-xmin)/13],[ymin,ymin],'Color','k')
         line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str((xmax-xmin)/13)," s"))
-        text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+        text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))           
     
-        
     end             
 end
+
+

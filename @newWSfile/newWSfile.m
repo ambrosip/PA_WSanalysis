@@ -2,6 +2,10 @@ classdef newWSfile
     
     % Use with files recorded with new version of wavesurfer
     % By Mar 2020 only Talia's rig has this version
+    % IMPORTANT UPDATE Aug 2020: changed functions getExperimentDate and
+    % getMouseNumber to analyze Talia's files without having to rename them
+    % - plese change back when analyzing properly named files according to
+    % my convention!!
     
     properties
         header   
@@ -14,6 +18,9 @@ classdef newWSfile
         newWSplot(obj, varargin);
         newWSnormmono(obj, varargin);
         newExcitability(obj,varargin);
+        newWSppr(obj, varargin);
+        newWSratio(objTotal, objAmpa, varargin);
+        newWSrectification(obj, varargin);
         
         function obj = newWSfile(fileName)                        
             % Load file with sweeps and header using load function from WS
@@ -58,20 +65,25 @@ classdef newWSfile
 
         
         function experimentDate = getExperimentDate(obj)
-            experimentDate = str2num(strcat(obj.file(6:9),obj.file(11:12),obj.file(14:15)));
+%             experimentDate = str2num(strcat(obj.file(6:9),obj.file(11:12),obj.file(14:15)));    % For my naming convention
+            experimentDate = str2num(strcat(obj.file(5:8),obj.file(10:11),obj.file(13:14)));    % For Talia's files like m52
         end
  
         
         function mouseNumber = getMouseNumber(obj)
-            mouseNumber = str2num(obj.file(2:4));
+%             mouseNumber = str2num(obj.file(2:4));    % For my naming convention
+            mouseNumber = str2num(obj.file(2:3));    % For Talia's files like m52
         end
  
         
         function [firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj)
             % finding sweep numbers from file name
-            if length(obj.file) == 28
+            % if file is named in my naming convention or in Talia's
+            if length(obj.file) >= 26
                 firstSweepNumber = str2num(obj.file(end-11:end-8));
-                lastSweepNumber = str2num(obj.file(end-6:end-3));
+                lastSweepNumber = str2num(obj.file(end-6:end-3));            
+                
+            % if file has a single sweep  
             else
                 firstSweepNumber = str2num(obj.file(end-6:end-3));
                 lastSweepNumber = str2num(obj.file(end-6:end-3));
