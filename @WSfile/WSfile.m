@@ -71,6 +71,7 @@ classdef WSfile
         lightvsfiringONbandpassAUTO(self, varargin)
         niceplotHighpass(self, varargin)
         niceplotBandpassNew(obj, varargin)
+        lightvsfiringONbandpassAUTOhist(obj)
 
         
         function obj = WSfile(fileName)

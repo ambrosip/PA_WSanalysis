@@ -1,6 +1,8 @@
 function mouseNumber = WSfileFromDir(dirName, varargin)
 
     % EX: m011 = WSfileFromDir('D:\Temp\Ephys\20190426')
+    
+    addpath(dirName)  
 
     % set defaults for optional inputs 
     optargs = {17 20};
