@@ -14,20 +14,21 @@
 % firing rate in 1s bins for ALL sweeps. This is to help analyze irregular
 % firing cells.
 
-function lightvsfiringONbandpassAUTOhist(obj)
+% ZOOM: I zoom in on the x axis
+
+function lightvsfiringONbandpassAUTOhistZOOM(obj)
     
 %%  USER INPUT
 
 peaksOrValleys = 'v';
 highpassThreshold = 100;
-lowpassThreshold = 1000;  % 1000 is too low - may cause sinusoidal artifacts
-MinPeakHeight = 8;
+lowpassThreshold = 1500;
+MinPeakHeight = 5;
 ymax = 75;
 MinPeakDistance = 0.05;
-% LightExtensionFactor = 1;
-% ZoomWindow = 0.25;
-% savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
-    
+ymaxhist = 15;
+discardedSweeps = 1;
+   
     % peaksOrValleys: detect peaks (use 'peaks') or valleys ('v'):
     % peaksOrValleys = 'peaks'; 
     % peaksOrValleys = 'v'; 
@@ -63,17 +64,9 @@ MinPeakDistance = 0.05;
     % ymaxhist = 50;    % used for firing > 25 Hz
     % ymaxhist = 25;    % used for firing > 12 Hz
     % ymaxhist = 12;    % used for firing < 12 Hz
-    
-    % LightExtensionFactor: to account for lingering effects after the end of the light pulse,
-    % extend the time interval considered under "light effect". To NOT
-    % extend the light pulse (my default), set this variable to 1.
-    % LightExtensionFactor = 1;
-        
-    % ZoomWindow is the time before/after LightOnsetTime that will be shown in the zoomed plot
-    % ZoomWindow = 0.25;
-    
-    % savefileto: save CSV files to:
-    % savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
+       
+    % discardedSweeps: number of sweeps at the end that you want to discard
+    % (in case the cell started dying)
     
 %% MAIN CODE    
     
@@ -91,12 +84,12 @@ MinPeakDistance = 0.05;
     % checking for incomplete sweeps and not analyzing incomplete sweeps - to
     % avoid this error: "Index exceeds the number of array elements (0)".      
     if numel(fieldnames(obj.sweeps)) <= obj.header.NSweepsPerRun  
-        lastSweepNumber = firstSweepNumber + numel(fieldnames(obj.sweeps)) - 2;
+        lastSweepNumber = firstSweepNumber + numel(fieldnames(obj.sweeps)) - discardedSweeps;
         allSweeps = firstSweepNumber:lastSweepNumber;
     end
     
     % create figure to illustrate raster plot (APs per time for all sweeps)
-    figure('name', strcat(obj.file, ' raster plot'));
+    figure('name', strcat(obj.file, ' raster plot zoom'));
     subplot(2,1,1)
     hold on;
     
@@ -114,9 +107,9 @@ MinPeakDistance = 0.05;
         
         [xch2,ych2] = obj.xy(sweepNumber, 2);  
         
-        sweepDuration = obj.header.Acquisition.Duration;
-        sweepTime=0;
-        inverseISIperSecBin=[];
+%         sweepDuration = obj.header.Acquisition.Duration;
+%         sweepTime=0;
+%         inverseISIperSecBin=[];
         
         % finding info about light stim        
         lightPulseStart = find(diff(ych2>1)>0);
@@ -131,9 +124,9 @@ MinPeakDistance = 0.05;
         sweepNumberArray = sweepNumber.* ones(length(locs),1);
         
         % plotting raster plot 
-        plot(locs, sweepNumberArray, '.', 'Color', 'k');
-        axis([0 30 firstSweepNumber-1 lastSweepNumber+1])
-        ylabel('Sweeps');
+        plot(locs, sweepNumberArray, '|', 'Color', 'k');
+        axis([LightOnsetTime-LightDur LightOnsetTime+2*LightDur firstSweepNumber-1 lastSweepNumber+1])
+        ylabel(strcat('Sweeps (', num2str(length(allSweeps)), ')'));
         yticks([]);
         xticks([]);
 
@@ -144,7 +137,14 @@ MinPeakDistance = 0.05;
     
     % adding light stim
     rectangle('Position', [LightOnsetTime firstSweepNumber-1 LightDur lastSweepNumber+1], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+    title([strcat(obj.file, ' raster plot zoom')],'Interpreter','none');  
+    
+    % stop plotting things on this subplot
     hold off;
+    
+    % flip the y-axis so that the first sweep is at the top and the last
+    % sweep is at the bottom
+    set(gca, 'YDir','reverse');
 
     % counting APs accross all sweeps
     edges = [0:30];
@@ -158,22 +158,10 @@ MinPeakDistance = 0.05;
     rectangle('Position', [LightOnsetTime 0 LightDur ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
     xlabel('Time (s)');
     ylabel('Firing rate (Hz)');
-    axis([0 30 0 ymaxhist])
+    axis([LightOnsetTime-LightDur LightOnsetTime+2*LightDur 0 ymaxhist])
     set(gcf,'Position',[200 200 500 400]);
-    xticks([0 30]);
+%     xticks([0 30]);
     yticks([0 ymaxhist]);
     hold off;
-    
-    % print all the user input variables:
-    peaksOrValleys
-    highpassThreshold
-    lowpassThreshold
-    MinPeakHeight
-    ymax  
-    MinPeakDistance
-    ymaxhist  
-%     LightExtensionFactor
-%     ZoomWindow
-%     savefileto
     
 end

@@ -20,11 +20,11 @@ function lightvsfiringONbandpassAUTOhist(obj)
 
 peaksOrValleys = 'v';
 highpassThreshold = 100;
-lowpassThreshold = 1000;  % 1000 is too low - may cause sinusoidal artifacts
-MinPeakHeight = 10;
+lowpassThreshold = 1500;
+MinPeakHeight = 9;
 ymax = 75;
-MinPeakDistance = 0.005;
-ymaxhist = 15;
+MinPeakDistance = 0.025;
+ymaxhist = 30;
 discardedSweeps = 1;
 
 % LightExtensionFactor = 1;
@@ -101,6 +101,9 @@ discardedSweeps = 1;
         allSweeps = firstSweepNumber:lastSweepNumber;
     end
     
+    
+%% PLOT FULL HISTOGRAM (0-30 s)
+    
     % create figure to illustrate raster plot (APs per time for all sweeps)
     figure('name', strcat(obj.file, ' raster plot'));
     subplot(2,1,1)
@@ -137,7 +140,7 @@ discardedSweeps = 1;
         sweepNumberArray = sweepNumber.* ones(length(locs),1);
         
         % plotting raster plot 
-        plot(locs, sweepNumberArray, '.', 'Color', 'k');
+        plot(locs, sweepNumberArray, '|', 'Color', 'k');
         axis([0 30 firstSweepNumber-1 lastSweepNumber+1])
         ylabel(strcat('Sweeps (', num2str(length(allSweeps)), ')'));
         yticks([]);
@@ -174,6 +177,69 @@ discardedSweeps = 1;
     axis([0 30 0 ymaxhist])
     set(gcf,'Position',[200 200 500 400]);
     xticks([0 30]);
+    yticks([0 ymaxhist]);
+    hold off;
+    
+    
+%% PLOT ZOOMED IN HISTOGRAM (14-21 s)
+    
+    % create figure to illustrate raster plot (APs per time for all sweeps)
+    figure('name', strcat(obj.file, ' raster plot zoom'));
+    subplot(2,1,1)
+    hold on;
+    
+    % going through all sweeps
+    for sweepNumber = allSweeps
+        
+        [x,y] = obj.xy(sweepNumber, 1);
+        yFiltered = bandpass(y,[highpassThreshold lowpassThreshold],samplingFrequency);
+        
+        if peaksOrValleys == 'peaks'
+            [pks,locs,w,p] = findpeaks(yFiltered,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+        else
+            [pks,locs,w,p] = findpeaks(-yFiltered,x,'MinPeakHeight',MinPeakHeight,'MinPeakDistance',MinPeakDistance);
+        end
+        
+        [xch2,ych2] = obj.xy(sweepNumber, 2);  
+               
+        % create list of sweepNumber with the same size as list of timestamps for plotting
+        sweepNumberArray = sweepNumber.* ones(length(locs),1);
+        
+        % plotting raster plot 
+        plot(locs, sweepNumberArray, '|', 'Color', 'k');
+        axis([LightOnsetTime-LightDur LightOnsetTime+2*LightDur firstSweepNumber-1 lastSweepNumber+1])
+        ylabel(strcat('Sweeps (', num2str(length(allSweeps)), ')'));
+        yticks([]);
+        xticks([]);
+
+    end
+    
+    % adding light stim
+    rectangle('Position', [LightOnsetTime firstSweepNumber-1 LightDur lastSweepNumber+1], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+    title([strcat(obj.file, ' raster plot zoom')],'Interpreter','none');  
+    
+    % stop plotting things on this subplot
+    hold off;
+    
+    % flip the y-axis so that the first sweep is at the top and the last
+    % sweep is at the bottom
+    set(gca, 'YDir','reverse');
+
+    % counting APs accross all sweeps
+    edges = [0:30];
+    [N, edges] = histcounts(allTimeStamps,edges);
+    firingHz = N/length(allSweeps);
+        
+    % plotting Hz histogram 
+    subplot(2,1,2)
+    hold on;
+    histogram('BinEdges',0:30,'BinCounts',firingHz,'EdgeColor','none','FaceColor','black','FaceAlpha',1);
+    rectangle('Position', [LightOnsetTime 0 LightDur ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+    xlabel('Time (s)');
+    ylabel('Firing rate (Hz)');
+    axis([LightOnsetTime-LightDur LightOnsetTime+2*LightDur 0 ymaxhist])
+    set(gcf,'Position',[200 200 500 400]);
+%     xticks([0 30]);
     yticks([0 ymaxhist]);
     hold off;
     

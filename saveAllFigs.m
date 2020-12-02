@@ -1,5 +1,6 @@
 function saveAllFigs(varargin)
 
+
     % optional arguments
     % set defaults for optional inputs 
 %     optargs = {'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
