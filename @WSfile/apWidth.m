@@ -16,10 +16,13 @@ baselineDuration = 0.002;   % in seconds
 peaksOrValleys = 'v';
 highpassThreshold = 100;
 lowpassThreshold = 1500;
-MinPeakHeight = 15;
-MinPeakDistance = 0.05;
+MinPeakHeight = 10;
+MinPeakDistance = 0.005;
 discardedSweeps = 1;
 
+% Analyzing AP
+ddyValleyThreshold = 30;
+ddyPeakThreshold = 30;
 
 %% MAIN CODE
 
@@ -143,25 +146,46 @@ ddy = diff(dy)./diff(xSubsetDropLast);
 xSubsetDropLastAgain = xSubsetDropLast;
 xSubsetDropLastAgain(end) = [];
 
-% Find AP onset based on 2nd derivative
-% Assumes that AP valley precedes the AP peak
-ddyPeakPt = find(ddy==max(ddy),1);
-ddyPrePeak = ddy;
-ddyPrePeak(ddyPeakPt:end) = [];
-ddyFirstValleyPt = find(ddy==min(ddyPrePeak),1); 
+% Find AP onset based on 2nd derivative - first valley
+[pks1,locs1,w,p] = findpeaks(-ddy,xSubsetDropLastAgain,'MinPeakHeight',ddyValleyThreshold);
+ddyBasedOnset = locs1(1)         % in milli seconds
+ddyFirstValley = pks1(1)
+ddyBasedOnsetPt = round(ddyBasedOnset*(samplingFrequency/1000))
+
+% Find AP offset based on 2nd derivative - last peak
+[pks2,locs2,w,p] = findpeaks(ddy,xSubsetDropLastAgain,'MinPeakHeight',ddyPeakThreshold);
+ddyBasedOffset = locs2(end);      % in milli seconds
+ddyLastPeak = pks2(end);
+ddyBasedOffsetPt = round(ddyBasedOffset*(samplingFrequency/1000));
+ddyAfterLastPeak = ddy(ddyBasedOffset:end);
+size(1:ddyBasedOffset)
+ddyBasedOffset2 = size(1:ddyBasedOffset,1) + find(round(ddyAfterLastPeak)==0, 1)
+ddyBasedOffset2Pt = round(ddyBasedOffset2*(samplingFrequency/1000));
+
+% % Find AP onset based on 2nd derivative
+% % Assumes that AP valley precedes the AP peak
+% ddyPeakPt = find(ddy==max(ddy),1);
+% ddyPrePeak = ddy;
+% ddyPrePeak(ddyPeakPt:end) = [];
+% ddyFirstValleyPt = find(ddy==min(ddyPrePeak),1); 
+% 
+% % Option 1 - onset is at ddy=0
 % ddyPreFirstValley = ddy;
 % ddyPreFirstValley(ddyFirstValleyPt:end) = [];
 % ddyBasedOnsetPt = find(round(ddyPreFirstValley)==0, 1, 'last');
-ddyBasedOnsetPt = ddyFirstValleyPt;
-ddyBasedOnsetMilliSec = xSubset(ddyBasedOnsetPt);
+% ddyBasedOnsetMilliSec = xSubset(ddyBasedOnsetPt);
+% 
+% % Option 2 - onset is at a ddy valley
+% % ddyBasedOnsetPt = ddyFirstValleyPt;
+% % ddyBasedOnsetMilliSec = xSubset(ddyBasedOnsetPt);
 
 % Calculate AP width
 halfWidth = avgAPpeakInMilliSeconds - avgAPvalleyInMilliSeconds;
 biphasicDuration = avgAPpeakInMilliSeconds - avgAPonsetInMilliSeconds;
 duration = avgAPoffsetInMilliSeconds - avgAPonsetInMilliSeconds;
-ddyBasedBiphasicDuration = avgAPpeakInMilliSeconds - ddyBasedOnsetMilliSec; 
-ddyBasedDuration = avgAPoffsetInMilliSeconds - ddyBasedOnsetMilliSec;
-
+ddyBasedBiphasicDuration = avgAPpeakInMilliSeconds - ddyBasedOnset; 
+ddyBasedDuration1 = avgAPoffsetInMilliSeconds - ddyBasedOnset;
+ddyBasedDuration2 = ddyBasedOffset - ddyBasedOnset;
 
 
 % Plot all APs and avg AP (raw, baseline subtracted)
@@ -172,8 +196,10 @@ hold on;
     plot(xSubset(avgAPpeakInDataPoints), max(avgAP),'o','color', 'r');
     plot(xSubset(avgAPvalleyInDataPoints), min(avgAP),'o','color', 'b');
     plot(avgAPoffsetInMilliSeconds, avgAP(nExcludedDataPoints + avgAPoffsetInDataPoints),'o','color', 'g');
+    plot(ddyBasedOffset, avgAP(ddyBasedOffsetPt), '*', 'color', 'g');
+    plot(ddyBasedOffset2, avgAP(ddyBasedOffset2Pt), '+', 'color', 'g');
     plot(avgAPonsetInMilliSeconds, avgAP(avgAPonsetInDataPoints), 'o', 'color', 'y');
-    plot(ddyBasedOnsetMilliSec, avgAP(ddyBasedOnsetPt), '*', 'color', 'y');
+    plot(ddyBasedOnset, avgAP(ddyBasedOnsetPt), '*', 'color', 'y');
     xlabel('Time (ms)');
     ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
     title([obj.file ' all APs Raw Baseline Subtracted'],'Interpreter','none');
@@ -196,6 +222,9 @@ hold on;
     plot(xSubset, avgAP,'Color','black','LineWidth',1.5);
     plot(xSubsetDropLast, dy,'Color', 'b', 'LineWidth', 1);
     plot(xSubsetDropLastAgain, ddy,'Color', 'r', 'LineWidth', 1);
+    plot(ddyBasedOffset, ddy(ddyBasedOffsetPt), '*', 'color', 'g');
+    plot(ddyBasedOffset2, ddy(ddyBasedOffsetPt2), '+', 'color', 'g');
+    plot(ddyBasedOnset, ddy(ddyBasedOnsetPt), '*', 'color', 'y');
     xlabel('Time (ms)');
     ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
     title([obj.file ' avg Raw Baseline Subtracted Dvs'],'Interpreter','none');
@@ -217,15 +246,17 @@ data = [mouseNumber, ...
     discardedSweeps, ...
     nAPtotal, ...
     avgAPonsetInMilliSeconds, ...
-    ddyBasedOnsetMilliSec, ...
+    ddyBasedOnset, ...
     avgAPvalleyInMilliSeconds, ...
     avgAPpeakInMilliSeconds, ...
     avgAPoffsetInMilliSeconds, ...
+    ddyBasedOffset, ...
     halfWidth, ...
     biphasicDuration, ...
     duration, ...
     ddyBasedBiphasicDuration, ...
-    ddyBasedDuration];    
+    ddyBasedDuration1, ...
+    ddyBasedDuration2];    
 
 % save csv file with data 
 filename = strcat(obj.file, " - AP width");
@@ -248,11 +279,13 @@ labeledData = cell2table(dataInCellFormat,'VariableNames',...
     'avgAPvalleyInMilliSeconds', ...
     'avgAPpeakInMilliSeconds', ...
     'avgAPoffsetInMilliSeconds', ...
+    'ddyBasedOffsetMilliSec', ...
     'halfWidth', ...
     'biphasicDuration', ...
     'duration', ...
     'ddyBasedBiphasicDuration', ...
-    'ddyBasedDuration'})
+    'ddyBasedDuration1', ...
+    'ddyBasedDuration2'})
 writetable(labeledData,fulldirectory);
 disp('I saved the CSV, you save the pics')
    
