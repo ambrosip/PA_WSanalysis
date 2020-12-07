@@ -13,13 +13,16 @@
 function lightvsfiringONbandpassAUTO(obj, varargin)
 
     % set defaults for optional arguments (args)
+    
+    optargs = {'v' 0.3 5000 10 75 0.025 15 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};  
+    
 %     optargs = {'v' 20 2000 30 100 0.0005 50 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for striatum cells
     
 %     optargs = {'peaks' 100 1000 15 150 0.005 200 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 100 Hz
 %     optargs = {'peaks' 100 1000 13 75 0.005 100 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 75 Hz
 %     optargs = {'peaks' 100 1000 10 75 0.005 75 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 50 Hz
 %     optargs = {'v' 100 1500 20 75 0.01 50 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 25 Hz
-    optargs = {'v' 100 1500 9 75 0.025 30 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 12 Hz
+% %     optargs = {'v' 100 1500 10 75 0.025 15 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing > 12 Hz
 %     optargs = {'peaks' 100 1000 10 75 0.05 12 1 0.25 'D:\CORONAVIRUS DATA\From MATLAB'};   % for firing < 12 Hz
     
     % overwrite defaults with optional input from user

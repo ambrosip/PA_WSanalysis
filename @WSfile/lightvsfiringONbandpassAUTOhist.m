@@ -18,15 +18,15 @@ function lightvsfiringONbandpassAUTOhist(obj)
     
 %%  USER INPUT
 
-peaksOrValleys = 'v';
+peaksOrValleys = 'peaks';
 highpassThreshold = 100;
-lowpassThreshold = 1500;
-MinPeakHeight = 9;
-ymax = 75;
-MinPeakDistance = 0.025;
-ymaxhist = 30;
+lowpassThreshold = 1000;
+MinPeakHeight = 5;
+MinPeakDistance = 0.005;
+ymaxhist = 15;
 discardedSweeps = 1;
 
+% ymax = 75;
 % LightExtensionFactor = 1;
 % ZoomWindow = 0.25;
 % savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
