@@ -71,7 +71,7 @@ for sweepNumber = allSweeps
     end
 
     % Store total number of APs found
-    nAP = size(locs,1)
+    nAP = size(locs,1);
     
     % Store data surrounding each AP
     % Exclude first and last AP to avoid error - MATLAB will complain if
@@ -148,15 +148,21 @@ xSubsetDropLastAgain(end) = [];
 
 % Find AP onset based on 2nd derivative - first valley
 [pks1,locs1,w,p] = findpeaks(-ddy,xSubsetDropLastAgain,'MinPeakHeight',ddyValleyThreshold);
-ddyBasedOnset = locs1(1)         % in milli seconds
-ddyFirstValley = pks1(1)
-ddyBasedOnsetPt = round(ddyBasedOnset*(samplingFrequency/1000))
+ddyBasedOnset = locs1(1);         % in milli seconds
+ddyFirstValley = pks1(1);
+ddyBasedOnsetPt = round(ddyBasedOnset*(samplingFrequency/1000));
 
 % Find AP offset based on 2nd derivative - last peak
 [pks2,locs2,w,p] = findpeaks(ddy,xSubsetDropLastAgain,'MinPeakHeight',ddyPeakThreshold);
 ddyBasedOffset = locs2(end);      % in milli seconds
 ddyLastPeak = pks2(end);
 ddyBasedOffsetPt = round(ddyBasedOffset*(samplingFrequency/1000));
+ddyAfterLastPeak = ddy;
+ddyAfterLastPeak(1:ddyBasedOffsetPt) = [];
+ddyAfterLastPeak
+find(round(ddyAfterLastPeak)==0,1)
+ddyBasedOffset2Pt = ddyBasedOffsetPt + find(round(ddyAfterLastPeak)==0, 1)
+ddyBasedOffset2 = round(ddyBasedOffset2*(samplingFrequency/1000))
 
 % % Find AP onset based on 2nd derivative
 % % Assumes that AP valley precedes the AP peak
@@ -193,6 +199,7 @@ hold on;
     plot(xSubset(avgAPvalleyInDataPoints), min(avgAP),'o','color', 'b');
     plot(avgAPoffsetInMilliSeconds, avgAP(nExcludedDataPoints + avgAPoffsetInDataPoints),'o','color', 'g');
     plot(ddyBasedOffset, avgAP(ddyBasedOffsetPt), '*', 'color', 'g');
+    plot(ddyBasedOffset2, avgAP(ddyBasedOffset2Pt), '+', 'color', 'g');
     plot(avgAPonsetInMilliSeconds, avgAP(avgAPonsetInDataPoints), 'o', 'color', 'y');
     plot(ddyBasedOnset, avgAP(ddyBasedOnsetPt), '*', 'color', 'y');
     xlabel('Time (ms)');
@@ -218,6 +225,7 @@ hold on;
     plot(xSubsetDropLast, dy,'Color', 'b', 'LineWidth', 1);
     plot(xSubsetDropLastAgain, ddy,'Color', 'r', 'LineWidth', 1);
     plot(ddyBasedOffset, ddy(ddyBasedOffsetPt), '*', 'color', 'g');
+    plot(ddyBasedOffset2, ddy(ddyBasedOffset2Pt), '+', 'color', 'g');
     plot(ddyBasedOnset, ddy(ddyBasedOnsetPt), '*', 'color', 'y');
     xlabel('Time (ms)');
     ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
