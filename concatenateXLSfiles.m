@@ -1,5 +1,7 @@
 function concatenateXLSfiles(dirName)
 
+addpath(dirName)
+
 %% concatenating all XLS files in DIR into a single XLS file 
 
 % find all the xls files in dir 

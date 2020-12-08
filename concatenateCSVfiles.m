@@ -1,5 +1,7 @@
 function concatenateCSVfiles(dirName)
 
+addpath(dirName)
+
 %% concatenating all CSV files in DIR into an XLS file
 
 % find all the CSV files in dir 
