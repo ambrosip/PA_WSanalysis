@@ -16,13 +16,13 @@ baselineDuration = 0.002;   % in seconds
 peaksOrValleys = 'v';
 highpassThreshold = 100;
 lowpassThreshold = 1500;
-MinPeakHeight = 15;
-MinPeakDistance = 0.05;
-discardedSweeps = 5;
+MinPeakHeight = 10;
+MinPeakDistance = 0.025;
+discardedSweeps = 2;
 
 % Analyzing AP
 ddyValleyThreshold = 30;
-ddyPeakThreshold = 30;
+ddyPeakThreshold = 20;
 
 %% Code warm-up
 % getting info from file
@@ -107,7 +107,7 @@ avgAP = mean(ySubsetAll);
 avgAPfiltered = mean(yFilteredSubsetAll);
 
 % Create x axis for plotting
-xSubset = 1000*linspace(0,(prePeak + postPeak), 101);
+xSubset = 1000*linspace(0,(prePeak + postPeak), length(ySubset));
 
 %% Find AP peak and valley
 avgAPpeakInDataPoints = find(avgAP==max(avgAP));
@@ -213,8 +213,8 @@ hold on;
     plot(ddyAfterLastPeakOrValleyInMilliSeconds, ddy(ddyAfterLastPeakOrValleyInDataPoints), 'o', 'color', 'k');
     plot(ddyBasedOffsetInMilliSeconds, ddy(ddyBasedOffsetInDataPoints), '<', 'color', 'b');
     plot(ddyBasedOnsetInMilliSeconds, ddy(ddyBasedOnsetInDataPoints), '>', 'color', 'b');
-    line([0 10],[-ddyValleyThreshold -ddyValleyThreshold], 'LineStyle', '--');
-    line([0 10],[ddyPeakThreshold ddyPeakThreshold], 'LineStyle', '--');
+    line([0 xSubset(end)],[-ddyValleyThreshold -ddyValleyThreshold], 'LineStyle', '--');
+    line([0 xSubset(end)],[ddyPeakThreshold ddyPeakThreshold], 'LineStyle', '--');
     xlabel('Time (ms)');
     ylabel('Amplitude');
     title([obj.file ' Normalized y dy ddy'],'Interpreter','none');

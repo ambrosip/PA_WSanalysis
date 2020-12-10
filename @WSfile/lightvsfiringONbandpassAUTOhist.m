@@ -18,13 +18,13 @@ function lightvsfiringONbandpassAUTOhist(obj)
     
 %%  USER INPUT
 
-peaksOrValleys = 'peaks';
+peaksOrValleys = 'v';
 highpassThreshold = 100;
-lowpassThreshold = 1000;
-MinPeakHeight = 5;
-MinPeakDistance = 0.005;
-ymaxhist = 15;
-discardedSweeps = 1;
+lowpassThreshold = 1500;
+MinPeakHeight = 10;
+MinPeakDistance = 0.025;
+ymaxhist = 30;
+discardedSweeps = 2;
 
 % ymax = 75;
 % LightExtensionFactor = 1;
@@ -147,7 +147,7 @@ discardedSweeps = 1;
         xticks([]);
 
         % getting all of the APs timestamps
-        allTimeStamps = [allTimeStamps; locs]
+        allTimeStamps = [allTimeStamps; locs];
 
     end
     
@@ -179,6 +179,7 @@ discardedSweeps = 1;
     xticks([0 30]);
     yticks([0 ymaxhist]);
     hold off;
+    movegui('west')
     
     
 %% PLOT ZOOMED IN HISTOGRAM (14-21 s)
@@ -242,5 +243,6 @@ discardedSweeps = 1;
 %     xticks([0 30]);
     yticks([0 ymaxhist]);
     hold off;
+    movegui('east')
     
 end
