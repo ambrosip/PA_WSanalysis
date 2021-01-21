@@ -16,13 +16,13 @@ baselineDuration = 0.002;   % in seconds
 peaksOrValleys = 'v';
 highpassThreshold = 100;
 lowpassThreshold = 1500;
-MinPeakHeight = 10;
+MinPeakHeight = 15;
 MinPeakDistance = 0.025;
 discardedSweeps = 2;
 
 % Analyzing AP
 ddyValleyThreshold = 30;
-ddyPeakThreshold = 20;
+ddyPeakThreshold = 10;
 
 %% Code warm-up
 % getting info from file
@@ -140,27 +140,41 @@ ddyLastValleyInMilliSeconds = locs1(end);
 ddyLastValleyInDataPoints = round(ddyLastValleyInMilliSeconds*(samplingFrequency/1000));
 
 ddyAfterLastPeakOrValley = ddy;
+ddyBasedOffsetInDataPoints = [];
 
-% if last peak is before last valley, look for ddy==0 after last valley
+% if last peak is before last valley, look for when ddy crosses 0 after last valley
 if ddyLastPeakInMilliSeconds < ddyLastValleyInMilliSeconds
     ddyAfterLastPeakOrValley(1:ddyLastValleyInDataPoints) = [];
-    ddyBasedOffsetInDataPoints = ddyLastValleyInDataPoints + find(round(ddyAfterLastPeakOrValley)==0, 1);
     ddyAfterLastPeakOrValleyInDataPoints = ddyLastValleyInDataPoints;
+    ddyCrossesZeroPt = find(diff(sign(ddyAfterLastPeakOrValley))>0, 1);
+    ddyBasedOffsetInDataPoints = ddyLastValleyInDataPoints + ddyCrossesZeroPt;
+
+% % old code
+% %   if last peak is before last valley, look for ddy==0 after last valley
+% %   if you can't find ddy==0, look for when ddy crosses zero
+% %   ddyBasedOffsetInDataPoints = ddyLastValleyInDataPoints + find(round(ddyAfterLastPeakOrValley)==0, 1);
+% %         
+% %     if isempty(ddyBasedOffsetInDataPoints)
+% %         ddyCrossesZeroPt = find(diff(sign(ddyAfterLastPeakOrValley))>0, 1);
+% %         ddyBasedOffsetInDataPoints = ddyLastValleyInDataPoints + ddyCrossesZeroPt;
+% %     end
     
-    if isempty(ddyBasedOffsetInDataPoints)
-        ddyCrossesZeroPt = find(diff(sign(ddyAfterLastPeakOrValley))>0, 1);
-        ddyBasedOffsetInDataPoints = ddyLastValleyInDataPoints + ddyCrossesZeroPt;
-    end
-        
+% if last peak is after last valley, look for when ddy crosses 0 after last peak
 else
     ddyAfterLastPeakOrValley(1:ddyLastPeakInDataPoints) = [];
-    ddyBasedOffsetInDataPoints = ddyLastPeakInDataPoints + find(round(ddyAfterLastPeakOrValley)==0, 1);
     ddyAfterLastPeakOrValleyInDataPoints = ddyLastPeakInDataPoints;
-    
-    if isempty(ddyBasedOffsetInDataPoints)
-        ddyCrossesZeroPt = find(diff(sign(ddyAfterLastPeakOrValley))<0, 1);
-        ddyBasedOffsetInDataPoints = ddyLastPeakInDataPoints + ddyCrossesZeroPt;
-    end
+    ddyCrossesZeroPt = find(diff(sign(ddyAfterLastPeakOrValley))<0, 1);
+    ddyBasedOffsetInDataPoints = ddyLastPeakInDataPoints + ddyCrossesZeroPt;
+
+% % old code
+% %   if last valley is before last peak, look for ddy==0 after last peak
+% %   if you can't find ddy==0, look for when ddy crosses zero    
+% %   ddyBasedOffsetInDataPoints = ddyLastPeakInDataPoints + find(round(ddyAfterLastPeakOrValley)==0, 1);
+% %     if isempty(ddyBasedOffsetInDataPoints)
+% %         ddyCrossesZeroPt = find(diff(sign(ddyAfterLastPeakOrValley))<0, 1);
+% %         ddyBasedOffsetInDataPoints = ddyLastPeakInDataPoints + ddyCrossesZeroPt;
+% %     end
+
 end 
 
 ddyBasedOffsetInMilliSeconds = xForDdy(ddyBasedOffsetInDataPoints);
@@ -264,7 +278,7 @@ data = [mouseNumber, ...
     halfWidth, ...
     biphasicDuration, ...
     totalDuration, ...
-    totalDuration2]    
+    totalDuration2];    
 
 % Save csv file with data 
 filename = strcat(obj.file, " - AP width ddy");

@@ -7,7 +7,7 @@ function newWSppr(obj, varargin)
 
 % optional arguments
 numvarargs = length(varargin);
-optargs = {-1 0.01 10 0.2 0.2 0.9 -200 50 0.1 'D:\CORONAVIRUS DATA\From MATLAB'}; 
+optargs = {-1 0.01 5 0.2 0.2 0.9 -500 50 0.1 'D:\CORONAVIRUS DATA\From MATLAB'};  
 optargs(1:numvarargs) = varargin;
 [inwardORoutward, analysisTimeWindow, threshold, baselineOnsetTime, xmin, xmax, ymin, ymax, rsTestPulseOnsetTime, savefileto] = optargs{:};
 

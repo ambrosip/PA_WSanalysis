@@ -21,10 +21,10 @@ function lightvsfiringONbandpassAUTOhist(obj)
 peaksOrValleys = 'v';
 highpassThreshold = 100;
 lowpassThreshold = 1500;
-MinPeakHeight = 10;
+MinPeakHeight = 15;
 MinPeakDistance = 0.025;
-ymaxhist = 30;
-discardedSweeps = 2;
+ymaxhist = 15;
+discardedSweeps = 1;
 
 % ymax = 75;
 % LightExtensionFactor = 1;

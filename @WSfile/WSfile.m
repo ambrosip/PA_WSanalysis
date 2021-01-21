@@ -75,6 +75,7 @@ classdef WSfile
         lightvsfiringONbandpassAUTOhistZOOM(obj)
         apWidth(obj)
         apWidthDdy(obj)
+        firing_vs_light(obj)
 
         
         function obj = WSfile(fileName)
