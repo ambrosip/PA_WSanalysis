@@ -87,6 +87,10 @@ ASSUMPTIONS:
     - Dopaminergic cells have total AP duration > 2 ms.
     - Irregular cells have ISI CV > 0.2
 
+BEWARE:
+    - if you add more variables into "data" for exporting, you need to
+    adjust the code for lightEffect.
+
 TO DO:
     - create 'test' version with sweep by sweep plots
     - complete documentation
@@ -99,11 +103,11 @@ function firing_vs_light(obj)
 
 % Affects data analysis - Finding APs:
 discardedSweeps = [];
-discardedSweepsFromEnd = 1;
+discardedSweepsFromEnd = 0;
 peaksOrValleys = 'v';   
 highpassThreshold = 100;
-lowpassThreshold = 1000;    
-minPeakHeight = 5;         
+lowpassThreshold = 1500;    
+minPeakHeight = 22;         
 minPeakDistance = 0.025;    
 lightExtensionFactor = 1;
 
@@ -111,8 +115,8 @@ lightExtensionFactor = 1;
 preAPinSeconds = 0.005;            
 postAPinSeconds = 0.01;           
 preAPbaselineDurationSeconds = 0.002;
-ddyValleyThreshold = 30;
-ddyPeakThreshold = 40;
+ddyValleyThreshold = 50;
+ddyPeakThreshold = 25;
   
 % Affects data display: 
 ymax = 75;
@@ -168,6 +172,7 @@ hzPostLightBySweep = [];
 isiMeanBySweep = [];
 isiStdBySweep = [];
 isiCvBySweep = [];
+isIrregularBySweep = [];
 data = [];
 
 % creating matrixes/arrays that will be filled for AP shape
@@ -318,6 +323,8 @@ for sweepNumber = allSweeps
     else 
         isIrregular = 0;
     end
+    
+    isIrregularBySweep = [isIrregularBySweep, isIrregular];
     %----------------------------------------------------------------
     
     % Collecting AP shape data   
@@ -406,9 +413,9 @@ firingHz = N/length(allSweeps);
 % if cell is indifferent, lightEffect = 0
 lightEffect = [];
 for sweepNumber = [1:length(allSweeps)]
-    if data(sweepNumber, 22) < hzPreLightMean - 2*hzPreLightStd
+    if data(sweepNumber, 23) < hzPreLightMean - 2*hzPreLightStd
         lightEffect = [lightEffect; -1];
-    elseif data(sweepNumber, 22) > hzPreLightMean + 2*hzPreLightStd
+    elseif data(sweepNumber, 23) > hzPreLightMean + 2*hzPreLightStd
         lightEffect = [lightEffect; +1];
     else 
         lightEffect = [lightEffect; 0];
@@ -545,7 +552,7 @@ dataAPshape = [mouseNumber, ...
 % Key assumption: I can average across all sweeps!!
 % If light stim changes from sweep to sweep, don't use this code.
 
-isIrregularCell = median(isIrregular);
+isIrregularCell = median(isIrregularBySweep);
 lightEffectCell = median(lightEffect);
 
 dataCell = [mouseNumber, ...
@@ -913,13 +920,13 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'duringLightHz', ...
     'postLightHz', ...
     'lightEffect'});
-writetable(labeledData,fulldirectory);
+writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the sweep_by_sweep xls file')
 
 % stores all timestamps from all sweeps in a single column
 filename = strcat(fileName, '_', analysisDate, " - firing_vs_light - all_AP_timestamps");
 fulldirectory = strcat(savefileto,'\',filename,'.xls');        
-writematrix(allTimeStamps,fulldirectory);
+writematrix(allTimeStamps, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the all_AP_timestamps xls file')
 
 % stores AP shape data in a single row
@@ -954,7 +961,7 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'totalDurationDdyBased(ms)', ...
     'totalDurationAvgBased(ms)', ...
     'isDA'});
-writetable(labeledData,fulldirectory);
+writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the AP_shape xls file')
 
 % stores avg data in a single row
@@ -1005,7 +1012,7 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'isDA(0,1)', ...
     'isIrregular(0,1)', ...
     'lightEffect(-1,0,1)'});
-writetable(labeledData,fulldirectory);
+writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the cell_avgs xls file')
 
 % print stuff

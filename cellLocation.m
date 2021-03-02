@@ -36,19 +36,19 @@ addpath(dirName);
 
 % (x,y) coordinates in pixel # of approximate pipette tip location
 % use Fiji/ImageJ to estimate these coordinates.
-pipx = 637; % 650 out of 1376 pixels
-pipy = 514; % 515 out of 1024 pixels
+pipx = 650; % 650 out of 1376 pixels
+pipy = 515; % 515 out of 1024 pixels
 
 % adjust registration parameters - monomodal 
 % play with the parameters to get a good balance between precision and
 % computation time. The columns on the right are parameters that worked
 % well for some subsets of images.
 [optimizer, metric] = imregconfig('monomodal');
-optimizer.GradientMagnitudeTolerance = 1e-5;   % 1e-4      1e-10
-optimizer.MinimumStepLength = 0.1;             % 1e-5      1e-4
-optimizer.MaximumStepLength = 1;             % 0.0625    0.06
-optimizer.MaximumIterations = 10000;              % 100       500
-optimizer.RelaxationFactor = 0.7;               % 0.5       0.7
+optimizer.GradientMagnitudeTolerance = 1e-20;   % 1e-4      1e-10    1e-5
+optimizer.MinimumStepLength = 0.1 ;             % 1e-5      1e-4     0.1
+optimizer.MaximumStepLength = 1;             % 0.0625    0.06       1
+optimizer.MaximumIterations = 10000;              % 100       500   10000
+optimizer.RelaxationFactor = 0.5;               % 0.5       0.7     0.7
 
 % adjust registration parameters - multimodal
 % I started using multimodal but monomodal yields better results - so I
