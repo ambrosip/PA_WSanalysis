@@ -36,8 +36,8 @@ addpath(dirName);
 
 % (x,y) coordinates in pixel # of approximate pipette tip location
 % use Fiji/ImageJ to estimate these coordinates.
-pipx = 650; % 650 out of 1376 pixels
-pipy = 515; % 515 out of 1024 pixels
+pipx = 670; % 650 out of 1376 pixels
+pipy = 526; % 515 out of 1024 pixels
 
 % adjust registration parameters - monomodal 
 % play with the parameters to get a good balance between precision and
@@ -81,7 +81,9 @@ mouseNumberAsNum = str2num(h5file(2:4));
 % Get a list of all files in dir with the desired file name pattern.
 % First, get slice images
 % "?" is a wildcard/placeholder for a single character
-sliceFilePattern = fullfile(dirName, 's?_dic.tif');
+% sliceFilePattern = fullfile(dirName, 's?_DLS_dic.tif');     % MODIFIED for m006 and m005
+% sliceFilePattern = fullfile(dirName, 's?_DMS_dic.tif');     % MODIFIED for m006 and m005
+sliceFilePattern = fullfile(dirName, 's?_dic.tif');     % ORIGINAL CODE
 sliceFiles = dir(sliceFilePattern);
 
 for k = 1 : length(sliceFiles)

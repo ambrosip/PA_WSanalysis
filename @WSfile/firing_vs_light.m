@@ -103,11 +103,11 @@ function firing_vs_light(obj)
 
 % Affects data analysis - Finding APs:
 discardedSweeps = [];
-discardedSweepsFromEnd = 0;
+discardedSweepsFromEnd = 3;
 peaksOrValleys = 'v';   
 highpassThreshold = 100;
 lowpassThreshold = 1500;    
-minPeakHeight = 22;         
+minPeakHeight = 12;         
 minPeakDistance = 0.025;    
 lightExtensionFactor = 1;
 
@@ -116,11 +116,11 @@ preAPinSeconds = 0.005;
 postAPinSeconds = 0.01;           
 preAPbaselineDurationSeconds = 0.002;
 ddyValleyThreshold = 50;
-ddyPeakThreshold = 25;
+ddyPeakThreshold = 30;
   
 % Affects data display: 
-ymax = 75;
-ymaxhist = 15;
+ymax = 150;
+ymaxhist = 30;
 zoomWindow = 0.25;
 ymaxIsiCV = 150;
 
@@ -411,8 +411,12 @@ firingHz = N/length(allSweeps);
 % if cell is inhibited, lightEffect = -1
 % if cell is excited, lightEffect = 1
 % if cell is indifferent, lightEffect = 0
+% data(sweepNumber, 23) is duringLightHz
+% data(sweepNumber, 22) is preLightHz
 lightEffect = [];
+sdFromPreLightHz = [];
 for sweepNumber = [1:length(allSweeps)]
+    sdFromPreLightHz = [sdFromPreLightHz; (data(sweepNumber, 23) - data(sweepNumber, 22)) / hzPreLightStd];
     if data(sweepNumber, 23) < hzPreLightMean - 2*hzPreLightStd
         lightEffect = [lightEffect; -1];
     elseif data(sweepNumber, 23) > hzPreLightMean + 2*hzPreLightStd
@@ -422,8 +426,8 @@ for sweepNumber = [1:length(allSweeps)]
     end
 end
 
-% add lightEffect as the last column of the sweep by sweep data
-data = [data, lightEffect];
+% add lightEffect and sdFromPreLightHz as the last columns of the sweep by sweep data
+data = [data, lightEffect, sdFromPreLightHz];
 
 
 %% CELL ANALYSIS - AP shape =====================================
@@ -554,6 +558,7 @@ dataAPshape = [mouseNumber, ...
 
 isIrregularCell = median(isIrregularBySweep);
 lightEffectCell = median(lightEffect);
+sdFromPreLightHzCell = median(sdFromPreLightHz);
 
 dataCell = [mouseNumber, ...
     experimentDate, ...
@@ -596,7 +601,8 @@ dataCell = [mouseNumber, ...
     mean(hzDuringLightBySweep)/mean(hzPreLightBySweep), ...
     isDA, ...
     isIrregularCell, ...
-    lightEffectCell];
+    lightEffectCell, ...
+    sdFromPreLightHzCell];
 
 
 %% PLOT - ISI ===================================================
@@ -919,7 +925,8 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'preLightHz', ...
     'duringLightHz', ...
     'postLightHz', ...
-    'lightEffect'});
+    'lightEffect', ...
+    'sdFromPreLightHz'});
 writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the sweep_by_sweep xls file')
 
@@ -1011,7 +1018,8 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'lightEffect(duringHz/preHz)', ...
     'isDA(0,1)', ...
     'isIrregular(0,1)', ...
-    'lightEffect(-1,0,1)'});
+    'lightEffect(-1,0,1)', ...
+    'medianSdFromPreLightHz'});
 writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the cell_avgs xls file')
 
