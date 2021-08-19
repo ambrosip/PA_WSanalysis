@@ -15,7 +15,7 @@ optargs(1:numvarargs) = varargin;
 
 % variables that will be used
 totalActiveChannels = 2;
-sampleRate = obj.header.Acquisition.SampleRate;
+sampleRate = obj.header.Acquisition.SampleRate
 lightOnsetDataPoint = lightOnsetTime*sampleRate;
 lightOffDataPoint = (lightOnsetTime+lightDuration)*sampleRate;
 afterLightDataPoint = (lightOnsetTime+analysisTimeWindow)*sampleRate;

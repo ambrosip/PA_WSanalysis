@@ -94,8 +94,8 @@ function firing_vs_light_test(obj)
 
 % Affects data analysis - Finding APs:
 discardedSweeps = [];
-discardedSweepsFromEnd = 1;
-peaksOrValleys = 'v';   
+discardedSweepsFromEnd = 0;
+peaksOrValleys = 'p';   
 highpassThreshold = 100;
 lowpassThreshold = 1500;    
 minPeakHeight = 12;         

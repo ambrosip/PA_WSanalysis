@@ -5,7 +5,7 @@ function niceplot(obj, varargin)
 %     optargs = {'k' -100 50 0 20 15 3 10 23};     % for WC data
 %     optargs = {'k' -200 200 0 20 15 3 10 23};    % for ON data
 %     optargs = {'k' -600 100 0 20 15 3 10 23};    % for mIPSC data
-    optargs = {'k' -500 100 1 10 15 3 10 23};    % for filtered mIPSC data
+    optargs = {'k' -300 100 0 10 15 3 14 19};    % for filtered mIPSC data
     optargs(1:numvarargs) = varargin;
     [colorName, ymin, ymax, filterORnot, GaussianFilterWindow, lightOnsetTime, lightDuration, xmin, xmax] = optargs{:};
     

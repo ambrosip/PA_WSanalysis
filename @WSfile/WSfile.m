@@ -77,6 +77,7 @@ classdef WSfile
         apWidthDdy(obj)
         firing_vs_light(obj)
         firing_vs_light_test(obj)
+        psc_vs_light(obj)
 
         
         function obj = WSfile(fileName)
