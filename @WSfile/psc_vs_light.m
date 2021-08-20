@@ -257,8 +257,11 @@ movegui('northeast');
 figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light - Niceplot all'));
 hold on;
 line([xmin xmax],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
-plot(x,yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
+plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
+plot(x, mean(yBaselineSubAll,2),'Color','black','LineWidth',1.5); 
 axis([xmin xmax -ymax ymax]);
+xlabel('Time (s)');
+ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
 title([fileName ' - psc_vs_light - niceplot all'],'Interpreter','none');
 % set(gca,'Visible','off');
 set(gcf,'Position',[1400 550 500 400]);
