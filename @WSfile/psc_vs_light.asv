@@ -85,7 +85,6 @@ allRs = [];
 yBaselineSubAll = [];
 lightEvokedCurrentsAllSweeps = [];
 allLightEvokedResponseLatencyInMilliSecondsAllSweeps = [];
-baselineCurrentAll = [];
 
 
 
@@ -112,12 +111,10 @@ for sweepNumber = allSweeps
     % baseline subtraction
     baselineStart = lightPulseStart(1) - baselineDurationInDataPts;
     yBaselineSub = y-mean(y(baselineStart:lightPulseStart(1)));
-    baselineCurrent = mean(y(baselineStart:lightPulseStart(1)));
     
     % saving data for niceplot
     % y data for each sweep is in a column
     yBaselineSubAll = [yBaselineSubAll, yBaselineSub]; 
-    baselineCurrentAll = [baselineCurrentAll, baselineCurrent]
     
 %     % filter data
 %     yFiltered = bandpass(y,[highpassThreshold lowpassThreshold],samplingFrequency);
@@ -256,11 +253,6 @@ f1=figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light - oPSCs a
 hold on;
 colororder(f1,brownToPurpleHex);
 plot(lightEvokedCurrentsAllSweeps.');
-colormap(brownToPurpleRgb(1:length(allSweeps),:))
-c = colorbar('Ticks',[1,length(allSweeps)]);
-caxis([1 length(allSweeps)]);
-c.Label.String = 'Sweep #';
-set(c, 'YDir', 'reverse');
 line([0 60],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
 axis([-inf inf -ymax ymax]);
 title([fileName ' - psc_vs_light - oPSC amplitude all'],'Interpreter','none');
