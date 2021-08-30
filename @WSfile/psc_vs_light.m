@@ -15,7 +15,21 @@ INPUTS explained:
     TO DO
 
 INPUTS defaults:
-    TO DO
+    % Affects data analysis:
+    lightStimCh = 2;
+    discardedSweeps = [];
+    discardedSweepsFromEnd = 1;
+    inwardORoutward = 1;    % 1 (positive) is outward; -1 (negative) in inward
+    baselineDurationInSeconds = 0.5;
+    lightPulseAnalysisWindowInSeconds = 0.02;
+    thresholdInDataPts = 10;
+    rsTestPulseOnsetTime = 1;
+
+    % Affects data display:
+    ymax = 150;
+
+    % Affects data saving:
+    savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
     
 OUTPUTS:
     TO DO
@@ -31,6 +45,7 @@ function psc_vs_light(obj)
 %%%  USER INPUT ==================================================
 
 % Affects data analysis:
+lightStimCh = 2;
 discardedSweeps = [];
 discardedSweepsFromEnd = 0;
 inwardORoutward = 1;    % 1 (positive) is outward; -1 (negative) in inward
@@ -40,7 +55,7 @@ thresholdInDataPts = 10;
 rsTestPulseOnsetTime = 1;
 
 % Affects data display:
-ymax = 300;
+ymax = 150;
 
 % Affects data saving:
 savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
@@ -102,7 +117,7 @@ data = [];
 for sweepNumber = allSweeps
     
     % get light stim data
-    [xch2,ych2] = obj.xy(sweepNumber, 2);      
+    [xch2,ych2] = obj.xy(sweepNumber, lightStimCh);      
     
     % get light stim parameters
     lightPulseStart = find(diff(ych2>1)>0);                                      % list of light pulse onset data points
