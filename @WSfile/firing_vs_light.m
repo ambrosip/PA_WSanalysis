@@ -103,11 +103,11 @@ function firing_vs_light(obj)
 
 % Affects data analysis - Finding APs:
 discardedSweeps = [];
-discardedSweepsFromEnd = 3;
-peaksOrValleys = 'v';   
+discardedSweepsFromEnd = 0;
+peaksOrValleys = 'p';   
 highpassThreshold = 100;
 lowpassThreshold = 1500;    
-minPeakHeight = 12;         
+minPeakHeight = 5;         
 minPeakDistance = 0.025;    
 lightExtensionFactor = 1;
 
@@ -119,8 +119,8 @@ ddyValleyThreshold = 50;
 ddyPeakThreshold = 30;
   
 % Affects data display: 
-ymax = 150;
-ymaxhist = 30;
+ymax = 15;
+ymaxhist = 60;
 zoomWindow = 0.25;
 ymaxIsiCV = 150;
 

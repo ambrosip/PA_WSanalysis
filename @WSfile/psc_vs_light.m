@@ -30,6 +30,7 @@ TO DO:
 function psc_vs_light(obj)
 %%%  USER INPUT ==================================================
 
+% Affects data analysis:
 discardedSweeps = [];
 discardedSweepsFromEnd = 0;
 inwardORoutward = 1;    % 1 (positive) is outward; -1 (negative) in inward
@@ -37,7 +38,12 @@ baselineDurationInSeconds = 0.5;
 lightPulseAnalysisWindowInSeconds = 0.02;
 thresholdInDataPts = 10;
 rsTestPulseOnsetTime = 1;
-ymax = 150;
+
+% Affects data display:
+ymax = 300;
+
+% Affects data saving:
+savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
 
 
 %% PREP - get info from file and create arrays ==================
@@ -86,6 +92,7 @@ yBaselineSubAll = [];
 lightEvokedCurrentsAllSweeps = [];
 allLightEvokedResponseLatencyInMilliSecondsAllSweeps = [];
 baselineCurrentAll = [];
+data = [];
 
 
 
@@ -117,7 +124,7 @@ for sweepNumber = allSweeps
     % saving data for niceplot
     % y data for each sweep is in a column
     yBaselineSubAll = [yBaselineSubAll, yBaselineSub]; 
-    baselineCurrentAll = [baselineCurrentAll, baselineCurrent]
+    baselineCurrentAll = [baselineCurrentAll, baselineCurrent];
     
 %     % filter data
 %     yFiltered = bandpass(y,[highpassThreshold lowpassThreshold],samplingFrequency);
@@ -198,7 +205,7 @@ for sweepNumber = allSweeps
         end
         
         % put all latencies from a particular sweep in a row
-        allLightEvokedResponseLatencyInMilliSeconds = [allLightEvokedResponseLatencyInMilliSeconds, lightEvokedResponseLatencyInMilliSeconds];
+        allLightEvokedResponseLatencyInMilliSeconds = [allLightEvokedResponseLatencyInMilliSeconds, lightEvokedResponseLatencyInMilliSeconds];        
         
     end
     
@@ -206,13 +213,51 @@ for sweepNumber = allSweeps
     lightEvokedCurrentsAllSweeps = [lightEvokedCurrentsAllSweeps; lightEvokedCurrents];
     allLightEvokedResponseLatencyInMilliSecondsAllSweeps = [allLightEvokedResponseLatencyInMilliSecondsAllSweeps; allLightEvokedResponseLatencyInMilliSeconds];
     
+    % Data that will be exported (each sweep is a row)       
+    data = [data; ...
+        mouseNumber, ...
+        experimentDate, ...
+        sweepNumber, ...
+        discardedSweepsFromEnd, ...
+        inwardORoutward, ...
+        baselineDurationInSeconds, ...
+        lightPulseAnalysisWindowInSeconds, ...
+        thresholdInDataPts, ...
+        rsTestPulseOnsetTime, ...
+        stimDur, ... 
+        stimFreq, ...
+        lightDur, ...
+        seriesResistance, ...
+        baselineCurrent];     
+        
 end
+
+data = [data, lightEvokedCurrentsAllSweeps, allLightEvokedResponseLatencyInMilliSecondsAllSweeps];
     
 xmin = lightOnsetTime-baselineDurationInSeconds;
 xmax = lightOnsetTime+lightDur+baselineDurationInSeconds;
 
 
-%% Color-blind diverging olor scheme
+%% CELL Analysis
+
+dataCell = [mouseNumber, ...
+    experimentDate, ...
+    firstSweepNumber, ...
+    lastSweepNumber, ...
+    length(allSweeps), ...
+    mean(allRs), ...
+    min(allRs), ...
+    max(allRs), ...
+    mean(baselineCurrentAll), ...
+    min(baselineCurrentAll), ...
+    max(baselineCurrentAll), ...
+    mean(lightEvokedCurrentsAllSweeps), ...
+    std(lightEvokedCurrentsAllSweeps), ...
+    mean(allLightEvokedResponseLatencyInMilliSecondsAllSweeps, 'omitnan'), ...
+    std(allLightEvokedResponseLatencyInMilliSecondsAllSweeps, 'omitnan')];
+
+
+%% Color-blind diverging color scheme
 
 brownToPurpleHex = {'#7f3b08','#b35806','#e08214','#fdb863','#fee0b6','#d8daeb','#b2abd2','#8073ac','#542788','#2d004b'};
 
@@ -306,10 +351,10 @@ title([obj.file ' rs'],'Interpreter','none');
 movegui('northeast');
 
 
-%% PLOT - niceplot of all sweeps ================================
+%% PLOT - niceplot of all sweeps - COLORS ================================
 
 % plotting niceplot     
-figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light - Niceplot all'));
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light - Niceplot all colors'));
 hold on;
 for sweep = 1:size(yBaselineSubAll,2)
     plot(x, yBaselineSubAll(:,sweep),'Color',brownToPurpleRgbTransparent(sweep,:));
@@ -334,14 +379,8 @@ set(gcf,'Position',[1400 550 500 400]);
 % misleading!
 for nStim=1:length(lightPulseStart)
 %     line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-ymax+100,-ymax+100],'Color',[0 0.4470 0.7410],'LineWidth',10)
-    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax/8),-inwardORoutward*(ymax/8)],'Color',[0 0.4470 0.7410],'LineWidth',10)
+    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax/5),-inwardORoutward*(ymax/5)],'Color',[0 0.4470 0.7410],'LineWidth',10)
 end
-
-% % adding light stim - train
-% % note that this code will use light stim parameters from the last sweep!
-% % if light stim is not the same accross all sweeps, this will be
-% % misleading!
-% line([lightOnsetTime,lightOnsetTime+lightDur],[-ymax+50,-ymax+50],'Color',[0 0.4470 0.7410],'LineWidth',10)
 
 % adding scale bar
 ymin = -ymax;
@@ -353,19 +392,19 @@ hold off;
 movegui('southeast');
 
 
-%% PLOT - niceplot of all sweeps ================================
+%% PLOT - niceplot of all sweeps and/or MEAN - BLACK ================================
 
 % plotting niceplot     
-figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light - Niceplot all'));
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light - Niceplot black'));
 hold on;
-plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
-plot(x, mean(yBaselineSubAll,2),'Color','black','LineWidth',1.5); 
+% plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
+plot(x, mean(yBaselineSubAll,2),'Color','black','LineWidth',0.7); 
 line([xmin xmax],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
 axis([xmin xmax -ymax ymax]);
 xlabel('Time (s)');
 ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
 title([fileName ' - psc_vs_light - niceplot all'],'Interpreter','none');
-% set(gca,'Visible','off');
+set(gca,'Visible','off');
 set(gcf,'Position',[1400 550 500 400]);
 
 % adding light stim - individual pulses   
@@ -373,14 +412,14 @@ set(gcf,'Position',[1400 550 500 400]);
 % if light stim is not the same accross all sweeps, this will be
 % misleading!
 for nStim=1:length(lightPulseStart)
-    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-ymax+100,-ymax+100],'Color',[0 0.4470 0.7410],'LineWidth',10)
+    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax/5),-inwardORoutward*(ymax/5)],'Color',[0 0.4470 0.7410],'LineWidth',10)
 end
 
 % adding light stim - train
 % note that this code will use light stim parameters from the last sweep!
 % if light stim is not the same accross all sweeps, this will be
 % misleading!
-line([lightOnsetTime,lightOnsetTime+lightDur],[-ymax+50,-ymax+50],'Color',[0 0.4470 0.7410],'LineWidth',10)
+% line([lightOnsetTime,lightOnsetTime+lightDur],[-ymax+50,-ymax+50],'Color',[0 0.4470 0.7410],'LineWidth',10)
 
 % adding scale bar
 ymin = -ymax;
@@ -390,6 +429,105 @@ text(xmax-1, ymax-((ymax-ymin)/20), "1 s")
 text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
 hold off;
 movegui('south');
+
+
+%% PLOT - subtracted baseline current =====================================================
+
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light - baseline current')); % naming figure file
+plot(allSweeps, baselineCurrentAll,'-o');
+axis([allSweeps(1) inf -300 300])
+ylabel('Subtracted Baseline Current (pA)');
+xlabel('Sweeps');
+title([obj.file ' rs'],'Interpreter','none');
+movegui('southwest');
+
+
+%% PLOT - oPSC amplitude mean +- SD ================================
+
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light - mean and SD'));
+hold on;
+errorbar(mean(lightEvokedCurrentsAllSweeps), std(lightEvokedCurrentsAllSweeps), 'color', [0 0 0], 'CapSize', 0);
+% errorbar(mean(lightEvokedCurrentsAllSweeps), std(lightEvokedCurrentsAllSweeps),'-o', 'MarkerFaceColor', 'k', 'color', [0 0 0], 'CapSize', 0);
+line([0 60],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
+axis([-inf inf -ymax ymax]);
+ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+title([fileName ' - psc_vs_light - mean and SD'],'Interpreter','none');
+xlabel('Light pulse');
+hold off;
+movegui('northwest');
+
+
+%% EXPORTING XLS files ==========================================
+
+% create cell array with strings for naming the amplitude and latency of the oPSC for each light pulse
+oPSCvariableNamesAmplitude = cell(1,length(lightEvokedCurrents));
+oPSCvariableNamesLatency = cell(1,length(allLightEvokedResponseLatencyInMilliSeconds));
+for lightPulse = 1:length(lightEvokedCurrents)
+    oPSCvariableNamesAmplitude(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(pA)')};
+    oPSCvariableNamesLatency(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(ms)')};
+end
+
+% stores sweep by sweep data
+filename = strcat(fileName, '_', analysisDate, " - psc_vs_light - sweep_by_sweep");
+fulldirectory = strcat(savefileto,'\',filename,'.xls');        
+dataInCellFormat = {};
+dataInCellFormat = num2cell(data);
+labeledData = cell2table(dataInCellFormat, 'VariableNames', ...      
+    {'mouse', ...
+    'date', ...
+    'sweep', ...
+    'discardedSweepsFromEnd', ...
+    'inward(-1)ORoutward(1)', ...
+    'baselineDurationInSeconds', ...
+    'lightPulseAnalysisWindowInSeconds', ...
+    'thresholdInDataPts', ...        
+    'rsTestPulseOnsetTime', ...    
+    'lightPulseDur(s)', ... 
+    'lightStimFreq(Hz)', ...
+    'lightDur(s)', ...
+    'seriesResistance(Mohm)', ...
+    'baselineCurrent(pA)', ...
+    oPSCvariableNamesAmplitude{:}, ...
+    oPSCvariableNamesLatency{:}});    
+writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
+disp('I saved the sweep_by_sweep xls file')
+
+
+% create cell array with strings for naming the mean and std of the oPSC for each light pulse
+oPSCvariableNamesAmplitudeAVG = cell(1,length(lightEvokedCurrents));
+oPSCvariableNamesAmplitudeSTD = cell(1,length(lightEvokedCurrents));
+oPSCvariableNamesLatencyAVG = cell(1,length(allLightEvokedResponseLatencyInMilliSeconds));
+oPSCvariableNamesLatencySTD = cell(1,length(allLightEvokedResponseLatencyInMilliSeconds));
+for lightPulse = 1:length(lightEvokedCurrents)
+    oPSCvariableNamesAmplitudeAVG(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(pA)AVG')};
+    oPSCvariableNamesAmplitudeSTD(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(pA)STD')};
+    oPSCvariableNamesLatencyAVG(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(ms)AVG')};
+    oPSCvariableNamesLatencySTD(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(ms)STD')};
+end
+
+% stores cell data
+filename = strcat(fileName, '_', analysisDate, " - psc_vs_light - cell");
+fulldirectory = strcat(savefileto,'\',filename,'.xls');        
+dataInCellFormat = {};
+dataInCellFormat = num2cell(dataCell);
+labeledData = cell2table(dataInCellFormat, 'VariableNames', ...      
+    {'mouse', ...
+    'date', ...
+    'firstSweep', ...
+    'lastSweep', ...
+    'nSweeps', ...     
+    'seriesResistanceAGV(Mohm)', ...
+    'seriesResistanceMIN(Mohm)', ...
+    'seriesResistanceMAX(Mohm)', ...   
+    'baselineCurrentAVG(pA)', ...
+    'baselineCurrentMIN(pA)', ...
+    'baselineCurrentMAX(pA)', ...    
+    oPSCvariableNamesAmplitudeAVG{:}, ...
+    oPSCvariableNamesAmplitudeSTD{:}, ...
+    oPSCvariableNamesLatencyAVG{:}, ...
+    oPSCvariableNamesLatencySTD{:}});    
+writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
+disp('I saved the cell xls file')
 
 
 end    
