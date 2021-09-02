@@ -1,3 +1,47 @@
+%{ 
+DOCUMENTATION
+Created: < 2020
+Last edit: 2021 09 03 (added documentation)
+Author: PA
+
+This function is used to analyze the amplitude of a single inhibitory
+post-synaptic current (IPSC) in response to a single 5 ms light pulse.
+
+The goal in mind when making this function is to analyze the connection
+probability between SNr and SNc, as well as the strength of this connection
+(amplitude of the optogenetically induced IPSC).
+
+Here is the breakdown of the name "normmono":
+Norm - normalized. This is a misleading name, as nothing is being
+normalized here. I meant to say "baseline subtracted" but I named this
+function in a rush. In sum, this function will subtract the baseline
+current from each sweep, and superimpose the baseline subtracted traces.
+Mono - monosynaptic. This is a "historical name", coming from the wavesurfer
+protocol I used to collect the data. The original goal of the experiment
+was to test monosynaptic connectivity between a ChR2-expressing population
+of cells/terminals and a patched cell. In the original experiments, I had
+drugs in the extracellular solution blocking polysynaptic transmission
+(TTX) and boosting presynaptic release probability (4-AP). However, this
+code can be used to assess the amplitude and latency of any post-synaptic
+current timed to a stimulus.
+
+
+INPUTS explained:
+    TO DO
+
+INPUTS defaults:
+    TO DO
+    
+OUTPUTS:
+    TO DO
+
+ASSUMPTIONS: 
+    TO DO
+
+TO DO:
+    TO DO
+%}
+
 function [lightEvokedCurrents,dataPerSweepCh1,dataPerSweepCh2,seriesResistance] = normmono(obj, varargin)
 
 [firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj);
