@@ -34,11 +34,6 @@ INPUTS explained:
     time interval apart (note that this interval caps the max signal
     frequency you can detect).
 
-    - lightExtensionFactor: to account for lingering effects after the end
-    of the light pulse, extend the time interval considered under "light
-    effect". To NOT extend the light pulse (my default), set this variable
-    to 1.
-
     - ymax: for illustration purposes, use this value as the max range for
     the y-axis when plotting current vs time.
 
@@ -62,7 +57,6 @@ INPUTS defaults:
     lowpassThreshold = 1500;    
     minPeakHeight = 15;         
     minPeakDistance = 0.025;    
-    lightExtensionFactor = 1;
 
     preAPinSeconds = 0.005;            
     postAPinSeconds = 0.01;           
@@ -96,20 +90,19 @@ TO DO:
     - complete documentation
 %}
 
-function firing_vs_light(obj)
+function firing_vs_light_dual(obj)
 
 
 %%  USER INPUT ==================================================
 
 % Affects data analysis - Finding APs:
 discardedSweeps = [];
-discardedSweepsFromEnd = 1;
+discardedSweepsFromEnd = 0;
 peaksOrValleys = 'v';   
 highpassThreshold = 100;
 lowpassThreshold = 1500;    
-minPeakHeight = 5;         
+minPeakHeight = 20;         
 minPeakDistance = 0.025;    
-lightExtensionFactor = 1;
 
 % Affects data analysis - AP shape:
 preAPinSeconds = 0.005;            
@@ -119,13 +112,13 @@ ddyValleyThreshold = 50;
 ddyPeakThreshold = 30;
   
 % Affects data display: 
-ymax = 50;
-ymaxhist = 15;
-zoomWindow = 0.25;
+ymax = 100;
+ymaxhist = 30;
+zoomWindow = 3;
 ymaxIsiCV = 150;
 
 % Affects data saving:
-savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2021 aug-beyond\From MATLAB';
 
 
 %% PREP - get info from file and create arrays ==================
@@ -166,9 +159,15 @@ allTimeStamps = [];
 baselineTimeStamps = [];
 allIsiBaseline = [];
 hzBaselineBySweep = [];
-hzPreLightBySweep = [];
-hzDuringLightBySweep = [];
-hzPostLightBySweep = [];
+hzPreLightBySweepBin1 = [];
+hzPreLightBySweepBin2 = [];
+hzPreLightBySweepBin3 = [];
+hzDuringLightBySweepBin1 = [];
+hzDuringLightBySweepBin2 = [];
+hzDuringLightBySweepBin3 = [];
+hzPostLightBySweepBin1 = [];
+hzPostLightBySweepBin2 = [];
+hzPostLightBySweepBin3 = [];
 isiMeanBySweep = [];
 isiStdBySweep = [];
 isiCvBySweep = [];
@@ -211,14 +210,27 @@ for sweepNumber = allSweeps
     % get light stim data
     [xch2,ych2] = obj.xy(sweepNumber, 2);      
     
-    % get light stim parameters
-    lightPulseStart = find(diff(ych2>1)>0);
-    lightPulseEnd = find(diff(ych2<1)>0);
-    lightOnsetTime = lightPulseStart(1)/samplingFrequency;                       % in seconds
-    stimDur = (lightPulseEnd(end)-lightPulseStart(end))/samplingFrequency;       % duration of each light pulse in the train (s)
-    stimInterval = (lightPulseStart(2)-lightPulseStart(1))/samplingFrequency;    % interval between each pulse (s)
-    stimFreq = 1/stimInterval;                                                   % frequency of the light stim (Hz)
-    lightDur = (lightPulseStart(end)-lightPulseStart(1))/samplingFrequency + stimInterval;  % duration of the whole light train stim (s)
+    % get light stim parameters for channel 2
+    lightPulseStartCh2 = find(diff(ych2>1)>0);
+    lightPulseEndCh2 = find(diff(ych2<1)>0);
+    lightOnsetTimeCh2 = lightPulseStartCh2(1)/samplingFrequency;                                        % in seconds
+    stimDurCh2 = (lightPulseEndCh2(end)-lightPulseStartCh2(end))/samplingFrequency;                     % duration of each light pulse in the train (s)
+    stimIntervalCh2 = (lightPulseStartCh2(2)-lightPulseStartCh2(1))/samplingFrequency;                  % interval between each pulse (s)
+    stimFreqCh2 = 1/stimIntervalCh2;                                                                    % frequency of the light stim (Hz)
+    lightDurCh2 = (lightPulseStartCh2(end)-lightPulseStartCh2(1))/samplingFrequency + stimIntervalCh2;  % duration of the whole light train stim (s)
+    
+    % get light stim data for channel 3
+    [xch3,ych3] = obj.xy(sweepNumber, 3);      
+    
+    % get light stim parameters for channel 3
+    % I commented out some stuff cuz so far ch3 is a single, continuous pulse!
+    lightPulseStartCh3 = find(diff(ych3>1)>0);
+    lightPulseEndCh3 = find(diff(ych3<1)>0);
+    lightOnsetTimeCh3 = lightPulseStartCh3(1)/samplingFrequency;                                        % in seconds
+    stimDurCh3 = (lightPulseEndCh3(end)-lightPulseStartCh3(end))/samplingFrequency;                     % duration of each light pulse in the train (s)
+%     stimIntervalCh3 = (lightPulseStartCh3(2)-lightPulseStartCh3(1))/samplingFrequency;                  % interval between each pulse (s)
+%     stimFreqCh3 = 1/stimIntervalCh3;                                                                    % frequency of the light stim (Hz)
+%     lightDurCh3 = (lightPulseStartCh3(end)-lightPulseStartCh3(1))/samplingFrequency + stimIntervalCh3;  % duration of the whole light train stim (s)  
     
     % saving data for niceplot
     % y data for each sweep is in a column
@@ -235,7 +247,7 @@ for sweepNumber = allSweeps
     % baseline, from 0s to lightOnsetTime)
     % to calculate mean baseline Hz and SD later
     locsBaseline = locs;
-    indicesToDelete = find(locs >= lightOnsetTime);
+    indicesToDelete = find(locs >= lightOnsetTimeCh2);
     locsBaseline(indicesToDelete) = [];
     baselineTimeStamps = [baselineTimeStamps; locsBaseline];
     
@@ -251,20 +263,34 @@ for sweepNumber = allSweeps
 %     dataPerSweep.(strcat('s',num2str(sweepNumber),'isi')) = isiBaseline;
     %----------------------------------------------------------------
     
+    
     % Getting peak/valley amplitudes pre, during and post light
     % to do manual quality control of found peaks later
     if peaksOrValleys == 'peaks'
-        pksPreLight = pks;
-        pksDuringLight = pks;
-        pksPostLight = pks;
+        pksPreLightBin1 = pks;
+        pksPreLightBin2 = pks;
+        pksPreLightBin3 = pks;
+        pksDuringLightBin1 = pks;
+        pksDuringLightBin2 = pks;
+        pksDuringLightBin3 = pks;
+        pksPostLightBin1 = pks;
+        pksPostLightBin2 = pks;     
+        pksPostLightBin3 = pks;
         peaksOrValleysAsNum = 1;
     else
-        pksPreLight = -pks;
-        pksDuringLight = -pks;
-        pksPostLight = -pks;
+        pksPreLightBin1 = -pks;
+        pksPreLightBin2 = -pks;
+        pksPreLightBin3 = -pks;
+        pksDuringLightBin1 = -pks;
+        pksDuringLightBin2 = -pks;
+        pksDuringLightBin3 = -pks;
+        pksPostLightBin1 = -pks;
+        pksPostLightBin2 = -pks;     
+        pksPostLightBin3 = -pks;
         peaksOrValleysAsNum = -1;
     end
     %----------------------------------------------------------------
+    
     
     % Getting timestamps pre, during, and post light  
         % locsPreLight will be different from locsBaseline: locsPreLight is
@@ -272,32 +298,63 @@ for sweepNumber = allSweeps
         % lightOnsetTime-lightDur to lightOnsetTime), while locsBaseline is
         % the full baseline (from 0s to lightOnsetTime).
     % first, store locs (timestamps) in new variables 
-    locsPreLight = locs;
-    locsDuringLight = locs;
-    locsPostLight = locs;
+    locsPreLightBin1 = locs;
+    locsPreLightBin2 = locs;
+    locsPreLightBin3 = locs;
+    locsDuringLightBin1 = locs;
+    locsDuringLightBin2 = locs;
+    locsDuringLightBin3 = locs;
+    locsPostLightBin1 = locs;
+    locsPostLightBin2 = locs;
+    locsPostLightBin3 = locs;
     
-    % second, find indices at which the value of locs is smaller than the
-    % light onset or larger than the light offset (with optional extension
-    % factor to look for lingering light effect).
-    indicesToDelete = find(locs<lightOnsetTime | locs>(lightOnsetTime+lightDur*lightExtensionFactor));
     
-    % then, delete all peaks found before or after the light pulse
-    locsDuringLight(indicesToDelete) = [];
-    pksDuringLight(indicesToDelete) = [];
+    % let's go bin by bin, starting with preLight
+    % ASSUMPTION: Light stim on Ch2 is longer than light stim on Ch3
+    % locsPreLightBin1 is the first bin. It starts 3s before the onset of
+    % light on Ch2 (and 4s before the onset of light on Ch3).
+    indicesToDelete = find(locs<lightOnsetTimeCh2-3 | locs>=lightOnsetTimeCh2-2);
+    locsPreLightBin1(indicesToDelete) = [];
+    pksPreLightBin1(indicesToDelete) = [];
     
-    % third, find indices for timestamps beyond the immediate pre-light
-    % period and delete unwanted peaks
-    indicesToDelete = find(locs<lightOnsetTime-lightDur | locs>=lightOnsetTime);
-    locsPreLight(indicesToDelete) = [];
-    pksPreLight(indicesToDelete) = [];
-
-    % fourth, find indices for timestamps beyond the immediate post-light
-    % period and delete unwanted peaks
-    indicesToDelete = find(locs<(lightOnsetTime+lightDur*lightExtensionFactor) | locs>(lightOnsetTime+(lightDur*lightExtensionFactor)+lightDur));
-    locsPostLight(indicesToDelete) = [];
-    pksPostLight(indicesToDelete) = [];
+    indicesToDelete = find(locs<lightOnsetTimeCh2-2 | locs>=lightOnsetTimeCh2-1);
+    locsPreLightBin2(indicesToDelete) = [];
+    pksPreLightBin2(indicesToDelete) = [];
+    
+    indicesToDelete = find(locs<lightOnsetTimeCh2-1 | locs>=lightOnsetTimeCh2);
+    locsPreLightBin3(indicesToDelete) = [];
+    pksPreLightBin3(indicesToDelete) = [];
+  
+    
+    % duringLight
+    indicesToDelete = find(locs<lightOnsetTimeCh2 | locs>(lightOnsetTimeCh2+1));
+    locsDuringLightBin1(indicesToDelete) = [];
+    pksDuringLightBin1(indicesToDelete) = [];
+    
+    indicesToDelete = find(locs<lightOnsetTimeCh2+1 | locs>(lightOnsetTimeCh2+2));
+    locsDuringLightBin2(indicesToDelete) = [];
+    pksDuringLightBin2(indicesToDelete) = [];
+    
+    indicesToDelete = find(locs<lightOnsetTimeCh2+2 | locs>(lightOnsetTimeCh2+3));
+    locsDuringLightBin3(indicesToDelete) = [];
+    pksDuringLightBin3(indicesToDelete) = [];
+    
+    
+    % postLight
+    indicesToDelete = find(locs<(lightOnsetTimeCh2+lightDurCh2) | locs>(lightOnsetTimeCh2+lightDurCh2+1));
+    locsPostLightBin1(indicesToDelete) = [];
+    pksPostLightBin1(indicesToDelete) = [];
+   
+    indicesToDelete = find(locs<(lightOnsetTimeCh2+lightDurCh2+1) | locs>(lightOnsetTimeCh2+lightDurCh2+2));
+    locsPostLightBin2(indicesToDelete) = [];
+    pksPostLightBin2(indicesToDelete) = [];
+    
+    indicesToDelete = find(locs<(lightOnsetTimeCh2+lightDurCh2+2) | locs>(lightOnsetTimeCh2+lightDurCh2+3));
+    locsPostLightBin3(indicesToDelete) = [];
+    pksPostLightBin3(indicesToDelete) = [];
     %----------------------------------------------------------------
 
+    
     % Data storage    
     % storing sweep by sweep data in a cell array
     % to export later
@@ -307,14 +364,21 @@ for sweepNumber = allSweeps
     sweepNumberArrayBySweep = [sweepNumberArrayBySweep, sweepNumberArray];
     
     % storing sweep by sweep data in an array for easy mean & std calculations later
-    hzBaselineBySweep = [hzBaselineBySweep, length(locsBaseline)/lightOnsetTime];
-    hzPreLightBySweep = [hzPreLightBySweep, length(locsPreLight)/lightDur];
-    hzDuringLightBySweep = [hzDuringLightBySweep, length(locsDuringLight)/lightDur];
-    hzPostLightBySweep = [hzPostLightBySweep, length(locsPostLight)/lightDur];
+    hzBaselineBySweep = [hzBaselineBySweep, length(locsBaseline)/lightOnsetTimeCh2];
+    hzPreLightBySweepBin1 = [hzPreLightBySweepBin1, length(locsPreLightBin1)];
+    hzPreLightBySweepBin2 = [hzPreLightBySweepBin2, length(locsPreLightBin2)];
+    hzPreLightBySweepBin3 = [hzPreLightBySweepBin3, length(locsPreLightBin3)];
+    hzDuringLightBySweepBin1 = [hzDuringLightBySweepBin1, length(locsDuringLightBin1)];
+    hzDuringLightBySweepBin2 = [hzDuringLightBySweepBin2, length(locsDuringLightBin2)];
+    hzDuringLightBySweepBin3 = [hzDuringLightBySweepBin3, length(locsDuringLightBin3)];
+    hzPostLightBySweepBin1 = [hzPostLightBySweepBin1, length(locsPostLightBin1)];
+    hzPostLightBySweepBin2 = [hzPostLightBySweepBin2, length(locsPostLightBin2)];
+    hzPostLightBySweepBin3 = [hzPostLightBySweepBin3, length(locsPostLightBin3)];
     isiCvBySweep = [isiCvBySweep, std(isiBaseline)/mean(isiBaseline)];
     isiMeanBySweep = [isiMeanBySweep, mean(isiBaseline)];
     isiStdBySweep = [isiStdBySweep, std(isiBaseline)];
     %----------------------------------------------------------------
+    
     
     % checking if cell is irregular (ISI CV > 0.2)
     % ASSUMPTION ALERT, MIGHT NEED UPDATING
@@ -326,6 +390,7 @@ for sweepNumber = allSweeps
     
     isIrregularBySweep = [isIrregularBySweep, isIrregular];
     %----------------------------------------------------------------
+    
     
     % Collecting AP shape data   
     % Store total number of APs found in complete baseline period
@@ -359,6 +424,7 @@ for sweepNumber = allSweeps
     nAPtotal = nAPtotal + nAP;
     %----------------------------------------------------------------
     
+    
     % Data that will be exported       
     % storing a subset of sweep by sweep data that will be exported
     % this dataset is the one I'm used to manipulating with a few changes
@@ -372,21 +438,24 @@ for sweepNumber = allSweeps
         lowpassThreshold, ...
         minPeakHeight, ...        
         minPeakDistance, ...    
-        lightExtensionFactor, ...
-        stimDur, ... 
-        stimFreq, ...
-        lightDur, ...
-        length(locsBaseline)/lightOnsetTime, ...
+        stimDurCh2, ... 
+        stimFreqCh2, ...
+        lightDurCh2, ...
+        stimDurCh3, ...
+        length(locsBaseline)/lightOnsetTimeCh2, ...
         mean(isiBaseline), ...
         std(isiBaseline), ...
         std(isiBaseline)/mean(isiBaseline), ...
         isIrregular, ...
-        length(locsPreLight), ...
-        length(locsDuringLight), ...
-        length(locsPostLight), ...
-        length(locsPreLight)/lightDur, ...
-        length(locsDuringLight)/lightDur, ...
-        length(locsPostLight)/lightDur];   
+        length(locsPreLightBin1), ...
+        length(locsPreLightBin2), ...
+        length(locsPreLightBin3), ...
+        length(locsDuringLightBin1), ...
+        length(locsDuringLightBin2), ...
+        length(locsDuringLightBin3), ...
+        length(locsPostLightBin1), ...
+        length(locsPostLightBin2), ...
+        length(locsPostLightBin3)];   
     %----------------------------------------------------------------
     
 end
@@ -399,38 +468,51 @@ hzBaselineMean = mean(hzBaselineBySweep);
 hzBaselineStd = std(hzBaselineBySweep);
 
 % Mean and Std for pre-light baseline firing rate
-hzPreLightMean = mean(hzPreLightBySweep);
-hzPreLightStd = std(hzPreLightBySweep);
+hzPreLightMeanBin1 = mean(hzPreLightBySweepBin1);
+hzPreLightMeanBin2 = mean(hzPreLightBySweepBin2);
+hzPreLightMeanBin3 = mean(hzPreLightBySweepBin3);
+hzPreLightStdBin1 = std(hzPreLightBySweepBin1);
+hzPreLightStdBin2 = std(hzPreLightBySweepBin2);
+hzPreLightStdBin3 = std(hzPreLightBySweepBin3);
 
 % counting APs accross all sweeps
 edges = [0:30];
 [N, edges] = histcounts(allTimeStamps,edges);
 firingHz = N/length(allSweeps);
 
-% is firing modulated by light?
+% is firing modulated by light (ch2)?
 % if cell is inhibited, lightEffect = -1
 % if cell is excited, lightEffect = 1
 % if cell is indifferent, lightEffect = 0
-% data(sweepNumber, 23) is duringLightHz
-% data(sweepNumber, 22) is preLightHz
-lightEffect = [];
-sdFromPreLightHz = [];
-for sweepNumber = [1:length(allSweeps)]
-    sdFromPreLightHz = [sdFromPreLightHz; (data(sweepNumber, 23) - data(sweepNumber, 22)) / hzPreLightStd];
-    if data(sweepNumber, 23) < hzPreLightMean - 2*hzPreLightStd
-        lightEffect = [lightEffect; -1];
-    elseif data(sweepNumber, 23) > hzPreLightMean + 2*hzPreLightStd
-        lightEffect = [lightEffect; +1];
+lightEffectCh2 = [];
+sdFromPreLightHzCh2 = [];
+for sweepNumber = [1:length(allSweeps)]    
+    sdFromPreLightHzCh2 = [sdFromPreLightHzCh2; (hzDuringLightBySweepBin1(sweepNumber) - hzPreLightBySweepBin3(sweepNumber)) / hzPreLightStdBin3];
+    if hzDuringLightBySweepBin1(sweepNumber) < hzPreLightMeanBin3 - 2*hzPreLightStdBin3
+        lightEffectCh2 = [lightEffectCh2; -1];
+    elseif hzDuringLightBySweepBin1(sweepNumber) > hzPreLightMeanBin3 + 2*hzPreLightStdBin3
+        lightEffectCh2 = [lightEffectCh2; +1];
     else 
-        lightEffect = [lightEffect; 0];
+        lightEffectCh2 = [lightEffectCh2; 0];
     end
 end
 
-sdFromPreLightHz
-data(sweepNumber, 23)
+% is firing modulated by light (ch3)?
+lightEffectCh3 = [];
+sdFromPreLightHzCh3 = [];
+for sweepNumber = [1:length(allSweeps)]
+    sdFromPreLightHzCh3 = [sdFromPreLightHzCh3; (hzDuringLightBySweepBin2(sweepNumber) - hzPreLightBySweepBin3(sweepNumber)) / hzPreLightStdBin3];
+    if hzDuringLightBySweepBin2(sweepNumber) < hzPreLightMeanBin3 - 2*hzPreLightStdBin3
+        lightEffectCh3 = [lightEffectCh3; -1];
+    elseif hzDuringLightBySweepBin2(sweepNumber) > hzPreLightMeanBin3 + 2*hzPreLightStdBin3
+        lightEffectCh3 = [lightEffectCh3; +1];
+    else 
+        lightEffectCh3 = [lightEffectCh3; 0];
+    end
+end
 
 % add lightEffect and sdFromPreLightHz as the last columns of the sweep by sweep data
-data = [data, lightEffect, sdFromPreLightHz];
+data = [data, lightEffectCh2, sdFromPreLightHzCh2, lightEffectCh3, sdFromPreLightHzCh3];
 
 
 %% CELL ANALYSIS - AP shape =====================================
@@ -560,8 +642,10 @@ dataAPshape = [mouseNumber, ...
 % If light stim changes from sweep to sweep, don't use this code.
 
 isIrregularCell = median(isIrregularBySweep);
-lightEffectCell = median(lightEffect);
-sdFromPreLightHzCell = median(sdFromPreLightHz);
+lightEffectCellCh2 = median(lightEffectCh2);
+sdFromPreLightHzCellCh2 = median(sdFromPreLightHzCh2);
+lightEffectCellCh3 = median(lightEffectCh3);
+sdFromPreLightHzCellCh3 = median(sdFromPreLightHzCh3);
 
 dataCell = [mouseNumber, ...
     experimentDate, ...
@@ -574,15 +658,15 @@ dataCell = [mouseNumber, ...
     lowpassThreshold, ...
     minPeakHeight, ...        
     minPeakDistance, ...    
-    lightExtensionFactor, ...
     preAPinSeconds, ...
     postAPinSeconds, ...
     preAPbaselineDurationSeconds, ...
     ddyValleyThreshold, ...
     ddyPeakThreshold, ...    
-    stimDur, ... 
-    stimFreq, ...
-    lightDur, ...    
+    stimDurCh2, ... 
+    stimFreqCh2, ...
+    lightDurCh2, ... 
+    stimDurCh3, ...
     nAPtotal, ...
     halfWidth, ...
     biphasicDuration, ...
@@ -594,24 +678,42 @@ dataCell = [mouseNumber, ...
     mean(allIsiBaseline), ...
     std(allIsiBaseline), ...
     std(allIsiBaseline)/mean(allIsiBaseline), ...
-    mean(hzPreLightBySweep), ...
-    std(hzPreLightBySweep), ...
-    mean(hzDuringLightBySweep), ...
-    std(hzDuringLightBySweep), ...
-    mean(hzPostLightBySweep), ...
-    std(hzPostLightBySweep), ...
-    (mean(hzDuringLightBySweep) - mean(hzPreLightBySweep))/std(hzPreLightBySweep), ...
-    mean(hzDuringLightBySweep)/mean(hzPreLightBySweep), ...
+    mean(hzPreLightBySweepBin1), ...
+    std(hzPreLightBySweepBin1), ...
+    mean(hzPreLightBySweepBin2), ...
+    std(hzPreLightBySweepBin2), ...
+    mean(hzPreLightBySweepBin3), ...
+    std(hzPreLightBySweepBin3), ...
+    mean(hzDuringLightBySweepBin1), ...
+    std(hzDuringLightBySweepBin1), ...
+    mean(hzDuringLightBySweepBin2), ...
+    std(hzDuringLightBySweepBin2), ...
+    mean(hzDuringLightBySweepBin3), ...
+    std(hzDuringLightBySweepBin3), ...
+    mean(hzPostLightBySweepBin1), ...
+    std(hzPostLightBySweepBin1), ...
+    mean(hzPostLightBySweepBin2), ...
+    std(hzPostLightBySweepBin2), ...
+    mean(hzPostLightBySweepBin3), ...
+    std(hzPostLightBySweepBin3), ...
+    (mean(hzDuringLightBySweepBin1) - mean(hzPreLightBySweepBin3))/std(hzPreLightBySweepBin3), ...
+    (mean(hzDuringLightBySweepBin2) - mean(hzPreLightBySweepBin3))/std(hzPreLightBySweepBin3), ...
+    (mean(hzDuringLightBySweepBin3) - mean(hzPreLightBySweepBin3))/std(hzPreLightBySweepBin3), ...
+    mean(hzDuringLightBySweepBin1)/mean(hzPreLightBySweepBin3), ...
+    mean(hzDuringLightBySweepBin2)/mean(hzPreLightBySweepBin3), ...
+    mean(hzDuringLightBySweepBin3)/mean(hzPreLightBySweepBin3), ...
     isDA, ...
     isIrregularCell, ...
-    lightEffectCell, ...
-    sdFromPreLightHzCell];
+    lightEffectCellCh2, ...
+    sdFromPreLightHzCellCh2, ...
+    lightEffectCellCh3, ...
+    sdFromPreLightHzCellCh3];
 
 
 %% PLOT - ISI ===================================================
 
 % ISI CV pre-light across all sweeps
-figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light - baseline ISI counts'));
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_dual - baseline ISI counts'));
 
 % edges: from 0-1s in 1ms steps
 edges = [0:0.001:1]; 
@@ -629,7 +731,7 @@ yticks([0 ymaxIsiCV]);
 %% PLOT - ISI normalized ========================================
 
 % ISI CV pre-light across all sweeps
-figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light - baseline ISI prob'));
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_dual - baseline ISI prob'));
 
 % edges: from 0-1s in 1ms steps
 edges = [0:0.001:1]; 
@@ -647,7 +749,7 @@ set(gcf,'Position',[50 50 400 400]);
 %% PLOT - Raster plot and histogram =============================
 % Complete - mean +- 2SD Hz is from long baseline (all data prior to light stim)
 
-figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light - raster and hist'));
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_dual - raster and hist'));
 subplot(2,1,1)
 hold on;
 
@@ -664,7 +766,8 @@ yticks([]);
 xticks([]);
 
 % adding light stim
-rectangle('Position', [lightOnsetTime firstSweepNumber-1 lightDur lastSweepNumber+1], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+rectangle('Position', [lightOnsetTimeCh2 firstSweepNumber-1 lightDurCh2 lastSweepNumber+1], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+rectangle('Position', [lightOnsetTimeCh3 firstSweepNumber-1 stimDurCh3 lastSweepNumber+1], 'FaceColor', [1 0 0 0.1], 'EdgeColor', 'none');
 
 % stop plotting things on this subplot
 hold off;
@@ -680,7 +783,8 @@ hold on;
 histogram('BinEdges', 0:30, 'BinCounts', firingHz, 'DisplayStyle', 'stairs', 'EdgeColor', 'k'); % 'EdgeColor','none',
 
 % plot light stim as rectangle
-rectangle('Position', [lightOnsetTime 0 lightDur ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+rectangle('Position', [lightOnsetTimeCh2 0 lightDurCh2 ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+rectangle('Position', [lightOnsetTimeCh3 0 stimDurCh3 ymaxhist], 'FaceColor', [1 0 0 0.1], 'EdgeColor', 'none');
 
 % plot Hz mean as horizontal line
 yline(hzBaselineMean, '--');
@@ -701,7 +805,7 @@ hold off;
 %% PLOT - Raster plot and histogram =============================
 % Zoomed in - mean +- 2SD Hz is from short pre-light baseline
 
-figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light - raster and hist zoom'));
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_dual - raster and hist zoom'));
 subplot(2,1,1)
 hold on;
 
@@ -712,13 +816,14 @@ end
 
 % zooming in and beautifying raster plot
 title([strcat(fileName, ' raster and hist zoom')],'Interpreter','none');
-axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur firstSweepNumber-1 lastSweepNumber+1])
+axis([lightOnsetTimeCh2-lightDurCh2 lightOnsetTimeCh2+2*lightDurCh2 firstSweepNumber-1 lastSweepNumber+1])
 ylabel(strcat('Sweeps (', num2str(length(allSweeps)), ')'));
 yticks([]);
 xticks([]);
 
 % adding light stim
-rectangle('Position', [lightOnsetTime firstSweepNumber-1 lightDur lastSweepNumber+1], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+rectangle('Position', [lightOnsetTimeCh2 firstSweepNumber-1 lightDurCh2 lastSweepNumber+1], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+rectangle('Position', [lightOnsetTimeCh3 firstSweepNumber-1 stimDurCh3 lastSweepNumber+1], 'FaceColor', [1 0 0 0.1], 'EdgeColor', 'none');
 
 % stop plotting things on this subplot
 hold off;
@@ -734,18 +839,19 @@ hold on;
 histogram('BinEdges', 0:30, 'BinCounts', firingHz, 'DisplayStyle', 'stairs', 'EdgeColor', 'k'); % 'EdgeColor','none',
 
 % plot light stim as rectangle
-rectangle('Position', [lightOnsetTime 0 lightDur ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+rectangle('Position', [lightOnsetTimeCh2 0 lightDurCh2 ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+rectangle('Position', [lightOnsetTimeCh3 0 stimDurCh3 ymaxhist], 'FaceColor', [1 0 0 0.1], 'EdgeColor', 'none');
 
 % plot Hz mean as horizontal line
-yline(hzPreLightMean, '--');
+yline(hzPreLightMeanBin1, '--');
 
 % plot +- 2 SD as rectangle around mean
 % [x y width height]
-rectangle('Position', [0 hzPreLightMean-(2*hzPreLightStd) 30 4*hzPreLightStd], 'FaceColor', [0 0 0 0.1], 'EdgeColor', 'none');
+rectangle('Position', [0 hzPreLightMeanBin1-(2*hzPreLightStdBin1) 30 4*hzPreLightStdBin1], 'FaceColor', [0 0 0 0.1], 'EdgeColor', 'none');
 
 xlabel('Time (s)');
 ylabel('Firing rate (Hz)');
-axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur 0 ymaxhist])
+axis([lightOnsetTimeCh2-lightDurCh2 lightOnsetTimeCh2+2*lightDurCh2 0 ymaxhist])
 set(gcf,'Position',[500 50 500 400]);
 %     xticks([0 30]);
 yticks([0 ymaxhist]);
@@ -761,7 +867,7 @@ hold off;
 % Avg based VALLEY is marked with a red arrow v
 % Ddy based OFFset is marked with a blue arrow <
 % Avg based OFFset is marked with a red arrow <
-figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light - AP width'));     
+figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light_dual - AP width'));     
 hold on;
     plot(xSubset, ySubsetAll,'Color', [0.75, 0.75, 0.75, 0.5], 'LineWidth', 0.2);
     plot(xSubset, avgAP,'Color','black','LineWidth',1.5); 
@@ -791,7 +897,7 @@ text(xmaxHere-2, min(avgAP)+10, strcat("10 ",obj.header.Ephys.ElectrodeManager.E
 
 % Plot the first (blue) and second (red) derivative of the avg
 % Use this dor troubleshooting and adjusting ddyPeakThreshold and ddyValleyThreshold
-figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light - AP width ddy'));
+figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light_dual - AP width ddy'));
 hold on;
     plot(xSubset, avgAP,'Color','black','LineWidth',1);
     plot(xForDy, dy,'Color', 'b', 'LineWidth', 1);
@@ -830,9 +936,9 @@ set(gcf,'Position',[1000 550 400 400]);
 %% PLOT - niceplot of first sweep ===============================
 
 % plotting niceplot of first sweep    
-figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light - niceplot 1st sweep'));
+figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light_dual - niceplot 1st sweep'));
 plot(x,yFilteredAll(:,1),'k','LineWidth',1);
-axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur -ymax ymax]);
+axis([lightOnsetTimeCh2-lightDurCh2 lightOnsetTimeCh2+2*lightDurCh2 -ymax ymax]);
 title([fileName ' - firing_vs_light - niceplot 1st sweep'],'Interpreter','none');
 set(gca,'Visible','off');
 set(gcf,'Position',[1400 50 500 400]);
@@ -841,19 +947,19 @@ set(gcf,'Position',[1400 50 500 400]);
 % note that this code will use light stim parameters from the last sweep!
 % if light stim is not the same accross all sweeps, this will be
 % misleading!
-for nStim=1:length(lightPulseStart)
-    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+for nStim=1:length(lightPulseStartCh2)
+    line([(lightPulseStartCh2(nStim)/samplingFrequency),(lightPulseStartCh2(nStim)/samplingFrequency)+stimDurCh2],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
 end
 
 % adding light stim as rectangle
 % note that this code will use light stim parameters from the last sweep!
 % if light stim is not the same accross all sweeps, this will be
 % misleading!
-line([lightOnsetTime,lightOnsetTime+lightDur],[ymax-10,ymax-10],'Color',[0 0.4470 0.7410],'LineWidth',10)
+line([lightOnsetTimeCh3, lightOnsetTimeCh3 + stimDurCh3], [ymax-10,ymax-10], 'Color', [1 0 0], 'LineWidth', 10)
 
 % adding scale bar
-xmin = lightOnsetTime-lightDur;
-xmax = lightOnsetTime+2*lightDur;
+xmin = lightOnsetTimeCh2-lightDurCh2;
+xmax = lightOnsetTimeCh2+2*lightDurCh2;
 ymin = -ymax;
 line([xmax-1 xmax],[ymax ymax],'Color','k')
 line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
@@ -865,9 +971,9 @@ hold off;
 %% PLOT - niceplot of all sweeps ================================
 
 % plotting niceplot     
-figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light - niceplot all'));
+figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light_dual - niceplot all'));
 plot(x,yFilteredAll,'Color',[0, 0, 0, 0.25]);
-axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur -ymax ymax]);
+axis([lightOnsetTimeCh2-lightDurCh2 lightOnsetTimeCh2+2*lightDurCh2 -ymax ymax]);
 title([fileName ' - firing_vs_light - niceplot all'],'Interpreter','none');
 set(gca,'Visible','off');
 set(gcf,'Position',[1400 550 500 400]);
@@ -876,19 +982,19 @@ set(gcf,'Position',[1400 550 500 400]);
 % note that this code will use light stim parameters from the last sweep!
 % if light stim is not the same accross all sweeps, this will be
 % misleading!
-for nStim=1:length(lightPulseStart)
-    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+for nStim=1:length(lightPulseStartCh2)
+    line([(lightPulseStartCh2(nStim)/samplingFrequency),(lightPulseStartCh2(nStim)/samplingFrequency)+stimDurCh2],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
 end
 
 % adding light stim
 % note that this code will use light stim parameters from the last sweep!
 % if light stim is not the same accross all sweeps, this will be
 % misleading!
-line([lightOnsetTime,lightOnsetTime+lightDur],[ymax-10,ymax-10],'Color',[0 0.4470 0.7410],'LineWidth',10)
+line([lightOnsetTimeCh3, lightOnsetTimeCh3 + stimDurCh3], [ymax-10,ymax-10], 'Color', [1 0 0], 'LineWidth', 10)
 
 % adding scale bar
-xmin = lightOnsetTime-lightDur;
-xmax = lightOnsetTime+2*lightDur;
+xmin = lightOnsetTimeCh2-lightDurCh2;
+xmax = lightOnsetTimeCh2+2*lightDurCh2;
 ymin = -ymax;
 line([xmax-1 xmax],[ymax ymax],'Color','k')
 line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
@@ -899,7 +1005,7 @@ text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.heade
 %% EXPORTING XLS files ==========================================
 
 % stores key sweep by sweep data
-filename = strcat(fileName, '_', analysisDate, " - firing_vs_light - sweep_by_sweep");
+filename = strcat(fileName, '_', analysisDate, " - firing_vs_light_dual - sweep_by_sweep");
 fulldirectory = strcat(savefileto,'\',filename,'.xls');        
 dataInCellFormat = {};
 dataInCellFormat = num2cell(data);
@@ -913,34 +1019,39 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'lowpassThreshold', ...
     'minPeakHeight', ...        
     'minPeakDistance', ...    
-    'lightExtensionFactor', ...
-    'lightPulseDur(s)', ... 
-    'lightStimFreq(Hz)', ...
-    'lightDur(s)', ...
+    'lightPulseDurCh2(s)', ... 
+    'lightStimFreqCh2(Hz)', ...
+    'lightDurCh2(s)', ...
+    'lightPulseDurCh3(s)', ...
     'baselineHz', ...
     'baselineIsiMean(s)', ...
     'baselineIsiSD(s)', ...
     'baselineIsiCV', ...
     'irregular', ...
-    'preLightAPs', ...
-    'duringLightAPs', ...
-    'postLightAPs', ...
-    'preLightHz', ...
-    'duringLightHz', ...
-    'postLightHz', ...
-    'lightEffect', ...
-    'sdFromPreLightHz'});
+    'preLightBin1Hz', ...
+    'preLightBin2Hz', ...
+    'preLightBin3Hz', ...
+    'duringLightBin1Hz', ...
+    'duringLightBin2Hz', ...
+    'duringLightBin3Hz', ...
+    'postLightBin1Hz', ...
+    'postLightBin2Hz', ...
+    'postLightBin3Hz', ...
+    'lightEffectCh2', ...
+    'sdFromPreLightHzCh2', ...
+    'lightEffectCh3', ...
+    'sdFromPreLightHzCh3'});
 writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the sweep_by_sweep xls file')
 
 % stores all timestamps from all sweeps in a single column
-filename = strcat(fileName, '_', analysisDate, " - firing_vs_light - all_AP_timestamps");
+filename = strcat(fileName, '_', analysisDate, " - firing_vs_light_dual - all_AP_timestamps");
 fulldirectory = strcat(savefileto,'\',filename,'.xls');        
 writematrix(allTimeStamps, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the all_AP_timestamps xls file')
 
 % stores AP shape data in a single row
-filename = strcat(fileName, '_', analysisDate, " - firing_vs_light - AP_shape");
+filename = strcat(fileName, '_', analysisDate, " - firing_vs_light_dual - AP_shape");
 fulldirectory = strcat(savefileto,'\',filename,'.xls');        
 dataInCellFormat = {};
 dataInCellFormat = num2cell(dataAPshape);
@@ -975,7 +1086,7 @@ writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the AP_shape xls file')
 
 % stores avg data in a single row
-filename = strcat(fileName, '_', analysisDate, " - firing_vs_light - cell_avgs");
+filename = strcat(fileName, '_', analysisDate, " - firing_vs_light_dual - cell_avgs");
 fulldirectory = strcat(savefileto,'\',filename,'.xls');        
 dataInCellFormat = {};
 dataInCellFormat = num2cell(dataCell);
@@ -991,15 +1102,15 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'lowpassThreshold', ...
     'minPeakHeight', ...        
     'minPeakDistance', ...
-    'lightExtensionFactor', ...
     'preAP(s)', ...
     'postAP(s)', ...
     'baselinePreAPdur(s)', ...
     'ddyValleyThreshold', ...
     'ddyPeakThreshold', ...
-    'lightPulseDur(s)', ... 
-    'lightStimFreq(Hz)', ...
-    'lightDur(s)', ...   
+    'lightPulseDurCh2(s)', ... 
+    'lightStimFreqCh2(Hz)', ...
+    'lightDurCh2(s)', ...   
+    'lightPulseDurCh3(s)', ... 
     'nAPtotalForShape', ...
     'halfWidth(ms)', ...
     'biphasicDuration(ms)', ...
@@ -1011,42 +1122,40 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'baselineISImean', ...
     'baselineISIsd', ...
     'baselineISIcv', ...
-    'preLightHzMean', ...
-    'preLightHzSD', ...
-    'duringLightHzMean', ...
-    'duringLightHzSD', ...
-    'postLightHzMean', ...
-    'postLightHzSD', ...
-    'lightEffect(SDfromMean)', ...
-    'lightEffect(duringHz/preHz)', ...
+    'preLightHzBin1Mean', ...
+    'preLightHzBin1SD', ...
+    'preLightHzBin2Mean', ...
+    'preLightHzBin2SD', ...
+    'preLightHzBin3Mean', ...
+    'preLightHzBin3SD', ...
+    'duringLightHzBin1Mean', ...
+    'duringLightHzBin1SD', ...
+    'duringLightHzBin2Mean', ...
+    'duringLightHzBin2SD', ...
+    'duringLightHzBin3Mean', ...
+    'duringLightHzBin3SD', ...
+    'postLightHzBin1Mean', ...
+    'postLightHzBin1SD', ...
+    'postLightHzBin2Mean', ...
+    'postLightHzBin2SD', ...
+    'postLightHzBin3Mean', ...
+    'postLightHzBin3SD', ...
+    'lightEffectBin1(SDfromMean)', ...
+    'lightEffectBin2(SDfromMean)', ...
+    'lightEffectBin3(SDfromMean)', ...
+    'lightEffectBin1(duringHz/preHz)', ...
+    'lightEffectBin2(duringHz/preHz)', ...
+    'lightEffectBin3(duringHz/preHz)', ...
     'isDA(0,1)', ...
     'isIrregular(0,1)', ...
-    'lightEffect(-1,0,1)', ...
-    'medianSdFromPreLightHz'});
+    'lightEffectCh2(-1,0,1)', ...
+    'medianSdFromPreLightHzCh2', ...
+    'lightEffectCh3(-1,0,1)', ...
+    'medianSdFromPreLightHzCh3'});
 writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the cell_avgs xls file')
 
 % print stuff
-[isDA, isIrregularCell, lightEffectCell]
+[isDA, isIrregularCell, lightEffectCellCh2, lightEffectCellCh3]
 
 end
-
-
-
-
-
-
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-
