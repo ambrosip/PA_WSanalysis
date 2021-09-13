@@ -42,7 +42,7 @@ for i=1:numel(filesNames)
 end
 
 % save xls file with data 
-filename = strcat(analysisDate, "PA_FP_stim_DualSite_rewrite_MEAN - concatenated");
+filename = strcat(files(1).name(1:15)," - concatenated");
 fulldirectory = strcat(dirName,'\',filename,'.xls');
 writetable(concatenatedXLS,fulldirectory);
 
