@@ -72,7 +72,6 @@ INPUTS defaults:
     ymaxhist = 15;
     ZoomWindow = 0.25;
     ymaxIsiCV = 150;
-    savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
     
 OUTPUTS:
     Figs
@@ -92,12 +91,12 @@ function firing_vs_light_dual_test(obj)
 
 % Affects data analysis - Finding APs:
 discardedSweeps = [];
-discardedSweepsFromEnd = 1;
+discardedSweepsFromEnd = 0;
 peaksOrValleys = 'v';   
 highpassThreshold = 100;
 lowpassThreshold = 1500;    
-minPeakHeight = 20;         
-minPeakDistance = 0.025;    
+minPeakHeight = 25;         
+minPeakDistance = 0.005;    
 
 % Affects data analysis - AP shape:
 preAPinSeconds = 0.005;            
@@ -107,13 +106,10 @@ ddyValleyThreshold = 50;
 ddyPeakThreshold = 30;
   
 % Affects data display: 
-ymax = 50;
-ymaxhist = 50;
+ymax = 100;
+ymaxhist = 100;
 zoomWindow = 3;
 ymaxIsiCV = 150;
-
-% Affects data saving:
-savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
 
 
 %% PREP - get info from file and create arrays ==================
@@ -457,41 +453,41 @@ for sweepNumber = allSweeps
     %----------------------------------------------------------------         
     
     
-    % PLOT zoomed in niceplot (start of light stim)
-    figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_dual_test - zoom start')); 
-    
-        % main plot
-        plot(x,yFiltered,'k','LineWidth',1)
-        xmin = lightOnsetTimeCh2-zoomWindow;
-        xmax = lightOnsetTimeCh2+zoomWindow;
-        ymin = -ymax;
-        axis([xmin xmax ymin ymax]);
-        title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
-        set(gca,'Visible','off');
-        set(gcf,'Position',[50 50 500 400])
-        
-        % adding light stim Ch2
-        interStimInterval = 1/stimFreqCh2;
-        postStimInterval = interStimInterval - stimDurCh2;
-        for nStim = 1 : stimFreqCh2 * xmax
-            startStim = lightOnsetTimeCh2 + (nStim - 1) * interStimInterval;
-            line([startStim, startStim + stimDurCh2],[ymax,ymax],'Color','blue','LineWidth',10)
-        end
-        
-        % adding light stim Ch3
-        line([lightOnsetTimeCh3, lightOnsetTimeCh3 + stimDurCh3],[ymin,ymin],'Color','red','LineWidth',10)
-%         interStimInterval = 1/stimFreqCh3;
-%         postStimInterval = interStimInterval - stimDurCh3;
-%         for nStim = 1 : stimFreqCh3 * xmax
-%             startStim = lightOnsetTimeCh3 + (nStim - 1) * interStimInterval;
-%             line([startStim, startStim + stimDurCh3],[ymin,ymin],'Color','red','LineWidth',10)
+%     % PLOT zoomed in niceplot (start of light stim)
+%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_dual_test - zoom start')); 
+%     
+%         % main plot
+%         plot(x,yFiltered,'k','LineWidth',1)
+%         xmin = lightOnsetTimeCh2-zoomWindow;
+%         xmax = lightOnsetTimeCh2+zoomWindow;
+%         ymin = -ymax;
+%         axis([xmin xmax ymin ymax]);
+%         title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
+%         set(gca,'Visible','off');
+%         set(gcf,'Position',[50 50 500 400])
+%         
+%         % adding light stim Ch2
+%         interStimInterval = 1/stimFreqCh2;
+%         postStimInterval = interStimInterval - stimDurCh2;
+%         for nStim = 1 : stimFreqCh2 * xmax
+%             startStim = lightOnsetTimeCh2 + (nStim - 1) * interStimInterval;
+%             line([startStim, startStim + stimDurCh2],[ymax,ymax],'Color','blue','LineWidth',10)
 %         end
-        
-        % adding scale bar
-        line([xmin,xmin+zoomWindow],[ymin,ymin],'Color','k')
-        line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
-        text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str(zoomWindow*1000)," ms"))
-        text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+%         
+%         % adding light stim Ch3
+%         line([lightOnsetTimeCh3, lightOnsetTimeCh3 + stimDurCh3],[ymin,ymin],'Color','red','LineWidth',10)
+% %         interStimInterval = 1/stimFreqCh3;
+% %         postStimInterval = interStimInterval - stimDurCh3;
+% %         for nStim = 1 : stimFreqCh3 * xmax
+% %             startStim = lightOnsetTimeCh3 + (nStim - 1) * interStimInterval;
+% %             line([startStim, startStim + stimDurCh3],[ymin,ymin],'Color','red','LineWidth',10)
+% %         end
+%         
+%         % adding scale bar
+%         line([xmin,xmin+zoomWindow],[ymin,ymin],'Color','k')
+%         line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
+%         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str(zoomWindow*1000)," ms"))
+%         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
     %---------------------------------------------------------------- 
      
     

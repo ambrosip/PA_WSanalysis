@@ -102,7 +102,7 @@ peaksOrValleys = 'v';
 highpassThreshold = 100;
 lowpassThreshold = 1500;    
 minPeakHeight = 20;         
-minPeakDistance = 0.025;    
+minPeakDistance = 0.005;    
 
 % Affects data analysis - AP shape:
 preAPinSeconds = 0.005;            
@@ -113,7 +113,7 @@ ddyPeakThreshold = 30;
   
 % Affects data display: 
 ymax = 100;
-ymaxhist = 30;
+ymaxhist = 100;
 zoomWindow = 3;
 ymaxIsiCV = 150;
 
