@@ -107,10 +107,9 @@ allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps = [];
 allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps = [];
 allTimeTo10percentOfPeakInMilliSecondsAllSweeps = [];
 allTimeTo90percentOfPeakInMilliSecondsAllSweeps = [];
-allRiseTimeAllSweeps = [];
+allRiseTimeInMilliSecondsAllSweeps = [];
 baselineCurrentAll = [];
 data = [];
-
 
 
 %% SWEEP BY SWEEP ANALYSIS ======================================
@@ -174,7 +173,7 @@ for sweepNumber = allSweeps
     allLightEvokedResponsePeakLatencyInMilliSeconds = [];
     allTimeTo10percentOfPeakInMilliSeconds = [];
     allTimeTo90percentOfPeakInMilliSeconds = [];
-    allRiseTime = [];
+    allRiseTimeInMilliSeconds = [];
 
     % loop through all light pulses in the train
     % this code is overkill here cuz there is only one light pulse but whatever
@@ -187,8 +186,12 @@ for sweepNumber = allSweeps
         % inward current is 0 or -1
         if inwardORoutward == 1 
             [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = max(yBaselineSub(pulseOnset:afterLightDataPoint));
+            timeTo10percentOfPeakInDataPoints = find(yBaselineSub(pulseOnset:afterLightDataPoint) >= 0.1 * lightEvokedCurrentAmp, 1);
+            timeTo90percentOfPeakInDataPoints = find(yBaselineSub(pulseOnset:afterLightDataPoint) >= 0.9 * lightEvokedCurrentAmp, 1);
         else
             [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = min(yBaselineSub(pulseOnset:afterLightDataPoint));
+            timeTo10percentOfPeakInDataPoints = find(yBaselineSub(pulseOnset:afterLightDataPoint) <= 0.1 * lightEvokedCurrentAmp, 1);
+            timeTo90percentOfPeakInDataPoints = find(yBaselineSub(pulseOnset:afterLightDataPoint) <= 0.9 * lightEvokedCurrentAmp, 1);
         end
         
         % put all currents from a particular sweep in a row (each column is
@@ -225,17 +228,17 @@ for sweepNumber = allSweeps
         % points (x=threshold).
         lightEvokedResponseOnsetLatencyInDataPoints = min(find(conv2(sign(diff(y(pulseOnset:afterLightDataPoint))), zeros(thresholdInDataPts,1)+(inwardORoutward), 'valid')==thresholdInDataPts));
         
-        % for rise time calculation, find index of 10% and 90% of peak:
-        % I might have to use round here
-        timeTo10percentOfPeakInDataPoints = find(yBaselineSub(lightEvokedResponseOnsetLatencyInDataPoints:lightEvokedCurrentLoc) == 0.1 * lightEvokedCurrentsAmp, 1);
-        timeTo90percentOfPeakInDataPoints = find(yBaselineSub(lightEvokedResponseOnsetLatencyInDataPoints:lightEvokedCurrentLoc) == 0.9 * lightEvokedCurrentsAmp, 1);
+%         % for rise time calculation, find index of 10% and 90% of peak:
+%         % I might have to use round here
+%         timeTo10percentOfPeakInDataPoints = find(yBaselineSub(lightEvokedResponseOnsetLatencyInDataPoints:lightEvokedCurrentLoc) == 0.1 * lightEvokedCurrentsAmp, 1);
+%         timeTo90percentOfPeakInDataPoints = find(yBaselineSub(lightEvokedResponseOnsetLatencyInDataPoints:lightEvokedCurrentLoc) == 0.9 * lightEvokedCurrentsAmp, 1);
         
         % Convert data points to milliseconds (1000 multiplication is conversion from seconds to milliseconds)
         lightEvokedResponseOnsetLatencyInMilliSeconds = 1000*lightEvokedResponseOnsetLatencyInDataPoints/samplingFrequency;
         lightEvokedResponsePeakLatencyInMilliSeconds = 1000*lightEvokedCurrentLoc/samplingFrequency;
         timeTo10percentOfPeakInMilliSeconds = 1000*timeTo10percentOfPeakInDataPoints/samplingFrequency;
         timeTo90percentOfPeakInMilliSeconds = 1000*timeTo90percentOfPeakInDataPoints/samplingFrequency;
-        riseTime = timeTo90percentOfPeakInMilliSeconds - timeTo10percentOfPeakInMilliSeconds;        
+        riseTimeInMilliSeconds = timeTo90percentOfPeakInMilliSeconds - timeTo10percentOfPeakInMilliSeconds;        
         
         if isempty(lightEvokedResponseOnsetLatencyInMilliSeconds)
             lightEvokedResponseOnsetLatencyInMilliSeconds = NaN;
@@ -250,7 +253,7 @@ for sweepNumber = allSweeps
         allLightEvokedResponsePeakLatencyInMilliSeconds = [allLightEvokedResponsePeakLatencyInMilliSeconds, lightEvokedResponsePeakLatencyInMilliSeconds];        
         allTimeTo10percentOfPeakInMilliSeconds = [allTimeTo10percentOfPeakInMilliSeconds, timeTo10percentOfPeakInMilliSeconds];
         allTimeTo90percentOfPeakInMilliSeconds = [allTimeTo90percentOfPeakInMilliSeconds, timeTo90percentOfPeakInMilliSeconds];
-        allRiseTime = [allRiseTime, riseTime];
+        allRiseTimeInMilliSeconds = [allRiseTimeInMilliSeconds, riseTimeInMilliSeconds];
            
     end
     
@@ -258,9 +261,9 @@ for sweepNumber = allSweeps
     lightEvokedCurrentsAllSweeps = [lightEvokedCurrentsAllSweeps; lightEvokedCurrentsAmp];
     allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps = [allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps; allLightEvokedResponseOnsetLatencyInMilliSeconds];
     allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps = [allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps; allLightEvokedResponsePeakLatencyInMilliSeconds];
-    allTimeTo10percentOfPeakInMilliSecondsAllSweeps = [allTimeTo10percentOfPeakInMilliSecondsAllSweeps, allTimeTo10percentOfPeakInMilliSeconds];
-    allTimeTo90percentOfPeakInMilliSecondsAllSweeps = [allTimeTo90percentOfPeakInMilliSecondsAllSweeps, allTimeTo90percentOfPeakInMilliSeconds];
-    allRiseTimeAllSweeps = [allRiseTimeAllSweeps, allRiseTime];    
+    allTimeTo10percentOfPeakInMilliSecondsAllSweeps = [allTimeTo10percentOfPeakInMilliSecondsAllSweeps; allTimeTo10percentOfPeakInMilliSeconds];
+    allTimeTo90percentOfPeakInMilliSecondsAllSweeps = [allTimeTo90percentOfPeakInMilliSecondsAllSweeps; allTimeTo90percentOfPeakInMilliSeconds];
+    allRiseTimeInMilliSecondsAllSweeps = [allRiseTimeInMilliSecondsAllSweeps; allRiseTimeInMilliSeconds];    
     
     % Data that will be exported (each sweep is a row)       
     data = [data; ...
@@ -285,7 +288,7 @@ data = [data, ...
     allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps, ...
     allTimeTo10percentOfPeakInMilliSecondsAllSweeps, ...
     allTimeTo90percentOfPeakInMilliSecondsAllSweeps, ...
-    allRiseTimeAllSweeps];
+    allRiseTimeInMilliSecondsAllSweeps];
 
 % WARNING: I turned this light detection-based x axis into input-defined
 % xmin = lightOnsetTime - baselineDurationInSeconds;
@@ -300,104 +303,116 @@ yBaselineSubAllMean = mean(yBaselineSubAll,2);
 
 % ASSUMPTION ALERT
 % Assuming that all sweeps have the same, single o-stim
-pulseOnset = lightPulseStart.'
-afterLightDataPoint = pulseOnset + lightPulseAnalysisWindowInDataPts
+pulseOnset = lightPulseStart.';
+afterLightDataPoint = pulseOnset + lightPulseAnalysisWindowInDataPts;
 
 % get amplitude and location (index) of lightEvokedCurrents
+% for rise time calculation, find index of 10% and 90% of peak
+% look for a threshold cross instead of an exact match - find(a<=b) instead of find(a==b) 
 % outward current is +1
 % inward current is 0 or -1
 if inwardORoutward == 1 
-    [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = max(yBaselineSubAllMean(pulseOnset:afterLightDataPoint))
+    [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = max(yBaselineSubAllMean(pulseOnset:afterLightDataPoint));
+    latencyTo10percentOfPeakInDataPoints = find(yBaselineSubAllMean(pulseOnset:afterLightDataPoint) >= 0.1 * lightEvokedCurrentAmp, 1) + pulseOnset;
+    latencyTo90percentOfPeakInDataPoints = find(yBaselineSubAllMean(pulseOnset:afterLightDataPoint) >= 0.9 * lightEvokedCurrentAmp, 1) + pulseOnset;
 else
-    [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = min(yBaselineSubAllMean(pulseOnset:afterLightDataPoint))
+    [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = min(yBaselineSubAllMean(pulseOnset:afterLightDataPoint));
+    latencyTo10percentOfPeakInDataPoints = find(yBaselineSubAllMean(pulseOnset:afterLightDataPoint) <= 0.1 * lightEvokedCurrentAmp, 1) + pulseOnset;
+    latencyTo90percentOfPeakInDataPoints = find(yBaselineSubAllMean(pulseOnset:afterLightDataPoint) <= 0.9 * lightEvokedCurrentAmp, 1) + pulseOnset;
 end
 
-% adjust latency
-lightEvokedCurrentLoc = lightEvokedCurrentLoc + pulseOnset
+% adjust latency to peak Loc
+lightEvokedCurrentLoc = lightEvokedCurrentLoc + pulseOnset;
 
 % find onset latency
-onsetLatencyInDataPoints = min(find(conv2(sign(diff(yBaselineSubAllMean(pulseOnset:afterLightDataPoint))), zeros(thresholdInDataPts,1)+(inwardORoutward), 'valid')==thresholdInDataPts))
-onsetLatencyInDataPoints = onsetLatencyInDataPoints + pulseOnset
+onsetLatencyInDataPoints = min(find(conv2(sign(diff(yBaselineSubAllMean(pulseOnset:afterLightDataPoint))), zeros(thresholdInDataPts,1)+(inwardORoutward), 'valid')==thresholdInDataPts));
+onsetLatencyInDataPoints = onsetLatencyInDataPoints + pulseOnset;
 
-% for rise time calculation, find index of 10% and 90% of peak:
-% I might have to use round here
-% % latencyTo10percentOfPeakInDataPoints = find(round(yBaselineSubAllMean(pulseOnset:afterLightDataPoint)) == round(0.1 * lightEvokedCurrentAmp), 1) + pulseOnset
-% % latencyTo90percentOfPeakInDataPoints = find(round(yBaselineSubAllMean(pulseOnset:afterLightDataPoint)) == round(0.9 * lightEvokedCurrentAmp), 1) + pulseOnset
+% for decay tau calculation, find index of return to baseline after peak
+latencyToZeroAfterPeakInDataPoints = find(round(yBaselineSubAllMean(lightEvokedCurrentLoc:end)) >= 0, 1) + lightEvokedCurrentLoc;
 
-% for decay time calculation, find index of return to baseline after peak
-% I might have to use round here
-latencyToZeroAfterPeakInDataPoints = find(round(yBaselineSubAllMean(lightEvokedCurrentLoc:end)) == 0, 1) + lightEvokedCurrentLoc
-
-% fit single-term exponential model to the decay data
-% WARNING: might have to adjust x to time instead of data points? Low key
-% don't remember if x is in seconds or data points...
-xminFit = lightEvokedCurrentLoc
-xmaxFit = latencyToZeroAfterPeakInDataPoints
+% preparing to fit double-term exponential model to the decay data - create y subset
+xminFit = lightEvokedCurrentLoc;
+xmaxFit = latencyToZeroAfterPeakInDataPoints;
 yBaselineSubAllMeanSubset = yBaselineSubAllMean;
 yBaselineSubAllMeanSubset(latencyToZeroAfterPeakInDataPoints:end) = [];
 yBaselineSubAllMeanSubset(1:lightEvokedCurrentLoc) = [];
 
+% preparing to fit double-term exponential model to the decay data - create x subset
 xSubset = x;
 xSubset(latencyToZeroAfterPeakInDataPoints:end) = [];
 xSubset(1:lightEvokedCurrentLoc) = [];
+xSubset = round(xSubset,6) - round(lightEvokedCurrentLoc/samplingFrequency,6);
 
-decayFit = fit(x(xminFit:xmaxFit), yBaselineSubAllMean(xminFit:xmaxFit), 'exp1');
-decayFitA = decayFit.a;
-decayFitB = decayFit.b;
-decayFitTau = -1/decayFit.b;
+% selecting a double exponential for decay fitting
+g = fittype('a*exp(-x/fastTau) + b*exp(-x/slowTau)');
 
-figure;
-hold on;
-plot(decayFit)
-plot(x,yBaselineSubAllMean);
-axis([xmin xmax ymin ymax])
-hold off;
+% fit double-term exponential model to the decay data 
+% If you don't give MATLAB a StartPoint, it fails horribly
+% StartPoint order: [a, b, fastTau, slowTau]
+% You can check the order by using this line:
+% coefficientNames = coeffnames(g)
+% I guessed StartPoint values by manually adjusting a double exponential
+% The single exponential was NOT giving me a good fit
+decayFit = fit(xSubset,yBaselineSubAllMeanSubset,g,'StartPoint',[lightEvokedCurrentAmp, 1, 0.01, 0.1])
+
+% % For troubleshooting and estimating StartPoints:
+% figure;
+% plot(decayFit);
+% figure;
+% hold on;
+% plot(xSubset+round(lightEvokedCurrentLoc/samplingFrequency,6), decayFit(xSubset))
+% plot(x, yBaselineSubAllMean);
+% plot(xSubset+round(lightEvokedCurrentLoc/samplingFrequency,6), lightEvokedCurrentAmp*exp(-xSubset/0.05));
+% hold off;
 
 % convert data points to ms
-onsetLatencyInMilliSeconds = 1000 * onsetLatencyInDataPoints / samplingFrequency;
-latencyToPeakInMilliSeconds = 1000 * lightEvokedCurrentLoc / samplingFrequency;
-% latencyTo10percentOfPeakInMilliSeconds = 1000 * latencyTo10percentOfPeakInDataPoints / samplingFrequency;
-% latencyTo90percentOfPeakInMilliSeconds = 1000 * latencyTo90percentOfPeakInDataPoints / samplingFrequency;
-latencyToZeroAfterPeakInMilliSeconds = 1000 * latencyToZeroAfterPeakInDataPoints / samplingFrequency;
+onsetLatencyInMilliSeconds = 1000 * (onsetLatencyInDataPoints - pulseOnset) / samplingFrequency;
+latencyToPeakInMilliSeconds = 1000 * (lightEvokedCurrentLoc - pulseOnset) / samplingFrequency;
+latencyToZeroAfterPeakInMilliSeconds = 1000 * (latencyToZeroAfterPeakInDataPoints - pulseOnset) / samplingFrequency;
+latencyTo10percentOfPeakInMilliSeconds = 1000 * (latencyTo10percentOfPeakInDataPoints - pulseOnset) / samplingFrequency;
+latencyTo90percentOfPeakInMilliSeconds = 1000 * (latencyTo90percentOfPeakInDataPoints - pulseOnset) / samplingFrequency;
+
+% convert s to ms
+decayFitFastTau = decayFit.fastTau * 1000;
+decayFitSlowTau = decayFit.slowTau * 1000;
 
 % calculate riseTime in MilliSeconds
-% riseTime = latencyTo90percentOfPeakInMilliSeconds - latencyTo10percentOfPeakInMilliSeconds
-riseTime = latencyToPeakInMilliSeconds - onsetLatencyInMilliSeconds
+riseTimeInMilliSeconds = latencyTo90percentOfPeakInMilliSeconds - latencyTo10percentOfPeakInMilliSeconds
 
 % store all data
-% dataCell = [mouseNumber, ...
-%     experimentDate, ...
-%     firstSweepNumber, ...
-%     lastSweepNumber, ...
-%     length(allSweeps), ...
-%     mean(allRs), ...
-%     min(allRs), ...
-%     max(allRs), ...
-%     mean(baselineCurrentAll), ...
-%     min(baselineCurrentAll), ...
-%     max(baselineCurrentAll), ...
-%     mean(lightEvokedCurrentsAllSweeps), ...
-%     std(lightEvokedCurrentsAllSweeps), ...
-%     mean(allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps, 'omitnan'), ...
-%     std(allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps, 'omitnan'), ...
-%     mean(allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps, 'omitnan'), ...
-%     std(allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps, 'omitnan'), ...    
-%     mean(allTimeTo10percentOfPeakInMilliSecondsAllSweeps, 'omitnan'), ...
-%     std(allTimeTo10percentOfPeakInMilliSecondsAllSweeps, 'omitnan'), ...
-%     mean(allTimeTo90percentOfPeakInMilliSecondsAllSweeps, 'omitnan'), ...
-%     std(allTimeTo90percentOfPeakInMilliSecondsAllSweeps, 'omitnan'), ...
-%     mean(allRiseTimeAllSweeps, 'omitnan'), ...
-%     std(allRiseTimeAllSweeps, 'omitnan'), ...
-%     lightEvokedCurrentAmp, ...
-%     onsetLatencyInMilliSeconds, ... 
-%     latencyToPeakInMilliSeconds, ... 
-%     latencyTo10percentOfPeakInMilliSeconds, ... 
-%     latencyTo90percentOfPeakInMilliSeconds, ... 
-%     latencyToZeroAfterPeakInMilliSeconds, ... 
-%     riseTime, ...  
-%     decayFitA, ...
-%     decayFitB, ...
-%     decayFitTau];
+dataCell = [mouseNumber, ...
+    experimentDate, ...
+    firstSweepNumber, ...
+    lastSweepNumber, ...
+    length(allSweeps), ...
+    mean(allRs), ...
+    min(allRs), ...
+    max(allRs), ...
+    mean(baselineCurrentAll), ...
+    min(baselineCurrentAll), ...
+    max(baselineCurrentAll), ...
+    mean(lightEvokedCurrentsAllSweeps), ...
+    std(lightEvokedCurrentsAllSweeps), ...
+    mean(allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps, 'omitnan'), ...
+    std(allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps, 'omitnan'), ...
+    mean(allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps, 'omitnan'), ...
+    std(allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps, 'omitnan'), ...    
+    mean(allTimeTo10percentOfPeakInMilliSecondsAllSweeps, 'omitnan'), ...
+    std(allTimeTo10percentOfPeakInMilliSecondsAllSweeps, 'omitnan'), ...
+    mean(allTimeTo90percentOfPeakInMilliSecondsAllSweeps, 'omitnan'), ...
+    std(allTimeTo90percentOfPeakInMilliSecondsAllSweeps, 'omitnan'), ...
+    mean(allRiseTimeInMilliSecondsAllSweeps, 'omitnan'), ...
+    std(allRiseTimeInMilliSecondsAllSweeps, 'omitnan'), ...
+    lightEvokedCurrentAmp, ...
+    onsetLatencyInMilliSeconds, ... 
+    latencyToPeakInMilliSeconds, ... 
+    latencyTo10percentOfPeakInMilliSeconds, ... 
+    latencyTo90percentOfPeakInMilliSeconds, ... 
+    latencyToZeroAfterPeakInMilliSeconds, ... 
+    riseTimeInMilliSeconds, ...  
+    decayFitFastTau, ...
+    decayFitSlowTau];
 
 
 %% Color-blind diverging color scheme
@@ -555,21 +570,16 @@ set(gcf,'Position',[1400 550 500 400]);
 % if light stim is not the same accross all sweeps, this will be
 % misleading!
 for nStim=1:length(lightPulseStart)
-    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax/5),-inwardORoutward*(ymax/5)],'Color',[0 0.4470 0.7410],'LineWidth',10)
+    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax),-inwardORoutward*(ymax)],'Color',[0 0.4470 0.7410],'LineWidth',10)
 end
 
-% adding light stim - train
-% note that this code will use light stim parameters from the last sweep!
-% if light stim is not the same accross all sweeps, this will be
-% misleading!
-% line([lightOnsetTime,lightOnsetTime+lightDur],[-ymax+50,-ymax+50],'Color',[0 0.4470 0.7410],'LineWidth',10)
-
 % adding scale bar
-% ymin = -ymax;
-line([xmax-1 xmax],[ymax ymax],'Color','k')
-line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
-text(xmax-1, ymax-((ymax-ymin)/20), "1 s")
-text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+xmaxScale = xmax;
+xminScale = xmin;
+line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
+line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
+text(xmaxScale-(xmaxScale-xminScale)/10,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
+text(xmaxScale-(xmaxScale-xminScale)/8,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
 hold off;
 movegui('south');
 
@@ -607,8 +617,8 @@ figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - Nic
 hold on;
 % plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
 plot(x, mean(yBaselineSubAll,2),'Color','black','LineWidth',0.7); 
-plot(decayFit);
-plot(latencyToPeakInMilliSeconds/1000, lightEvokedCurrentAmp, 'o', 'Color', 'red');
+plot(xSubset+round(lightEvokedCurrentLoc/samplingFrequency,6), decayFit(xSubset))
+plot(lightEvokedCurrentLoc/1000, lightEvokedCurrentAmp, 'o', 'Color', 'red');
 line([onsetLatencyInMilliSeconds/1000 onsetLatencyInMilliSeconds/1000], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
 % line([latencyTo10percentOfPeakInDataPoints latencyTo10percentOfPeakInDataPoints], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
 % line([latencyTo90percentOfPeakInDataPoints latencyTo90percentOfPeakInDataPoints], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
@@ -626,14 +636,8 @@ set(gcf,'Position',[1400 550 500 400]);
 % if light stim is not the same accross all sweeps, this will be
 % misleading!
 for nStim=1:length(lightPulseStart)
-    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax/5),-inwardORoutward*(ymax/5)],'Color',[0 0.4470 0.7410],'LineWidth',10)
+    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax),-inwardORoutward*(ymax)],'Color',[0 0.4470 0.7410],'LineWidth',10)
 end
-
-% adding light stim - train
-% note that this code will use light stim parameters from the last sweep!
-% if light stim is not the same accross all sweeps, this will be
-% misleading!
-% line([lightOnsetTime,lightOnsetTime+lightDur],[-ymax+50,-ymax+50],'Color',[0 0.4470 0.7410],'LineWidth',10)
 
 % adding scale bar
 xmaxScale = xmax;
@@ -643,11 +647,6 @@ line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
 text(xmaxScale-(xmaxScale-xminScale)/10,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
 text(xmaxScale-(xmaxScale-xminScale)/8,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
         
-% % ymin = -ymax;
-% line([xmax-1 xmax],[ymax ymax],'Color','k')
-% line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
-% text(xmax-1, ymax-((ymax-ymin)/20), "1 s")
-% text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
 hold off;
 movegui('north');
 
@@ -660,7 +659,7 @@ oPSCvariableNamesOnsetLatency = cell(1,length(allLightEvokedResponseOnsetLatency
 oPSCvariableNamesPeakLatency = cell(1,length(allLightEvokedResponsePeakLatencyInMilliSeconds));
 oPSCvariableNames10percentLatency = cell(1,length(allTimeTo10percentOfPeakInMilliSeconds));
 oPSCvariableNames90percentLatency = cell(1,length(allTimeTo90percentOfPeakInMilliSeconds));
-oPSCvariableNamesRiseTime = cell(1,length(allRiseTime));
+oPSCvariableNamesRiseTime = cell(1,length(allRiseTimeInMilliSeconds));
 for lightPulse = 1:length(lightEvokedCurrentsAmp)
     oPSCvariableNamesAmplitude(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(pA)')};
     oPSCvariableNamesOnsetLatency(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(onsetLat_ms)')};
@@ -686,8 +685,6 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'thresholdInDataPts', ...        
     'rsTestPulseOnsetTime', ...    
     'lightPulseDur(s)', ... 
-%     'lightStimFreq(Hz)', ...
-%     'lightDur(s)', ...
     'seriesResistance(Mohm)', ...
     'baselineCurrent(pA)', ...
     oPSCvariableNamesAmplitude{:}, ...
@@ -711,8 +708,8 @@ oPSCvariableNames10percentLatencyAVG = cell(1,length(allTimeTo10percentOfPeakInM
 oPSCvariableNames10percentLatencySTD = cell(1,length(allTimeTo10percentOfPeakInMilliSeconds));
 oPSCvariableNames90percentLatencyAVG = cell(1,length(allTimeTo90percentOfPeakInMilliSeconds));
 oPSCvariableNames90percentLatencySTD = cell(1,length(allTimeTo90percentOfPeakInMilliSeconds));
-oPSCvariableNamesRiseTimeAVG = cell(1,length(allRiseTime));
-oPSCvariableNamesRiseTimeSTD = cell(1,length(allRiseTime));
+oPSCvariableNamesRiseTimeAVG = cell(1,length(allRiseTimeInMilliSeconds));
+oPSCvariableNamesRiseTimeSTD = cell(1,length(allRiseTimeInMilliSeconds));
 for lightPulse = 1:length(lightEvokedCurrentsAmp)
     oPSCvariableNamesAmplitudeAVG(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(pA)AVG')};
     oPSCvariableNamesAmplitudeSTD(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(pA)STD')};
@@ -764,9 +761,8 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'latencyTo90percentOfPeak(ms', ... 
     'latencyToZeroAfterPeak(ms)', ... 
     'riseTime(ms)', ...  
-    'decayFitA', ...
-    'decayFitB', ...
-    'decayFitTau'});    
+    'decayFitFastTau(ms)', ...
+    'decayFitSlowTau(ms)'});    
 writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the cell xls file')
 
