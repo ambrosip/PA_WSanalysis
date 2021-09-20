@@ -555,7 +555,7 @@ movegui('southeast');
 % plotting niceplot     
 figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - Niceplot black'));
 hold on;
-% plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
+plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
 plot(x, mean(yBaselineSubAll,2),'Color','black','LineWidth',0.7); 
 line([xmin xmax],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
 axis([xmin xmax ymin ymax]);
@@ -597,17 +597,17 @@ movegui('southwest');
 
 %% PLOT - oPSC amplitude mean +- SD ================================
 
-figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - mean and SD'));
-hold on;
-errorbar(mean(lightEvokedCurrentsAllSweeps), std(lightEvokedCurrentsAllSweeps), 'color', [0 0 0], 'CapSize', 0);
-% errorbar(mean(lightEvokedCurrentsAllSweeps), std(lightEvokedCurrentsAllSweeps),'-o', 'MarkerFaceColor', 'k', 'color', [0 0 0], 'CapSize', 0);
-line([0 60],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
-axis([-inf inf ymin ymax]);
-ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
-title([fileName ' - psc_vs_light_single - mean and SD'],'Interpreter','none');
-xlabel('Light pulse');
-hold off;
-movegui('northwest');
+% figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - mean and SD'));
+% hold on;
+% errorbar(mean(lightEvokedCurrentsAllSweeps), std(lightEvokedCurrentsAllSweeps), 'color', [0 0 0], 'CapSize', 0);
+% % errorbar(mean(lightEvokedCurrentsAllSweeps), std(lightEvokedCurrentsAllSweeps),'-o', 'MarkerFaceColor', 'k', 'color', [0 0 0], 'CapSize', 0);
+% line([0 60],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
+% axis([-inf inf ymin ymax]);
+% ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+% title([fileName ' - psc_vs_light_single - mean and SD'],'Interpreter','none');
+% xlabel('Light pulse');
+% hold off;
+% movegui('northwest');
 
 
 %% PLOT - niceplot with kinetics - BLACK ================================
@@ -618,10 +618,10 @@ hold on;
 % plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
 plot(x, mean(yBaselineSubAll,2),'Color','black','LineWidth',0.7); 
 plot(xSubset+round(lightEvokedCurrentLoc/samplingFrequency,6), decayFit(xSubset))
-plot(lightEvokedCurrentLoc/1000, lightEvokedCurrentAmp, 'o', 'Color', 'red');
-line([onsetLatencyInMilliSeconds/1000 onsetLatencyInMilliSeconds/1000], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
-% line([latencyTo10percentOfPeakInDataPoints latencyTo10percentOfPeakInDataPoints], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
-% line([latencyTo90percentOfPeakInDataPoints latencyTo90percentOfPeakInDataPoints], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
+plot(lightEvokedCurrentLoc/samplingFrequency, lightEvokedCurrentAmp, 'o', 'Color', 'red');
+line([onsetLatencyInDataPoints/samplingFrequency onsetLatencyInDataPoints/samplingFrequency], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
+line([latencyTo10percentOfPeakInDataPoints/samplingFrequency latencyTo10percentOfPeakInDataPoints/samplingFrequency], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
+line([latencyTo90percentOfPeakInDataPoints/samplingFrequency latencyTo90percentOfPeakInDataPoints/samplingFrequency], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
 line([latencyToZeroAfterPeakInDataPoints latencyToZeroAfterPeakInDataPoints], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
 line([xmin xmax],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
 axis([xmin xmax ymin ymax]);

@@ -527,7 +527,7 @@ line([xmin xmax],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
 axis([xmin xmax ymin ymax]);
 xlabel('Time (s)');
 ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
-title([fileName ' - psc_vs_light_single - niceplot all'],'Interpreter','none');
+title([fileName ' - psc_vs_light_single - niceplot all colors'],'Interpreter','none');
 set(gca,'Visible','off');
 set(gcf,'Position',[1400 550 500 400]);
 
@@ -536,16 +536,16 @@ set(gcf,'Position',[1400 550 500 400]);
 % if light stim is not the same accross all sweeps, this will be
 % misleading!
 for nStim=1:length(lightPulseStart)
-%     line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-ymax+100,-ymax+100],'Color',[0 0.4470 0.7410],'LineWidth',10)
-    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax/5),-inwardORoutward*(ymax/5)],'Color',[0 0.4470 0.7410],'LineWidth',10)
+    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax),-inwardORoutward*(ymax)],'Color',[0 0.4470 0.7410],'LineWidth',10)
 end
 
 % adding scale bar
-% ymin = -ymax;
-line([xmax-1 xmax],[ymax ymax],'Color','k')
-line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
-text(xmax-1, ymax-((ymax-ymin)/20), "1 s")
-text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+xmaxScale = xmax;
+xminScale = xmin;
+line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
+line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
+text(xmaxScale-(xmaxScale-xminScale)/10,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
+text(xmaxScale-(xmaxScale-xminScale)/8,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
 hold off;
 movegui('southeast');
 
@@ -553,9 +553,9 @@ movegui('southeast');
 %% PLOT - niceplot of all sweeps and/or MEAN - BLACK ================================
 
 % plotting niceplot     
-figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - Niceplot black'));
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - niceplot all'));
 hold on;
-% plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
+plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
 plot(x, mean(yBaselineSubAll,2),'Color','black','LineWidth',0.7); 
 line([xmin xmax],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
 axis([xmin xmax ymin ymax]);
@@ -597,17 +597,17 @@ movegui('southwest');
 
 %% PLOT - oPSC amplitude mean +- SD ================================
 
-figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - mean and SD'));
-hold on;
-errorbar(mean(lightEvokedCurrentsAllSweeps), std(lightEvokedCurrentsAllSweeps), 'color', [0 0 0], 'CapSize', 0);
-% errorbar(mean(lightEvokedCurrentsAllSweeps), std(lightEvokedCurrentsAllSweeps),'-o', 'MarkerFaceColor', 'k', 'color', [0 0 0], 'CapSize', 0);
-line([0 60],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
-axis([-inf inf ymin ymax]);
-ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
-title([fileName ' - psc_vs_light_single - mean and SD'],'Interpreter','none');
-xlabel('Light pulse');
-hold off;
-movegui('northwest');
+% figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - mean and SD'));
+% hold on;
+% errorbar(mean(lightEvokedCurrentsAllSweeps), std(lightEvokedCurrentsAllSweeps), 'color', [0 0 0], 'CapSize', 0);
+% % errorbar(mean(lightEvokedCurrentsAllSweeps), std(lightEvokedCurrentsAllSweeps),'-o', 'MarkerFaceColor', 'k', 'color', [0 0 0], 'CapSize', 0);
+% line([0 60],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
+% axis([-inf inf ymin ymax]);
+% ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+% title([fileName ' - psc_vs_light_single - mean and SD'],'Interpreter','none');
+% xlabel('Light pulse');
+% hold off;
+% movegui('northwest');
 
 
 %% PLOT - niceplot with kinetics - BLACK ================================
