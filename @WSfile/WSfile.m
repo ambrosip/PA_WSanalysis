@@ -80,6 +80,7 @@ classdef WSfile
         psc_vs_light(obj)
         firing_vs_light_dual_test(obj)
         firing_vs_light_dual(obj)
+        psc_vs_light_single(obj)
 
         
         function obj = WSfile(fileName)

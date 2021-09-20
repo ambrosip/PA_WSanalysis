@@ -1,0 +1,775 @@
+%{ 
+DOCUMENTATION
+Created: 2021 09 19
+Author: PA
+
+This function is used to analyze the kinetics of post-synaptic currents
+(PSCs), either IPSCs, EPSCs, or ChR2-mediated currents.
+
+This code was adapted from psc_vs_light
+
+INPUTS explained:
+    TO DO
+
+INPUTS defaults:
+    % Affects data analysis:
+    lightStimCh = 2;
+    discardedSweeps = [];
+    discardedSweepsFromEnd = 1;
+    inwardORoutward = 1;    % 1 (positive) is outward; -1 (negative) in inward
+    baselineDurationInSeconds = 0.5;
+    lightPulseAnalysisWindowInSeconds = 0.02;
+    thresholdInDataPts = 10;
+    rsTestPulseOnsetTime = 1;
+
+    % Affects data display:
+    ymax = 150;
+
+    % Affects data saving:
+    savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
+    
+OUTPUTS:
+    TO DO
+
+ASSUMPTIONS: 
+    TO DO
+
+TO DO:
+    TO DO
+%}
+
+function psc_vs_light_single(obj)
+%%%  USER INPUT ==================================================
+
+% Affects data analysis:
+lightStimCh = 2;
+discardedSweeps = [];
+discardedSweepsFromEnd = 0;
+inwardORoutward = -1;    % 1 (positive) is outward; -1 (negative) in inward
+baselineDurationInSeconds = 0.01;
+lightPulseAnalysisWindowInSeconds = 0.02;
+thresholdInDataPts = 10;
+rsTestPulseOnsetTime = 1;
+
+% Affects data display:
+ymin = -10000;
+ymax = 500;
+
+% Affects data saving:
+savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
+
+
+%% PREP - get info from file and create arrays ==================
+
+% get today's date for naming output files
+analysisDate =  datestr(datetime('today'),'yyyy-mm-dd');
+
+% getting info from file
+samplingFrequency = obj.header.Acquisition.SampleRate;
+fileName = obj.file;
+
+% add 'subset' to fileName in case discardedSweeps is not empty
+% to prevent overwritting of saved files with the whole dataset
+if ~isempty(discardedSweeps)
+    fileName = strcat(obj.file, '_subset');
+end
+
+% getting sweep numbers from file name
+[firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj); 
+
+% checking for incomplete sweeps and not analyzing incomplete sweeps - to
+% avoid this error: "Index exceeds the number of array elements (0)".   
+if numel(fieldnames(obj.sweeps)) <= obj.header.NSweepsPerRun  
+    lastSweepNumber = firstSweepNumber + numel(fieldnames(obj.sweeps)) -1 -discardedSweepsFromEnd;
+    allSweeps = firstSweepNumber:lastSweepNumber;
+end
+
+% removing sweeps that should be discarded based on user input
+for i=discardedSweeps
+    allSweeps = allSweeps(allSweeps~=i);
+end
+
+% calculating variables based on user input
+baselineDurationInDataPts = baselineDurationInSeconds * samplingFrequency;
+lightPulseAnalysisWindowInDataPts = lightPulseAnalysisWindowInSeconds * samplingFrequency;
+rsBaselineDataPointInterval = ((rsTestPulseOnsetTime-0.05)*samplingFrequency):(rsTestPulseOnsetTime*samplingFrequency);
+rsFirstTransientDataPointInterval = (rsTestPulseOnsetTime*samplingFrequency):(rsTestPulseOnsetTime+0.0025)*samplingFrequency;
+mouseNumber = getMouseNumber(obj);
+experimentDate = getExperimentDate(obj);
+
+% creating matrixes
+lightEvokedCurrentsAmp = [];
+allLightEvokedResponseOnsetLatencyInMilliSeconds = [];
+allRs = [];
+yBaselineSubAll = [];
+lightEvokedCurrentsAllSweeps = [];
+allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps = [];
+allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps = [];
+allTimeTo10percentOfPeakInMilliSecondsAllSweeps = [];
+allTimeTo90percentOfPeakInMilliSecondsAllSweeps = [];
+allRiseTimeAllSweeps = [];
+baselineCurrentAll = [];
+data = [];
+
+
+
+%% SWEEP BY SWEEP ANALYSIS ======================================
+
+% get data from all sweeps in file
+for sweepNumber = allSweeps
+    
+    % get light stim data
+    [xch2,ych2] = obj.xy(sweepNumber, lightStimCh);      
+    
+    % get light stim parameters
+    % I commented out the stuff cuz this code applies to a single light pulse
+    lightPulseStart = find(diff(ych2>1)>0);                                      % list of light pulse onset data points
+    lightPulseEnd = find(diff(ych2<1)>0);                                        % list of light pulse offset data points
+    lightOnsetTime = lightPulseStart(1)/samplingFrequency;                       % onset of first light pulse in seconds
+    stimDur = (lightPulseEnd(end)-lightPulseStart(end))/samplingFrequency;       % duration of each light pulse in the train (s)
+%     stimInterval = (lightPulseStart(2)-lightPulseStart(1))/samplingFrequency;    % interval between each pulse (s)
+%     stimFreq = 1/stimInterval;                                                   % frequency of the light stim (Hz)
+%     lightDur = (lightPulseStart(end)-lightPulseStart(1))/samplingFrequency + stimInterval;  % duration of the whole light train stim (s)  
+    
+    xmin = lightOnsetTime-0.02;
+    xmax = lightOnsetTime+0.2;
+
+    % get raw data
+    [x,y] = obj.xy(sweepNumber, 1);
+    
+    % baseline subtraction
+    baselineStart = lightPulseStart(1) - baselineDurationInDataPts;
+    yBaselineSub = y-mean(y(baselineStart:lightPulseStart(1)));
+    baselineCurrent = mean(y(baselineStart:lightPulseStart(1)));
+    
+    % saving data for niceplot
+    % y data for each sweep is in a column
+    yBaselineSubAll = [yBaselineSubAll, yBaselineSub]; 
+    baselineCurrentAll = [baselineCurrentAll, baselineCurrent];
+    
+%     % filter data
+%     yFiltered = bandpass(y,[highpassThreshold lowpassThreshold],samplingFrequency);
+%     
+%     % find peaks or valleys based on user input
+%     if peaksOrValleys == 'peaks'
+%         [pks,locs,w,p] = findpeaks(yFiltered,x,'MinPeakHeight',minPeakHeight,'MinPeakDistance',minPeakDistance);
+%     else
+%         [pks,locs,w,p] = findpeaks(-yFiltered,x,'MinPeakHeight',minPeakHeight,'MinPeakDistance',minPeakDistance);
+%     end
+
+    % calculating series resistance
+    rsBaselineCurrent = mean(y(rsBaselineDataPointInterval));
+    rsTransientCurrent = min(y(rsFirstTransientDataPointInterval));
+    dCurrent = rsTransientCurrent-rsBaselineCurrent;
+    dVoltage = -5;
+    seriesResistance = 1000*dVoltage/dCurrent; %mV/pA equals Gohm
+    
+    % put series resistance values from each sweep into a different column
+    allRs = [allRs, seriesResistance];
+    
+    % clean up matrices for that will be used in the next loop
+    lightEvokedCurrentsAmp = [];
+    lightEvokedCurrentsLoc = [];
+    allLightEvokedResponseOnsetLatencyInMilliSeconds = [];
+    allLightEvokedResponsePeakLatencyInMilliSeconds = [];
+    allTimeTo10percentOfPeakInMilliSeconds = [];
+    allTimeTo90percentOfPeakInMilliSeconds = [];
+    allRiseTime = [];
+
+    % loop through all light pulses in the train
+    % this code is overkill here cuz there is only one light pulse but whatever
+    for pulseOnset = lightPulseStart.'
+        
+        afterLightDataPoint = pulseOnset + lightPulseAnalysisWindowInDataPts;
+            
+        % get amplitude and location (index) of lightEvokedCurrents
+        % outward current is +1
+        % inward current is 0 or -1
+        if inwardORoutward == 1 
+            [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = max(yBaselineSub(pulseOnset:afterLightDataPoint));
+        else
+            [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = min(yBaselineSub(pulseOnset:afterLightDataPoint));
+        end
+        
+        % put all currents from a particular sweep in a row (each column is
+        % a pulse)
+        lightEvokedCurrentsAmp = [lightEvokedCurrentsAmp, lightEvokedCurrentAmp];
+        lightEvokedCurrentsLoc = [lightEvokedCurrentsLoc, lightEvokedCurrentLoc];
+               
+        % get onset latency of lightEvokedCurrents
+        %%% Rationale for finding light evoked response latency: I am looking
+        % for a monotonic change of the signal for at least "x" data points 
+        % (x=threshold), and I am selecting the first occurence of this monotonic change.       
+        %%% The expected direction of the monotonic change is determined
+        % by the optarg "inwardORoutward". If the value is 1, the function
+        % will look for a monotonic increase (outward current), and if the
+        % value is -1, the function will look for a monotonic decrease
+        % (inward current).        
+        %%% y(lightOnsetDataPoint:lightOffDataPoint) is the signal during light pulse        
+        %%% zeros(threshold,1)+(inwardORoutward) is a vector with "threshold" 
+        % number of rows containing -1 or 1, depending on the value of the
+        % optarg "inwardORoutward"        
+        %%% function diff calculates difference between data points        
+        %%% function sign only keeps info about decrease (-1) or increase (1) in signal        
+        %%% function conv2 performs convolution, looking for a sequence of
+        % "threshold" points of value equal to the value stored in
+        % "inwardORoutward" (-1 or 1). I think conv2 collapses all found 
+        % elements into a single element of value "threshold" and moves 
+        % forward in its search. So if threshold=20, inwardORoutward=-1,
+        % and there are 40 elements of value -1 in sequence (one after the
+        % other), conv2 will spit out a vector with 2 elements, both of
+        % value 20.       
+        %%% function find looks for the index of the elements equal to threshold in the output of the convolution        
+        %%% function min looks for the min index (aka the first data point
+        % that marks the start of a monotonic change in signal for "x"
+        % points (x=threshold).
+        lightEvokedResponseOnsetLatencyInDataPoints = min(find(conv2(sign(diff(y(pulseOnset:afterLightDataPoint))), zeros(thresholdInDataPts,1)+(inwardORoutward), 'valid')==thresholdInDataPts));
+        
+        % for rise time calculation, find index of 10% and 90% of peak:
+        % I might have to use round here
+        timeTo10percentOfPeakInDataPoints = find(yBaselineSub(lightEvokedResponseOnsetLatencyInDataPoints:lightEvokedCurrentLoc) == 0.1 * lightEvokedCurrentsAmp, 1);
+        timeTo90percentOfPeakInDataPoints = find(yBaselineSub(lightEvokedResponseOnsetLatencyInDataPoints:lightEvokedCurrentLoc) == 0.9 * lightEvokedCurrentsAmp, 1);
+        
+        % Convert data points to milliseconds (1000 multiplication is conversion from seconds to milliseconds)
+        lightEvokedResponseOnsetLatencyInMilliSeconds = 1000*lightEvokedResponseOnsetLatencyInDataPoints/samplingFrequency;
+        lightEvokedResponsePeakLatencyInMilliSeconds = 1000*lightEvokedCurrentLoc/samplingFrequency;
+        timeTo10percentOfPeakInMilliSeconds = 1000*timeTo10percentOfPeakInDataPoints/samplingFrequency;
+        timeTo90percentOfPeakInMilliSeconds = 1000*timeTo90percentOfPeakInDataPoints/samplingFrequency;
+        riseTime = timeTo90percentOfPeakInMilliSeconds - timeTo10percentOfPeakInMilliSeconds;        
+        
+        if isempty(lightEvokedResponseOnsetLatencyInMilliSeconds)
+            lightEvokedResponseOnsetLatencyInMilliSeconds = NaN;
+        end
+        
+        if isempty(lightEvokedResponsePeakLatencyInMilliSeconds)
+            lightEvokedResponsePeakLatencyInMilliSeconds = NaN;
+        end
+        
+        % put all latencies from a particular sweep in a row
+        allLightEvokedResponseOnsetLatencyInMilliSeconds = [allLightEvokedResponseOnsetLatencyInMilliSeconds, lightEvokedResponseOnsetLatencyInMilliSeconds];        
+        allLightEvokedResponsePeakLatencyInMilliSeconds = [allLightEvokedResponsePeakLatencyInMilliSeconds, lightEvokedResponsePeakLatencyInMilliSeconds];        
+        allTimeTo10percentOfPeakInMilliSeconds = [allTimeTo10percentOfPeakInMilliSeconds, timeTo10percentOfPeakInMilliSeconds];
+        allTimeTo90percentOfPeakInMilliSeconds = [allTimeTo90percentOfPeakInMilliSeconds, timeTo90percentOfPeakInMilliSeconds];
+        allRiseTime = [allRiseTime, riseTime];
+           
+    end
+    
+    % store all currents from a cell (each column is a pulse; each row is a sweep)
+    lightEvokedCurrentsAllSweeps = [lightEvokedCurrentsAllSweeps; lightEvokedCurrentsAmp];
+    allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps = [allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps; allLightEvokedResponseOnsetLatencyInMilliSeconds];
+    allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps = [allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps; allLightEvokedResponsePeakLatencyInMilliSeconds];
+    allTimeTo10percentOfPeakInMilliSecondsAllSweeps = [allTimeTo10percentOfPeakInMilliSecondsAllSweeps, allTimeTo10percentOfPeakInMilliSeconds];
+    allTimeTo90percentOfPeakInMilliSecondsAllSweeps = [allTimeTo90percentOfPeakInMilliSecondsAllSweeps, allTimeTo90percentOfPeakInMilliSeconds];
+    allRiseTimeAllSweeps = [allRiseTimeAllSweeps, allRiseTime];    
+    
+    % Data that will be exported (each sweep is a row)       
+    data = [data; ...
+        mouseNumber, ...
+        experimentDate, ...
+        sweepNumber, ...
+        discardedSweepsFromEnd, ...
+        inwardORoutward, ...
+        baselineDurationInSeconds, ...
+        lightPulseAnalysisWindowInSeconds, ...
+        thresholdInDataPts, ...
+        rsTestPulseOnsetTime, ...
+        stimDur, ... 
+        seriesResistance, ...
+        baselineCurrent];     
+        
+end
+
+data = [data, ... 
+    lightEvokedCurrentsAllSweeps, ...
+    allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps, ...
+    allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps, ...
+    allTimeTo10percentOfPeakInMilliSecondsAllSweeps, ...
+    allTimeTo90percentOfPeakInMilliSecondsAllSweeps, ...
+    allRiseTimeAllSweeps];
+
+% WARNING: I turned this light detection-based x axis into input-defined
+% xmin = lightOnsetTime - baselineDurationInSeconds;
+% xmax = lightOnsetTime + baselineDurationInSeconds;
+% % To accommodate single light pulse, I removed lightDur from the xmax calculation!
+% % xmax = lightOnsetTime + lightDur + baselineDurationInSeconds;
+
+
+%% CELL Analysis
+
+yBaselineSubAllMean = mean(yBaselineSubAll,2);
+
+% ASSUMPTION ALERT
+% Assuming that all sweeps have the same, single o-stim
+pulseOnset = lightPulseStart.'
+afterLightDataPoint = pulseOnset + lightPulseAnalysisWindowInDataPts
+
+% get amplitude and location (index) of lightEvokedCurrents
+% outward current is +1
+% inward current is 0 or -1
+if inwardORoutward == 1 
+    [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = max(yBaselineSubAllMean(pulseOnset:afterLightDataPoint))
+else
+    [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = min(yBaselineSubAllMean(pulseOnset:afterLightDataPoint))
+end
+
+% adjust latency
+lightEvokedCurrentLoc = lightEvokedCurrentLoc + pulseOnset
+
+% find onset latency
+onsetLatencyInDataPoints = min(find(conv2(sign(diff(yBaselineSubAllMean(pulseOnset:afterLightDataPoint))), zeros(thresholdInDataPts,1)+(inwardORoutward), 'valid')==thresholdInDataPts))
+onsetLatencyInDataPoints = onsetLatencyInDataPoints + pulseOnset
+
+% for rise time calculation, find index of 10% and 90% of peak:
+% I might have to use round here
+% % latencyTo10percentOfPeakInDataPoints = find(round(yBaselineSubAllMean(pulseOnset:afterLightDataPoint)) == round(0.1 * lightEvokedCurrentAmp), 1) + pulseOnset
+% % latencyTo90percentOfPeakInDataPoints = find(round(yBaselineSubAllMean(pulseOnset:afterLightDataPoint)) == round(0.9 * lightEvokedCurrentAmp), 1) + pulseOnset
+
+% for decay time calculation, find index of return to baseline after peak
+% I might have to use round here
+latencyToZeroAfterPeakInDataPoints = find(round(yBaselineSubAllMean(lightEvokedCurrentLoc:end)) == 0, 1) + lightEvokedCurrentLoc
+
+% fit single-term exponential model to the decay data
+% WARNING: might have to adjust x to time instead of data points? Low key
+% don't remember if x is in seconds or data points...
+xminFit = lightEvokedCurrentLoc
+xmaxFit = latencyToZeroAfterPeakInDataPoints
+yBaselineSubAllMeanSubset = yBaselineSubAllMean;
+yBaselineSubAllMeanSubset(latencyToZeroAfterPeakInDataPoints:end) = [];
+yBaselineSubAllMeanSubset(1:lightEvokedCurrentLoc) = [];
+
+xSubset = x;
+xSubset(latencyToZeroAfterPeakInDataPoints:end) = [];
+xSubset(1:lightEvokedCurrentLoc) = [];
+
+% decayFit = fit(x(xminFit:xmaxFit), yBaselineSubAllMean(xminFit:xmaxFit), 'exp1');
+decayFit = fit(xSubset, yBaselineSubAllMeanSubset, 'exp2');
+decayFitA = decayFit.a;
+decayFitB = decayFit.b;
+decayFitTau = -1/decayFit.b;
+
+figure;
+hold on;
+plot(decayFit)
+plot(xSubset,yBaselineSubAllMeanSubset);
+axis([xmin xmax ymin ymax])
+hold off;
+
+% convert data points to ms
+onsetLatencyInMilliSeconds = 1000 * onsetLatencyInDataPoints / samplingFrequency;
+latencyToPeakInMilliSeconds = 1000 * lightEvokedCurrentLoc / samplingFrequency;
+% latencyTo10percentOfPeakInMilliSeconds = 1000 * latencyTo10percentOfPeakInDataPoints / samplingFrequency;
+% latencyTo90percentOfPeakInMilliSeconds = 1000 * latencyTo90percentOfPeakInDataPoints / samplingFrequency;
+latencyToZeroAfterPeakInMilliSeconds = 1000 * latencyToZeroAfterPeakInDataPoints / samplingFrequency;
+
+% calculate riseTime in MilliSeconds
+% riseTime = latencyTo90percentOfPeakInMilliSeconds - latencyTo10percentOfPeakInMilliSeconds
+riseTime = latencyToPeakInMilliSeconds - onsetLatencyInMilliSeconds
+
+% store all data
+% dataCell = [mouseNumber, ...
+%     experimentDate, ...
+%     firstSweepNumber, ...
+%     lastSweepNumber, ...
+%     length(allSweeps), ...
+%     mean(allRs), ...
+%     min(allRs), ...
+%     max(allRs), ...
+%     mean(baselineCurrentAll), ...
+%     min(baselineCurrentAll), ...
+%     max(baselineCurrentAll), ...
+%     mean(lightEvokedCurrentsAllSweeps), ...
+%     std(lightEvokedCurrentsAllSweeps), ...
+%     mean(allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps, 'omitnan'), ...
+%     std(allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps, 'omitnan'), ...
+%     mean(allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps, 'omitnan'), ...
+%     std(allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps, 'omitnan'), ...    
+%     mean(allTimeTo10percentOfPeakInMilliSecondsAllSweeps, 'omitnan'), ...
+%     std(allTimeTo10percentOfPeakInMilliSecondsAllSweeps, 'omitnan'), ...
+%     mean(allTimeTo90percentOfPeakInMilliSecondsAllSweeps, 'omitnan'), ...
+%     std(allTimeTo90percentOfPeakInMilliSecondsAllSweeps, 'omitnan'), ...
+%     mean(allRiseTimeAllSweeps, 'omitnan'), ...
+%     std(allRiseTimeAllSweeps, 'omitnan'), ...
+%     lightEvokedCurrentAmp, ...
+%     onsetLatencyInMilliSeconds, ... 
+%     latencyToPeakInMilliSeconds, ... 
+%     latencyTo10percentOfPeakInMilliSeconds, ... 
+%     latencyTo90percentOfPeakInMilliSeconds, ... 
+%     latencyToZeroAfterPeakInMilliSeconds, ... 
+%     riseTime, ...  
+%     decayFitA, ...
+%     decayFitB, ...
+%     decayFitTau];
+
+
+%% Color-blind diverging color scheme
+
+brownToPurpleHex = {'#7f3b08','#b35806','#e08214','#fdb863','#fee0b6','#d8daeb','#b2abd2','#8073ac','#542788','#2d004b'};
+
+color1rgb = [127, 59, 8];
+color2rgb = [179, 88, 6];
+color3rgb = [224, 130, 20];
+color4rgb = [253, 184, 99];
+color5rgb = [254, 224, 182];
+color6rgb = [216, 218, 235];
+color7rgb = [178, 171, 210];
+color8rgb = [128, 115, 172];
+color9rgb = [84, 39, 136];
+color10rgb = [45, 1, 75];
+
+brownToPurpleRgb = [color1rgb/255
+                    color2rgb/255
+                    color3rgb/255
+                    color4rgb/255
+                    color5rgb/255
+                    color6rgb/255
+                    color7rgb/255
+                    color8rgb/255
+                    color9rgb/255
+                    color10rgb/255];
+
+brownToPurpleRgbTransparent = [color1rgb/255, 0.25
+                                color2rgb/255, 0.25
+                                color3rgb/255, 0.25
+                                color4rgb/255, 0.25
+                                color5rgb/255, 0.25
+                                color6rgb/255, 0.25
+                                color7rgb/255, 0.25
+                                color8rgb/255, 0.25
+                                color9rgb/255, 0.25
+                                color10rgb/255, 0.25];
+                       
+
+%% PLOT - light-evoked currents amplitude ==========================
+% 
+% f1=figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - oPSCs amplitude all')); % naming figure file
+% hold on;
+% colororder(f1,brownToPurpleHex);
+% plot(lightEvokedCurrentsAllSweeps.');
+% colormap(brownToPurpleRgb(1:length(allSweeps),:))
+% c = colorbar('Ticks',[1,length(allSweeps)]);
+% caxis([1 length(allSweeps)]);
+% c.Label.String = 'Sweep #';
+% set(c, 'YDir', 'reverse');
+% line([0 60],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
+% axis([-inf inf -ymax ymax]);
+% title([fileName ' - psc_vs_light_single - oPSC amplitude all'],'Interpreter','none');
+% ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+% xlabel('Light pulse');
+% hold off;
+% movegui('northwest');
+
+
+%% PLOT - light-evoked currents latency ===========================
+% 
+% f2=figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - oPSCs latency all')); % naming figure file
+% hold on;
+% colororder(f2,brownToPurpleHex);
+% plot(allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps.','-o');
+% colormap(brownToPurpleRgb(1:length(allSweeps),:))
+% c = colorbar('Ticks',[1,length(allSweeps)]);
+% caxis([1 length(allSweeps)]);
+% c.Label.String = 'Sweep #';
+% set(c, 'YDir', 'reverse');
+% line([0 60],[5, 5],'Color','black','LineStyle','--')
+% line([0 60],[1, 1],'Color','red','LineStyle','--')
+% axis([-inf inf 0 10]);
+% title([fileName ' - psc_vs_light_single - oPSC latency all'],'Interpreter','none');
+% ylabel('Response Latency (ms)');
+% xlabel('Light pulse');
+% hold off;
+% movegui('north');
+
+
+%% PLOT - rs =====================================================
+
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - Rs all')); % naming figure file
+plot(allSweeps, allRs,'-o');
+% plot lines marking 30% increase and 30% decrese in Rs compared to first
+% test pulse
+line([allSweeps(1) allSweeps(end)],[allRs(1)*0.7, allRs(1)*0.7],'Color','black','LineStyle','--')
+line([allSweeps(1) allSweeps(end)],[allRs(1)*1.3, allRs(1)*1.3],'Color','black','LineStyle','--')
+axis([allSweeps(1) inf 0 60])
+ylabel('Rs (M\Omega)');
+xlabel('Sweeps');
+title([obj.file ' rs'],'Interpreter','none');
+movegui('northeast');
+
+
+%% PLOT - niceplot of all sweeps - COLORS ================================
+
+% plotting niceplot     
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - Niceplot all colors'));
+hold on;
+for sweep = 1:size(yBaselineSubAll,2)
+    plot(x, yBaselineSubAll(:,sweep),'Color',brownToPurpleRgbTransparent(sweep,:));
+end
+colormap(brownToPurpleRgb(1:sweep,:))
+c = colorbar('Ticks',[1,sweep]);
+caxis([1 sweep]);
+c.Label.String = 'Sweep #';
+set(c, 'YDir', 'reverse');
+% plot(x, mean(yBaselineSubAll,2),'Color','black','LineWidth',1.5); 
+line([xmin xmax],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
+axis([xmin xmax ymin ymax]);
+xlabel('Time (s)');
+ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+title([fileName ' - psc_vs_light_single - niceplot all'],'Interpreter','none');
+set(gca,'Visible','off');
+set(gcf,'Position',[1400 550 500 400]);
+
+% adding light stim - individual pulses   
+% note that this code will use light stim parameters from the last sweep!
+% if light stim is not the same accross all sweeps, this will be
+% misleading!
+for nStim=1:length(lightPulseStart)
+%     line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-ymax+100,-ymax+100],'Color',[0 0.4470 0.7410],'LineWidth',10)
+    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax/5),-inwardORoutward*(ymax/5)],'Color',[0 0.4470 0.7410],'LineWidth',10)
+end
+
+% adding scale bar
+% ymin = -ymax;
+line([xmax-1 xmax],[ymax ymax],'Color','k')
+line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
+text(xmax-1, ymax-((ymax-ymin)/20), "1 s")
+text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+hold off;
+movegui('southeast');
+
+
+%% PLOT - niceplot of all sweeps and/or MEAN - BLACK ================================
+
+% plotting niceplot     
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - Niceplot black'));
+hold on;
+% plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
+plot(x, mean(yBaselineSubAll,2),'Color','black','LineWidth',0.7); 
+line([xmin xmax],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
+axis([xmin xmax ymin ymax]);
+xlabel('Time (s)');
+ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+title([fileName ' - psc_vs_light_single - niceplot all'],'Interpreter','none');
+set(gca,'Visible','off');
+set(gcf,'Position',[1400 550 500 400]);
+
+% adding light stim - individual pulses   
+% note that this code will use light stim parameters from the last sweep!
+% if light stim is not the same accross all sweeps, this will be
+% misleading!
+for nStim=1:length(lightPulseStart)
+    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax/5),-inwardORoutward*(ymax/5)],'Color',[0 0.4470 0.7410],'LineWidth',10)
+end
+
+% adding light stim - train
+% note that this code will use light stim parameters from the last sweep!
+% if light stim is not the same accross all sweeps, this will be
+% misleading!
+% line([lightOnsetTime,lightOnsetTime+lightDur],[-ymax+50,-ymax+50],'Color',[0 0.4470 0.7410],'LineWidth',10)
+
+% adding scale bar
+% ymin = -ymax;
+line([xmax-1 xmax],[ymax ymax],'Color','k')
+line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
+text(xmax-1, ymax-((ymax-ymin)/20), "1 s")
+text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+hold off;
+movegui('south');
+
+
+%% PLOT - subtracted baseline current =====================================================
+
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - baseline current')); % naming figure file
+plot(allSweeps, baselineCurrentAll,'-o');
+axis([allSweeps(1) inf -300 300])
+ylabel('Subtracted Baseline Current (pA)');
+xlabel('Sweeps');
+title([obj.file ' rs'],'Interpreter','none');
+movegui('southwest');
+
+
+%% PLOT - oPSC amplitude mean +- SD ================================
+
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - mean and SD'));
+hold on;
+errorbar(mean(lightEvokedCurrentsAllSweeps), std(lightEvokedCurrentsAllSweeps), 'color', [0 0 0], 'CapSize', 0);
+% errorbar(mean(lightEvokedCurrentsAllSweeps), std(lightEvokedCurrentsAllSweeps),'-o', 'MarkerFaceColor', 'k', 'color', [0 0 0], 'CapSize', 0);
+line([0 60],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
+axis([-inf inf ymin ymax]);
+ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+title([fileName ' - psc_vs_light_single - mean and SD'],'Interpreter','none');
+xlabel('Light pulse');
+hold off;
+movegui('northwest');
+
+
+%% PLOT - niceplot with kinetics - BLACK ================================
+
+% plotting niceplot     
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - Niceplot kinetics black'));
+hold on;
+% plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
+plot(x, mean(yBaselineSubAll,2),'Color','black','LineWidth',0.7); 
+plot(decayFit);
+plot(latencyToPeakInMilliSeconds/1000, lightEvokedCurrentAmp, 'o', 'Color', 'red');
+line([onsetLatencyInMilliSeconds/1000 onsetLatencyInMilliSeconds/1000], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
+% line([latencyTo10percentOfPeakInDataPoints latencyTo10percentOfPeakInDataPoints], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
+% line([latencyTo90percentOfPeakInDataPoints latencyTo90percentOfPeakInDataPoints], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
+line([latencyToZeroAfterPeakInDataPoints latencyToZeroAfterPeakInDataPoints], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
+line([xmin xmax],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
+axis([xmin xmax ymin ymax]);
+xlabel('Time (s)');
+ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+title([fileName ' - psc_vs_light_single - niceplot kinetics'],'Interpreter','none');
+set(gca,'Visible','off');
+set(gcf,'Position',[1400 550 500 400]);
+
+% adding light stim - individual pulses   
+% note that this code will use light stim parameters from the last sweep!
+% if light stim is not the same accross all sweeps, this will be
+% misleading!
+for nStim=1:length(lightPulseStart)
+    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax/5),-inwardORoutward*(ymax/5)],'Color',[0 0.4470 0.7410],'LineWidth',10)
+end
+
+% adding light stim - train
+% note that this code will use light stim parameters from the last sweep!
+% if light stim is not the same accross all sweeps, this will be
+% misleading!
+% line([lightOnsetTime,lightOnsetTime+lightDur],[-ymax+50,-ymax+50],'Color',[0 0.4470 0.7410],'LineWidth',10)
+
+% adding scale bar
+xmaxScale = xmax;
+xminScale = xmin;
+line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
+line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
+text(xmaxScale-(xmaxScale-xminScale)/10,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
+text(xmaxScale-(xmaxScale-xminScale)/8,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+        
+% % ymin = -ymax;
+% line([xmax-1 xmax],[ymax ymax],'Color','k')
+% line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
+% text(xmax-1, ymax-((ymax-ymin)/20), "1 s")
+% text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+hold off;
+movegui('north');
+
+
+%% EXPORTING XLS files ==========================================
+
+% create cell array with strings for naming the amplitude and latency of the oPSC for each light pulse
+oPSCvariableNamesAmplitude = cell(1,length(lightEvokedCurrentsAmp));
+oPSCvariableNamesOnsetLatency = cell(1,length(allLightEvokedResponseOnsetLatencyInMilliSeconds));
+oPSCvariableNamesPeakLatency = cell(1,length(allLightEvokedResponsePeakLatencyInMilliSeconds));
+oPSCvariableNames10percentLatency = cell(1,length(allTimeTo10percentOfPeakInMilliSeconds));
+oPSCvariableNames90percentLatency = cell(1,length(allTimeTo90percentOfPeakInMilliSeconds));
+oPSCvariableNamesRiseTime = cell(1,length(allRiseTime));
+for lightPulse = 1:length(lightEvokedCurrentsAmp)
+    oPSCvariableNamesAmplitude(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(pA)')};
+    oPSCvariableNamesOnsetLatency(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(onsetLat_ms)')};
+    oPSCvariableNamesPeakLatency(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(peakLat_ms)')};
+    oPSCvariableNames10percentLatency(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(10peakLat_ms)')};
+    oPSCvariableNames90percentLatency(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(90peakLat_ms)')};
+    oPSCvariableNamesRiseTime(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(riseTime_ms)')};
+end
+
+% stores sweep by sweep data
+filename = strcat(fileName, '_', analysisDate, " - psc_vs_light_single - sweep_by_sweep");
+fulldirectory = strcat(savefileto,'\',filename,'.xls');        
+dataInCellFormat = {};
+dataInCellFormat = num2cell(data);
+labeledData = cell2table(dataInCellFormat, 'VariableNames', ...      
+    {'mouse', ...
+    'date', ...
+    'sweep', ...
+    'discardedSweepsFromEnd', ...
+    'inward(-1)ORoutward(1)', ...
+    'baselineDurationInSeconds', ...
+    'lightPulseAnalysisWindowInSeconds', ...
+    'thresholdInDataPts', ...        
+    'rsTestPulseOnsetTime', ...    
+    'lightPulseDur(s)', ... 
+%     'lightStimFreq(Hz)', ...
+%     'lightDur(s)', ...
+    'seriesResistance(Mohm)', ...
+    'baselineCurrent(pA)', ...
+    oPSCvariableNamesAmplitude{:}, ...
+    oPSCvariableNamesOnsetLatency{:}, ...
+    oPSCvariableNamesPeakLatency{:}, ...
+    oPSCvariableNames10percentLatency{:}, ... 
+    oPSCvariableNames90percentLatency{:}, ...
+    oPSCvariableNamesRiseTime{:}});    
+writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
+disp('I saved the sweep_by_sweep xls file')
+
+
+% create cell array with strings for naming the mean and std of the oPSC for each light pulse
+oPSCvariableNamesAmplitudeAVG = cell(1,length(lightEvokedCurrentsAmp));
+oPSCvariableNamesAmplitudeSTD = cell(1,length(lightEvokedCurrentsAmp));
+oPSCvariableNamesOnsetLatencyAVG = cell(1,length(allLightEvokedResponseOnsetLatencyInMilliSeconds));
+oPSCvariableNamesOnsetLatencySTD = cell(1,length(allLightEvokedResponseOnsetLatencyInMilliSeconds));
+oPSCvariableNamesPeakLatencyAVG = cell(1,length(allLightEvokedResponsePeakLatencyInMilliSeconds));
+oPSCvariableNamesPeakLatencySTD = cell(1,length(allLightEvokedResponsePeakLatencyInMilliSeconds));
+oPSCvariableNames10percentLatencyAVG = cell(1,length(allTimeTo10percentOfPeakInMilliSeconds));
+oPSCvariableNames10percentLatencySTD = cell(1,length(allTimeTo10percentOfPeakInMilliSeconds));
+oPSCvariableNames90percentLatencyAVG = cell(1,length(allTimeTo90percentOfPeakInMilliSeconds));
+oPSCvariableNames90percentLatencySTD = cell(1,length(allTimeTo90percentOfPeakInMilliSeconds));
+oPSCvariableNamesRiseTimeAVG = cell(1,length(allRiseTime));
+oPSCvariableNamesRiseTimeSTD = cell(1,length(allRiseTime));
+for lightPulse = 1:length(lightEvokedCurrentsAmp)
+    oPSCvariableNamesAmplitudeAVG(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(pA)AVG')};
+    oPSCvariableNamesAmplitudeSTD(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(pA)STD')};
+    oPSCvariableNamesOnsetLatencyAVG(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(onsetLat_ms)AVG')};
+    oPSCvariableNamesOnsetLatencySTD(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(onsetLat_ms)STD')};
+    oPSCvariableNamesPeakLatencyAVG(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(peakLat_ms)AVG')};
+    oPSCvariableNamesPeakLatencySTD(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(peakLat_ms)STD')};   
+    oPSCvariableNames10percentLatencyAVG(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(10peakLat_ms)AVG')};
+    oPSCvariableNames10percentLatencySTD(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(10peakLat_ms)STD')};
+    oPSCvariableNames90percentLatencyAVG(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(90peakLat_ms)AVG')};
+    oPSCvariableNames90percentLatencySTD(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(90peakLat_ms)STD')};
+    oPSCvariableNamesRiseTimeAVG(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(rise_ms)AVG')};
+    oPSCvariableNamesRiseTimeSTD(lightPulse) = {strcat(num2str(lightPulse), 'oPSC(rise_ms)STD')};
+end
+
+% stores cell data
+filename = strcat(fileName, '_', analysisDate, " - psc_vs_light_single - cell");
+fulldirectory = strcat(savefileto,'\',filename,'.xls');        
+dataInCellFormat = {};
+dataInCellFormat = num2cell(dataCell);
+labeledData = cell2table(dataInCellFormat, 'VariableNames', ...      
+    {'mouse', ...
+    'date', ...
+    'firstSweep', ...
+    'lastSweep', ...
+    'nSweeps', ...     
+    'seriesResistanceAGV(Mohm)', ...
+    'seriesResistanceMIN(Mohm)', ...
+    'seriesResistanceMAX(Mohm)', ...   
+    'baselineCurrentAVG(pA)', ...
+    'baselineCurrentMIN(pA)', ...
+    'baselineCurrentMAX(pA)', ...    
+    oPSCvariableNamesAmplitudeAVG{:}, ...
+    oPSCvariableNamesAmplitudeSTD{:}, ...
+    oPSCvariableNamesOnsetLatencyAVG{:}, ...
+    oPSCvariableNamesOnsetLatencySTD{:}, ...
+    oPSCvariableNamesPeakLatencyAVG{:}, ...
+    oPSCvariableNamesPeakLatencySTD{:}, ...
+    oPSCvariableNames10percentLatencyAVG{:}, ...
+    oPSCvariableNames10percentLatencySTD{:}, ...
+    oPSCvariableNames90percentLatencyAVG{:}, ...
+    oPSCvariableNames90percentLatencySTD{:}, ...
+    oPSCvariableNamesRiseTimeAVG{:}, ...
+    oPSCvariableNamesRiseTimeSTD{:}, ...
+    'lightEvokedPeakCurrentAmp(pA)', ...
+    'onsetLatency(ms)', ... 
+    'latencyToPeak(ms)', ... 
+    'latencyTo10percentOfPeak(ms)', ... 
+    'latencyTo90percentOfPeak(ms', ... 
+    'latencyToZeroAfterPeak(ms)', ... 
+    'riseTime(ms)', ...  
+    'decayFitA', ...
+    'decayFitB', ...
+    'decayFitTau'});    
+writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
+disp('I saved the cell xls file')
+
+
+end    
