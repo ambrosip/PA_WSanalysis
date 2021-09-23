@@ -51,12 +51,17 @@ lightPulseAnalysisWindowInSeconds = 0.02;
 thresholdInDataPts = 10;
 rsTestPulseOnsetTime = 1;
 
+% Affects decay fit
+bGuess = -50;         % -1000     % 1
+fastTauGuess = 0.01;    % in seconds
+slowTauGuess = 0.1;     % in seconds
+
 % Affects data display:
 ymin = -10000;
 ymax = 500;
 
 % Affects data saving:
-savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
+savefileto = 'D:\CORONAVIRUS DATA\2021-09-21 ipsc kinetics';
 
 
 %% PREP - get info from file and create arrays ==================
@@ -126,6 +131,8 @@ for sweepNumber = allSweeps
     lightPulseEnd = find(diff(ych2<1)>0);                                        % list of light pulse offset data points
     lightOnsetTime = lightPulseStart(1)/samplingFrequency;                       % onset of first light pulse in seconds
     stimDur = (lightPulseEnd(end)-lightPulseStart(end))/samplingFrequency;       % duration of each light pulse in the train (s)
+    % commented out stuff below because it does not apply to a single light
+    % stim:
 %     stimInterval = (lightPulseStart(2)-lightPulseStart(1))/samplingFrequency;    % interval between each pulse (s)
 %     stimFreq = 1/stimInterval;                                                   % frequency of the light stim (Hz)
 %     lightDur = (lightPulseStart(end)-lightPulseStart(1))/samplingFrequency + stimInterval;  % duration of the whole light train stim (s)  
@@ -227,12 +234,7 @@ for sweepNumber = allSweeps
         % that marks the start of a monotonic change in signal for "x"
         % points (x=threshold).
         lightEvokedResponseOnsetLatencyInDataPoints = min(find(conv2(sign(diff(y(pulseOnset:afterLightDataPoint))), zeros(thresholdInDataPts,1)+(inwardORoutward), 'valid')==thresholdInDataPts));
-        
-%         % for rise time calculation, find index of 10% and 90% of peak:
-%         % I might have to use round here
-%         timeTo10percentOfPeakInDataPoints = find(yBaselineSub(lightEvokedResponseOnsetLatencyInDataPoints:lightEvokedCurrentLoc) == 0.1 * lightEvokedCurrentsAmp, 1);
-%         timeTo90percentOfPeakInDataPoints = find(yBaselineSub(lightEvokedResponseOnsetLatencyInDataPoints:lightEvokedCurrentLoc) == 0.9 * lightEvokedCurrentsAmp, 1);
-        
+      
         % Convert data points to milliseconds (1000 multiplication is conversion from seconds to milliseconds)
         lightEvokedResponseOnsetLatencyInMilliSeconds = 1000*lightEvokedResponseOnsetLatencyInDataPoints/samplingFrequency;
         lightEvokedResponsePeakLatencyInMilliSeconds = 1000*lightEvokedCurrentLoc/samplingFrequency;
@@ -282,6 +284,7 @@ for sweepNumber = allSweeps
         
 end
 
+% add extra columns for storage
 data = [data, ... 
     lightEvokedCurrentsAllSweeps, ...
     allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps, ...
@@ -354,7 +357,11 @@ g = fittype('a*exp(-x/fastTau) + b*exp(-x/slowTau)');
 % coefficientNames = coeffnames(g)
 % I guessed StartPoint values by manually adjusting a double exponential
 % The single exponential was NOT giving me a good fit
-decayFit = fit(xSubset,yBaselineSubAllMeanSubset,g,'StartPoint',[lightEvokedCurrentAmp, 1, 0.01, 0.1])
+[decayFit,gof,output] = fit(xSubset,yBaselineSubAllMeanSubset,g,'StartPoint',[lightEvokedCurrentAmp, bGuess, fastTauGuess, slowTauGuess]);
+
+% save coefficients a and b
+decayFitA = decayFit.a;
+decayFitB = decayFit.b;
 
 % % For troubleshooting and estimating StartPoints:
 % figure;
@@ -374,8 +381,8 @@ latencyTo10percentOfPeakInMilliSeconds = 1000 * (latencyTo10percentOfPeakInDataP
 latencyTo90percentOfPeakInMilliSeconds = 1000 * (latencyTo90percentOfPeakInDataPoints - pulseOnset) / samplingFrequency;
 
 % convert s to ms
-decayFitFastTau = decayFit.fastTau * 1000;
-decayFitSlowTau = decayFit.slowTau * 1000;
+decayFitFastTau = decayFit.fastTau * 1000
+decayFitSlowTau = decayFit.slowTau * 1000
 
 % calculate riseTime in MilliSeconds
 riseTimeInMilliSeconds = latencyTo90percentOfPeakInMilliSeconds - latencyTo10percentOfPeakInMilliSeconds
@@ -386,6 +393,9 @@ dataCell = [mouseNumber, ...
     firstSweepNumber, ...
     lastSweepNumber, ...
     length(allSweeps), ...
+    bGuess, ...
+    fastTauGuess, ...
+    slowTauGuess, ...
     mean(allRs), ...
     min(allRs), ...
     max(allRs), ...
@@ -412,7 +422,10 @@ dataCell = [mouseNumber, ...
     latencyToZeroAfterPeakInMilliSeconds, ... 
     riseTimeInMilliSeconds, ...  
     decayFitFastTau, ...
-    decayFitSlowTau];
+    decayFitSlowTau, ...
+    decayFitA, ...
+    decayFitB, ...
+    gof.rsquare];
 
 
 %% Color-blind diverging color scheme
@@ -544,8 +557,8 @@ xmaxScale = xmax;
 xminScale = xmin;
 line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
 line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
-text(xmaxScale-(xmaxScale-xminScale)/10,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
-text(xmaxScale-(xmaxScale-xminScale)/8,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+text(xmaxScale-(xmaxScale-xminScale)/8,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
+text(xmaxScale-(xmaxScale-xminScale)/6,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
 hold off;
 movegui('southeast');
 
@@ -578,8 +591,8 @@ xmaxScale = xmax;
 xminScale = xmin;
 line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
 line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
-text(xmaxScale-(xmaxScale-xminScale)/10,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
-text(xmaxScale-(xmaxScale-xminScale)/8,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+text(xmaxScale-(xmaxScale-xminScale)/9,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
+text(xmaxScale-(xmaxScale-xminScale)/7,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
 hold off;
 movegui('south');
 
@@ -644,8 +657,8 @@ xmaxScale = xmax;
 xminScale = xmin;
 line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
 line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
-text(xmaxScale-(xmaxScale-xminScale)/10,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
-text(xmaxScale-(xmaxScale-xminScale)/8,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+text(xmaxScale-(xmaxScale-xminScale)/9,ymin+((ymax-ymin)/25),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
+text(xmaxScale-(xmaxScale-xminScale)/7,ymin+((ymax-ymin)/10),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
         
 hold off;
 movegui('north');
@@ -735,7 +748,10 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'date', ...
     'firstSweep', ...
     'lastSweep', ...
-    'nSweeps', ...     
+    'nSweeps', ... 
+    'bGuess', ...
+    'fastTauGuess', ...
+    'slowTauGuess', ...
     'seriesResistanceAGV(Mohm)', ...
     'seriesResistanceMIN(Mohm)', ...
     'seriesResistanceMAX(Mohm)', ...   
@@ -762,7 +778,10 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'latencyToZeroAfterPeak(ms)', ... 
     'riseTime(ms)', ...  
     'decayFitFastTau(ms)', ...
-    'decayFitSlowTau(ms)'});    
+    'decayFitSlowTau(ms)', ...
+    'decayFitA', ...
+    'decayFitB', ...
+    'rsquare'});    
 writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the cell xls file')
 
