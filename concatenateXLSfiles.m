@@ -27,26 +27,26 @@ analysisDate =  datestr(datetime('today'),'yyyy-mm-dd');
 
 
 
-%% concatenating all files with a particular suffix in DIR into a single XLS file 
-
-% find all the xls files in dir 
-files=dir(fullfile(dirName, '*psc_vs_light_single - cell.xls'));
-
-% get the names of the files
-filesNames={files.name}';
-
-% create array to store all xls data
-concatenatedXLS = [];
-
-% append all xls files
-for i=1:numel(filesNames)
-    concatenatedXLS = [concatenatedXLS; readtable(files(i).name)];
-end
-
-% save xls file with data 
-filename = strcat(analysisDate, " - psc_vs_light_single - cell - concatenated");
-fulldirectory = strcat(dirName,'\',filename,'.xls');
-writetable(concatenatedXLS,fulldirectory);
+% %% concatenating all files with a particular suffix in DIR into a single XLS file 
+% 
+% % find all the xls files in dir 
+% files=dir(fullfile(dirName, '*psc_vs_light_single - cell.xls'));
+% 
+% % get the names of the files
+% filesNames={files.name}';
+% 
+% % create array to store all xls data
+% concatenatedXLS = [];
+% 
+% % append all xls files
+% for i=1:numel(filesNames)
+%     concatenatedXLS = [concatenatedXLS; readtable(files(i).name)];
+% end
+% 
+% % save xls file with data 
+% filename = strcat(analysisDate, " - psc_vs_light_single - cell - concatenated");
+% fulldirectory = strcat(dirName,'\',filename,'.xls');
+% writetable(concatenatedXLS,fulldirectory);
 
 
 % %% concatenating all 'psc_vs_light - cell.xls' files in DIR into a single XLS file 
@@ -71,26 +71,26 @@ writetable(concatenatedXLS,fulldirectory);
 % writetable(concatenatedXLS,fulldirectory);
 
  
-% %% concatenating all 'psc_vs_light - cell.xls' files in DIR into a single XLS file 
-% 
-% % find all the xls files in dir 
-% files=dir(fullfile(dirName, '*psc_vs_light - cell.xls'));
-% 
-% % get the names of the files
-% filesNames={files.name}';
-% 
-% % create array to store all xls data
-% concatenatedXLS = [];
-% 
-% % append all xls files
-% for i=1:numel(filesNames)
-%     concatenatedXLS = [concatenatedXLS; readtable(files(i).name)];
-% end
-% 
-% % save xls file with data 
-% filename = strcat(files(1).name(1:15)," - concatenated");
-% fulldirectory = strcat(dirName,'\',filename,'.xls');
-% writetable(concatenatedXLS,fulldirectory);
+%% concatenating all 'psc_vs_light - cell.xls' files in DIR into a single XLS file 
+
+% find all the xls files in dir 
+files=dir(fullfile(dirName, '*psc_vs_light - cell.xls'));
+
+% get the names of the files
+filesNames={files.name}';
+
+% create array to store all xls data
+concatenatedXLS = [];
+
+% append all xls files
+for i=1:numel(filesNames)
+    concatenatedXLS = [concatenatedXLS; readtable(files(i).name)];
+end
+
+% save xls file with data 
+filename = strcat(files(1).name(1:15)," - concatenated");
+fulldirectory = strcat(dirName,'\',filename,'.xls');
+writetable(concatenatedXLS,fulldirectory);
 
 
 % %% concatenating all confocal analysis.xls files in DIR into a single XLS file 

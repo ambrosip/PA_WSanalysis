@@ -47,18 +47,18 @@ function psc_vs_light(obj)
 % Affects data analysis:
 lightStimCh = 2;
 discardedSweeps = [];
-discardedSweepsFromEnd = 0;
-inwardORoutward = 1;    % 1 (positive) is outward; -1 (negative) in inward
+discardedSweepsFromEnd = 1;
+inwardORoutward = 1;    % 1 (positive) is outward; -1 (negative) is inward
 baselineDurationInSeconds = 0.5;
 lightPulseAnalysisWindowInSeconds = 0.02;
 thresholdInDataPts = 10;
 rsTestPulseOnsetTime = 1;
 
 % Affects data display:
-ymax = 150;
+ymax = 300;
 
 % Affects data saving:
-savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\FROM MATLAB 2021 12 08';
 
 
 %% PREP - get info from file and create arrays ==================

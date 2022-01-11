@@ -92,8 +92,8 @@ BEWARE:
     adjust the code for lightEffect.
 
 TO DO:
-    - create 'test' version with sweep by sweep plots
-    - complete documentation
+    - create 'test' version with sweep by sweep plots - DONE
+    - complete documentation - ALMOST DONE
 %}
 
 function firing_vs_light(obj)
@@ -103,11 +103,11 @@ function firing_vs_light(obj)
 
 % Affects data analysis - Finding APs:
 discardedSweeps = [];
-discardedSweepsFromEnd = 1;
+discardedSweepsFromEnd = 0;
 peaksOrValleys = 'v';   
 highpassThreshold = 100;
 lowpassThreshold = 1500;    
-minPeakHeight = 5;         
+minPeakHeight = 10;         
 minPeakDistance = 0.025;    
 lightExtensionFactor = 1;
 
@@ -115,17 +115,17 @@ lightExtensionFactor = 1;
 preAPinSeconds = 0.005;            
 postAPinSeconds = 0.01;           
 preAPbaselineDurationSeconds = 0.002;
-ddyValleyThreshold = 50;
-ddyPeakThreshold = 30;
+ddyValleyThreshold = 60;
+ddyPeakThreshold = 60;
   
 % Affects data display: 
-ymax = 50;
+ymax = 75;
 ymaxhist = 15;
 zoomWindow = 0.25;
 ymaxIsiCV = 150;
 
 % Affects data saving:
-savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\FROM MATLAB 2021 12 08';
 
 
 %% PREP - get info from file and create arrays ==================
