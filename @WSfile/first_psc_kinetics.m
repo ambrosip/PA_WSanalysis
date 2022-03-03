@@ -54,7 +54,8 @@ ASSUMPTIONS:
     TO DO
 
 TO DO:
-    TO DO
+    Fix code so that latency to 10% of peak happens between onset latency
+    and peak, but NOT between pulse onset and peak!!
 %}
 
 function first_psc_kinetics(obj)
@@ -67,7 +68,7 @@ discardedSweepsFromEnd = 0;
 inwardORoutward = 1;    % 1 (positive) is outward; -1 (negative) in inward
 baselineDurationInSeconds = 0.01;
 lightPulseAnalysisWindowInSeconds = 0.02;
-thresholdInDataPts = 10;
+thresholdInDataPts = 5; %%% ALERT I CHANGED THIS FROM 10 to 5 %%%
 rsTestPulseOnsetTime = 1;
 
 % Affects decay fit:
@@ -77,8 +78,8 @@ slowTauGuess = 0.1;     % in seconds
 analysisWindowAfterPeakInSeconds = 0.04;     % 20 Hz train has 50 ms interval between pulses. I used 40 instead of 50 to account for the latencyToPeakOnset
 
 % Affects data display:
-ymin = -1000;
-ymax = 1000;
+ymin = -250;
+ymax = 250;
 
 % Affects data saving:
 savefileto = 'D:\CORONAVIRUS DATA\Out of Sync\2022 01 26 MATLAB';
@@ -589,11 +590,15 @@ figure('name', strcat(fileName, " ", analysisDate, ' - first_psc_kinetics - Nice
 hold on;
 % plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
 plot(x, mean(yBaselineSubAll,2),'Color','black','LineWidth',0.7); 
-plot(xSubset+round(latencyToPeakInDataPoints/samplingFrequency,6), decayFit(xSubset))
-plot(latencyToPeakInDataPoints/samplingFrequency, lightEvokedCurrentAmp, 'o', 'Color', 'red');
-line([onsetLatencyInDataPoints/samplingFrequency onsetLatencyInDataPoints/samplingFrequency], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
-line([latencyTo10percentOfPeakInDataPoints/samplingFrequency latencyTo10percentOfPeakInDataPoints/samplingFrequency], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
-line([latencyTo90percentOfPeakInDataPoints/samplingFrequency latencyTo90percentOfPeakInDataPoints/samplingFrequency], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
+
+%%%% ALERT ALERT on 2022 03 03, I added the "-1.5" to align the lined to
+%%%% actual points in the data. I'm not sure I did the right thing. I used
+%%%% the peak data as my guide.
+plot(xSubset+round((latencyToPeakInDataPoints-1.5)/samplingFrequency,6), decayFit(xSubset))
+plot((latencyToPeakInDataPoints-1.5)/samplingFrequency, lightEvokedCurrentAmp, 'o', 'Color', 'red');
+line([(onsetLatencyInDataPoints-1.5)/samplingFrequency (onsetLatencyInDataPoints-1.5)/samplingFrequency], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
+line([(latencyTo10percentOfPeakInDataPoints-1.5)/samplingFrequency (latencyTo10percentOfPeakInDataPoints-1.5)/samplingFrequency], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
+line([(latencyTo90percentOfPeakInDataPoints-1.5)/samplingFrequency (latencyTo90percentOfPeakInDataPoints-1.5)/samplingFrequency], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
 line([latencyToZeroAfterPeakInDataPoints latencyToZeroAfterPeakInDataPoints], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
 line([xmin xmax],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--')
 axis([xmin xmax ymin ymax]);
