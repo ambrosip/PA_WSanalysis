@@ -74,7 +74,7 @@ analysisDate =  datestr(datetime('today'),'yyyy-mm-dd');
 %% concatenating all 'psc_vs_light - cell.xls' files in DIR into a single XLS file 
 
 % find all the xls files in dir 
-files=dir(fullfile(dirName, '*psc_vs_light - cell.xls'));
+files=dir(fullfile(dirName, '*first_psc_kinetics - cell.xls'));
 
 % get the names of the files
 filesNames={files.name}';

@@ -6,7 +6,7 @@ function saveAllFigs(varargin)
 %     optargs = {'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\From MATLAB'};
 %     optargs = {'D:\Temp\From MATLAB'};
 %     optargs = {'E:\From MATLAB'};
-    optargs = {'D:\CORONAVIRUS DATA\2021-09-21 ipsc kinetics'};
+    optargs = {'D:\CORONAVIRUS DATA\Out of Sync\2022 01 26 MATLAB'};
  
     % overwrite defaults with values specified in varargin
     numvarargs = length(varargin);

@@ -52,7 +52,7 @@ thresholdInDataPts = 10;
 rsTestPulseOnsetTime = 1;
 
 % Affects decay fit
-bGuess = -50;         % -1000     % 1
+bGuess = 1;         % -1000     % 1
 fastTauGuess = 0.01;    % in seconds
 slowTauGuess = 0.1;     % in seconds
 
@@ -61,7 +61,7 @@ ymin = -10000;
 ymax = 500;
 
 % Affects data saving:
-savefileto = 'D:\CORONAVIRUS DATA\2021-09-21 ipsc kinetics';
+savefileto = 'D:\CORONAVIRUS DATA\Out of Sync\2022 01 26 MATLAB';
 
 
 %% PREP - get info from file and create arrays ==================
@@ -306,7 +306,8 @@ yBaselineSubAllMean = mean(yBaselineSubAll,2);
 
 % ASSUMPTION ALERT
 % Assuming that all sweeps have the same, single o-stim
-pulseOnset = lightPulseStart.';
+pulseOnset = lightPulseStart(1)
+% pulseOnset = lightPulseStart.'
 afterLightDataPoint = pulseOnset + lightPulseAnalysisWindowInDataPts;
 
 % get amplitude and location (index) of lightEvokedCurrents
@@ -315,24 +316,24 @@ afterLightDataPoint = pulseOnset + lightPulseAnalysisWindowInDataPts;
 % outward current is +1
 % inward current is 0 or -1
 if inwardORoutward == 1 
-    [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = max(yBaselineSubAllMean(pulseOnset:afterLightDataPoint));
+    [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = max(yBaselineSubAllMean(pulseOnset:afterLightDataPoint))
     latencyTo10percentOfPeakInDataPoints = find(yBaselineSubAllMean(pulseOnset:afterLightDataPoint) >= 0.1 * lightEvokedCurrentAmp, 1) + pulseOnset;
     latencyTo90percentOfPeakInDataPoints = find(yBaselineSubAllMean(pulseOnset:afterLightDataPoint) >= 0.9 * lightEvokedCurrentAmp, 1) + pulseOnset;
 else
-    [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = min(yBaselineSubAllMean(pulseOnset:afterLightDataPoint));
+    [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = min(yBaselineSubAllMean(pulseOnset:afterLightDataPoint))
     latencyTo10percentOfPeakInDataPoints = find(yBaselineSubAllMean(pulseOnset:afterLightDataPoint) <= 0.1 * lightEvokedCurrentAmp, 1) + pulseOnset;
     latencyTo90percentOfPeakInDataPoints = find(yBaselineSubAllMean(pulseOnset:afterLightDataPoint) <= 0.9 * lightEvokedCurrentAmp, 1) + pulseOnset;
 end
 
 % adjust latency to peak Loc
-lightEvokedCurrentLoc = lightEvokedCurrentLoc + pulseOnset;
+lightEvokedCurrentLoc = lightEvokedCurrentLoc + pulseOnset
 
 % find onset latency
 onsetLatencyInDataPoints = min(find(conv2(sign(diff(yBaselineSubAllMean(pulseOnset:afterLightDataPoint))), zeros(thresholdInDataPts,1)+(inwardORoutward), 'valid')==thresholdInDataPts));
 onsetLatencyInDataPoints = onsetLatencyInDataPoints + pulseOnset;
 
 % for decay tau calculation, find index of return to baseline after peak
-latencyToZeroAfterPeakInDataPoints = find(round(yBaselineSubAllMean(lightEvokedCurrentLoc:end)) >= 0, 1) + lightEvokedCurrentLoc;
+latencyToZeroAfterPeakInDataPoints = find(round(yBaselineSubAllMean(lightEvokedCurrentLoc:end)) >= 0, 1) + lightEvokedCurrentLoc
 
 % preparing to fit double-term exponential model to the decay data - create y subset
 xminFit = lightEvokedCurrentLoc;
@@ -344,8 +345,8 @@ yBaselineSubAllMeanSubset(1:lightEvokedCurrentLoc) = [];
 % preparing to fit double-term exponential model to the decay data - create x subset
 xSubset = x;
 xSubset(latencyToZeroAfterPeakInDataPoints:end) = [];
-xSubset(1:lightEvokedCurrentLoc) = [];
-xSubset = round(xSubset,6) - round(lightEvokedCurrentLoc/samplingFrequency,6);
+xSubset(1:lightEvokedCurrentLoc) = []
+xSubset = round(xSubset,6) - round(lightEvokedCurrentLoc/samplingFrequency,6)
 
 % selecting a double exponential for decay fitting
 g = fittype('a*exp(-x/fastTau) + b*exp(-x/slowTau)');
