@@ -48,17 +48,17 @@ function psc_vs_light(obj)
 lightStimCh = 2;
 discardedSweeps = [];
 discardedSweepsFromEnd = 0;
-inwardORoutward = 1;    % 1 (positive) is outward; -1 (negative) is inward
+inwardORoutward = -1;    % 1 (positive) is outward; -1 (negative) is inward
 baselineDurationInSeconds = 0.5;
 lightPulseAnalysisWindowInSeconds = 0.02;
-thresholdInDataPts = 10;
+thresholdInDataPts = 5; %% ALERT! Changed from 10 to 5
 rsTestPulseOnsetTime = 1;
 
 % Affects data display:
 ymax = 300;
 
 % Affects data saving:
-savefileto = 'D:\CORONAVIRUS DATA\Out of Sync\2022 01 26 MATLAB';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-03-08 m496 d spiral release prob';
 
 
 %% PREP - get info from file and create arrays ==================
