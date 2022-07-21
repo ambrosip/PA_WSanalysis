@@ -1,10 +1,14 @@
 %{ 
 DOCUMENTATION
 Created: 2021 01 19
+Edited Last: 2022 07 19
 Author: PA
 
 This function is used to analyze light-evoked changes in firing rate.
 This function automatically identifies the light stim parameters.
+Added a variable for light channel.
+Added a variable re type of light stim (single pulse or train).
+Use firing_vs_light_test_ch to find the user input parameters.
 
 INPUTS explained:
     - discardedSweeps: specific sweeps that should NOT be analyzed due to
@@ -39,6 +43,13 @@ INPUTS explained:
     effect". To NOT extend the light pulse (my default), set this variable
     to 1.
 
+    - lightChannel: channel where the info about the light stim is stored.
+    Usually 2 or 3.
+
+    - singleLightPulse: boolean variable (0 or 1) determining whether this
+    sweep has a single light pulse (1) or a train of light pulses (0).
+    Added to avoid errors
+
     - ymax: for illustration purposes, use this value as the max range for
     the y-axis when plotting current vs time.
 
@@ -63,6 +74,8 @@ INPUTS defaults:
     minPeakHeight = 15;         
     minPeakDistance = 0.025;    
     lightExtensionFactor = 1;
+    lightChannel = 2;
+    singlelightpulse = 0;
 
     preAPinSeconds = 0.005;            
     postAPinSeconds = 0.01;           
@@ -96,7 +109,7 @@ TO DO:
     - complete documentation - ALMOST DONE
 %}
 
-function firing_vs_light(obj)
+function firing_vs_light_ch(obj)
 
 
 %%  USER INPUT ==================================================
@@ -106,26 +119,28 @@ discardedSweeps = [];
 discardedSweepsFromEnd = 0;
 peaksOrValleys = 'v';   
 highpassThreshold = 100;
-lowpassThreshold = 1500;    
-minPeakHeight = 10;         
+lowpassThreshold = 1500;    % was 1500
+minPeakHeight = 25;         
 minPeakDistance = 0.025;    
 lightExtensionFactor = 1;
+lightChannel = 3;
+singleLightPulse = 1; 
 
 % Affects data analysis - AP shape:
 preAPinSeconds = 0.005;            
 postAPinSeconds = 0.01;           
 preAPbaselineDurationSeconds = 0.002;
-ddyValleyThreshold = 60;
-ddyPeakThreshold = 35;
+ddyValleyThreshold = 600;
+ddyPeakThreshold = 300;
   
 % Affects data display: 
-ymax = 75;
-ymaxhist = 15;
+ymax = 100;
+ymaxhist = 30;
 zoomWindow = 0.25;
 ymaxIsiCV = 150;
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-04-13 d spiral';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-07-12 polygon DATs';
 
 
 %% PREP - get info from file and create arrays ==================
@@ -209,16 +224,27 @@ for sweepNumber = allSweeps
     end
 
     % get light stim data
-    [xch2,ych2] = obj.xy(sweepNumber, 2);      
+    [xch2,ych2] = obj.xy(sweepNumber, lightChannel);      
     
     % get light stim parameters
     lightPulseStart = find(diff(ych2>1)>0);
     lightPulseEnd = find(diff(ych2<1)>0);
     lightOnsetTime = lightPulseStart(1)/samplingFrequency;                       % in seconds
     stimDur = (lightPulseEnd(end)-lightPulseStart(end))/samplingFrequency;       % duration of each light pulse in the train (s)
-    stimInterval = (lightPulseStart(2)-lightPulseStart(1))/samplingFrequency;    % interval between each pulse (s)
-    stimFreq = 1/stimInterval;                                                   % frequency of the light stim (Hz)
-    lightDur = (lightPulseStart(end)-lightPulseStart(1))/samplingFrequency + stimInterval;  % duration of the whole light train stim (s)
+
+    % if the light stim is a train (singleLightPulse = 0), compute light
+    % train information. 
+    if singleLightPulse == 0
+        stimInterval = (lightPulseStart(2)-lightPulseStart(1))/samplingFrequency;    % interval between each pulse (s)
+        stimFreq = 1/stimInterval;                                                   % frequency of the light stim (Hz)
+        lightDur = (lightPulseStart(end)-lightPulseStart(1))/samplingFrequency + stimInterval;  % duration of the whole light train stim (s) 
+    % if the light stim is a single pulse (singleLightPulse = 1), set the
+    % train information to the following values (to avoid errors)
+    else
+        stimInterval = 0;
+        stimFreq = 1;
+        lightDur = stimDur;
+    end        
     
     % saving data for niceplot
     % y data for each sweep is in a column
@@ -837,12 +863,16 @@ title([fileName ' - firing_vs_light - niceplot 1st sweep'],'Interpreter','none')
 set(gca,'Visible','off');
 set(gcf,'Position',[1400 50 500 400]);
 
+% if the light stim is a train (singleLightPulse = 0), add light
+% stim cartoon as a train.
 % adding light stim as train - faithful to light stim parameters
 % note that this code will use light stim parameters from the last sweep!
 % if light stim is not the same accross all sweeps, this will be
 % misleading!
-for nStim=1:length(lightPulseStart)
-    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+if singleLightPulse == 0
+    for nStim=1:length(lightPulseStart)
+        line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+    end
 end
 
 % adding light stim as rectangle
@@ -873,11 +903,15 @@ set(gca,'Visible','off');
 set(gcf,'Position',[1400 550 500 400]);
 
 % adding light stim   
+% if the light stim is a train (singleLightPulse = 0), add light
+% stim cartoon as a train.
 % note that this code will use light stim parameters from the last sweep!
 % if light stim is not the same accross all sweeps, this will be
 % misleading!
-for nStim=1:length(lightPulseStart)
-    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+if singleLightPulse == 0
+    for nStim=1:length(lightPulseStart)
+        line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+    end
 end
 
 % adding light stim

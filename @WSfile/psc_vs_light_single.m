@@ -48,7 +48,7 @@ discardedSweepsFromEnd = 0;
 inwardORoutward = -1;    % 1 (positive) is outward; -1 (negative) in inward
 baselineDurationInSeconds = 0.01;
 lightPulseAnalysisWindowInSeconds = 0.02;
-thresholdInDataPts = 10;
+thresholdInDataPts = 5; %% ALERT! Changed from 10 to 5
 rsTestPulseOnsetTime = 1;
 
 % Affects decay fit
@@ -57,11 +57,11 @@ fastTauGuess = 0.01;    % in seconds
 slowTauGuess = 0.1;     % in seconds
 
 % Affects data display:
-ymin = -10000;
-ymax = 500;
+ymin = -375;       %-2050
+ymax = 150;          %50
 
 % Affects data saving:
-savefileto = 'D:\CORONAVIRUS DATA\Out of Sync\2022 01 26 MATLAB';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-06-24 polygon ephys 2';
 
 
 %% PREP - get info from file and create arrays ==================
@@ -130,7 +130,7 @@ for sweepNumber = allSweeps
     lightPulseStart = find(diff(ych2>1)>0);                                      % list of light pulse onset data points
     lightPulseEnd = find(diff(ych2<1)>0);                                        % list of light pulse offset data points
     lightOnsetTime = lightPulseStart(1)/samplingFrequency;                       % onset of first light pulse in seconds
-    stimDur = (lightPulseEnd(end)-lightPulseStart(end))/samplingFrequency;       % duration of each light pulse in the train (s)
+    stimDur = (lightPulseEnd(end)-lightPulseStart(end))/samplingFrequency       % duration of each light pulse in the train (s)
     % commented out stuff below because it does not apply to a single light
     % stim:
 %     stimInterval = (lightPulseStart(2)-lightPulseStart(1))/samplingFrequency;    % interval between each pulse (s)
@@ -240,7 +240,7 @@ for sweepNumber = allSweeps
         lightEvokedResponsePeakLatencyInMilliSeconds = 1000*lightEvokedCurrentLoc/samplingFrequency;
         timeTo10percentOfPeakInMilliSeconds = 1000*timeTo10percentOfPeakInDataPoints/samplingFrequency;
         timeTo90percentOfPeakInMilliSeconds = 1000*timeTo90percentOfPeakInDataPoints/samplingFrequency;
-        riseTimeInMilliSeconds = timeTo90percentOfPeakInMilliSeconds - timeTo10percentOfPeakInMilliSeconds;        
+        riseTimeInMilliSeconds = timeTo90percentOfPeakInMilliSeconds - timeTo10percentOfPeakInMilliSeconds;       
         
         if isempty(lightEvokedResponseOnsetLatencyInMilliSeconds)
             lightEvokedResponseOnsetLatencyInMilliSeconds = NaN;
@@ -248,6 +248,18 @@ for sweepNumber = allSweeps
         
         if isempty(lightEvokedResponsePeakLatencyInMilliSeconds)
             lightEvokedResponsePeakLatencyInMilliSeconds = NaN;
+        end
+        
+        if isempty(timeTo10percentOfPeakInMilliSeconds)
+            timeTo10percentOfPeakInMilliSeconds = NaN;
+        end
+        
+        if isempty(timeTo90percentOfPeakInMilliSeconds)
+            timeTo90percentOfPeakInMilliSeconds = NaN;
+        end
+        
+        if isempty(riseTimeInMilliSeconds)
+            riseTimeInMilliSeconds = NaN;
         end
         
         % put all latencies from a particular sweep in a row
@@ -345,8 +357,8 @@ yBaselineSubAllMeanSubset(1:lightEvokedCurrentLoc) = [];
 % preparing to fit double-term exponential model to the decay data - create x subset
 xSubset = x;
 xSubset(latencyToZeroAfterPeakInDataPoints:end) = [];
-xSubset(1:lightEvokedCurrentLoc) = []
-xSubset = round(xSubset,6) - round(lightEvokedCurrentLoc/samplingFrequency,6)
+xSubset(1:lightEvokedCurrentLoc) = [];
+xSubset = round(xSubset,6) - round(lightEvokedCurrentLoc/samplingFrequency,6);
 
 % selecting a double exponential for decay fitting
 g = fittype('a*exp(-x/fastTau) + b*exp(-x/slowTau)');
@@ -375,11 +387,17 @@ decayFitB = decayFit.b;
 % hold off;
 
 % convert data points to ms
-onsetLatencyInMilliSeconds = 1000 * (onsetLatencyInDataPoints - pulseOnset) / samplingFrequency;
+onsetLatencyInMilliSeconds = 1000 * (onsetLatencyInDataPoints - pulseOnset) / samplingFrequency
 latencyToPeakInMilliSeconds = 1000 * (lightEvokedCurrentLoc - pulseOnset) / samplingFrequency;
 latencyToZeroAfterPeakInMilliSeconds = 1000 * (latencyToZeroAfterPeakInDataPoints - pulseOnset) / samplingFrequency;
 latencyTo10percentOfPeakInMilliSeconds = 1000 * (latencyTo10percentOfPeakInDataPoints - pulseOnset) / samplingFrequency;
 latencyTo90percentOfPeakInMilliSeconds = 1000 * (latencyTo90percentOfPeakInDataPoints - pulseOnset) / samplingFrequency;
+
+% check if onset latency could be calculated to avoid errors
+if isempty(onsetLatencyInDataPoints)
+    onsetLatencyInMilliSeconds = NaN;
+    onsetLatencyInDataPoints = NaN;
+end
 
 % convert s to ms
 decayFitFastTau = decayFit.fastTau * 1000

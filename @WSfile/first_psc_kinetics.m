@@ -65,7 +65,7 @@ function first_psc_kinetics(obj)
 lightStimCh = 2;
 discardedSweeps = [];
 discardedSweepsFromEnd = 0;
-inwardORoutward = 1;    % 1 (positive) is outward; -1 (negative) in inward
+inwardORoutward = -1;    % 1 (positive) is outward; -1 (negative) in inward
 baselineDurationInSeconds = 0.01;
 lightPulseAnalysisWindowInSeconds = 0.02;
 thresholdInDataPts = 5; %%% ALERT I CHANGED THIS FROM 10 to 5 %%%

@@ -65,9 +65,9 @@ function first_psc_kinetics_v2(obj)
 lightStimCh = 2;
 discardedSweeps = [];
 discardedSweepsFromEnd = 0;
-inwardORoutward = 1;    % 1 (positive) is outward; -1 (negative) in inward
-baselineDurationInSeconds = 0.01;
-lightPulseAnalysisWindowInSeconds = 0.02;
+inwardORoutward = -1;    % 1 (positive) is outward; -1 (negative) in inward
+baselineDurationInSeconds = 0.01;   
+lightPulseAnalysisWindowInSeconds = 0.2; %%% ALERT I CHANGED FROM 0.2
 thresholdInDataPts = 5; %%% ALERT I CHANGED THIS FROM 10 to 5 %%%
 rsTestPulseOnsetTime = 1;
 
@@ -78,11 +78,11 @@ slowTauGuess = 0.1;     % in seconds
 analysisWindowAfterPeakInSeconds = 0.04;     % 20 Hz train has 50 ms interval between pulses. I used 40 instead of 50 to account for the latencyToPeakOnset
 
 % Affects data display:
-ymin = -250;
-ymax = 250;
+ymin = -5000;
+ymax = 500
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-03-08 m496 d spiral release prob';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-07-06 reanalyzing cscl kinetics';
 
 
 %% PREP - get info from file and create arrays ==================

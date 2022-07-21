@@ -13,6 +13,8 @@ This code is a mashup of firing_vs_light and normmono.
 
 INPUTS explained:
     TO DO
+    lightStimCh = 2     Polygon 470 nm
+    lightStimCh = 3     Polygon 625 nm
 
 INPUTS defaults:
     % Affects data analysis:
@@ -55,10 +57,10 @@ thresholdInDataPts = 5; %% ALERT! Changed from 10 to 5
 rsTestPulseOnsetTime = 1;
 
 % Affects data display:
-ymax = 300;
+ymax = 600;
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-03-08 m496 d spiral release prob';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-04-13 reanalyzing visually inspected connected cells';
 
 
 %% PREP - get info from file and create arrays ==================

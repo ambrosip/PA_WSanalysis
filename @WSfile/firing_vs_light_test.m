@@ -107,7 +107,7 @@ preAPinSeconds = 0.005;
 postAPinSeconds = 0.01;           
 preAPbaselineDurationSeconds = 0.002;
 ddyValleyThreshold = 60;
-ddyPeakThreshold = 60;
+ddyPeakThreshold = 35;
   
 % Affects data display: 
 ymax = 75;
@@ -116,7 +116,7 @@ zoomWindow = 0.25;
 ymaxIsiCV = 150;
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\FROM MATLAB 2021 12 08';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-07-12 polygon DATs';
 
 
 %% PREP - get info from file and create arrays ==================

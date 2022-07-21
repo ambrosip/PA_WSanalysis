@@ -2,11 +2,11 @@ function niceplotBandpass(obj, varargin)
 
     % optional arguments: axis range for channel 1 (monitor CC or VC)
     numvarargs = length(varargin);
-%     optargs = {'k' 100 2000 -200 100 15 3 10 23};     % for ON data
+    optargs = {'k' 100 2000 -200 100 15 3 10 23};     % for ON data
 %     optargs = {'k' 100 2000 -20 10 15 3 10 23};       % for ON data
 %     optargs = {'k' 100 1000 -200 150 15 3 10 23};     % for ON data
 %     optargs = {'k' 2 4000 -500 100 15 3 10 23};          % for mIPSC data
-    optargs = {'k' 0.5 3000 -500 100 15 3 10 23};          % testing
+%     optargs = {'k' 0.5 3000 -500 100 15 3 10 23};          % testing
     optargs(1:numvarargs) = varargin;
     [colorName, highpassThreshold, lowpassThreshold, ymin, ymax, lightOnsetTime, lightDuration, xmin, xmax] = optargs{:};
     
