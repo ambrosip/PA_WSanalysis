@@ -104,14 +104,14 @@ function firing_vs_light_test_ch(obj)
 
 % Affects data analysis - Finding APs:
 discardedSweeps = [];
-discardedSweepsFromEnd = 1;
+discardedSweepsFromEnd = 0;
 peaksOrValleys = 'v';   
 highpassThreshold = 100;
 lowpassThreshold = 1500;    % was 1500
-minPeakHeight = 25;         
-minPeakDistance = 0.025;    
+minPeakHeight = 20;         
+minPeakDistance = 0.001;    
 lightExtensionFactor = 1;
-lightChannel = 3;
+lightChannel = 2;
 singleLightPulse = 1; 
 
 % Affects data analysis - AP shape:
@@ -122,7 +122,7 @@ ddyValleyThreshold = 600;
 ddyPeakThreshold = 300;
   
 % Affects data display: 
-ymax = 100;
+ymax = 200;
 ymaxhist = 30;
 zoomWindow = 0.25;
 ymaxIsiCV = 150;

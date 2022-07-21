@@ -1,16 +1,18 @@
 %{ 
 DOCUMENTATION
-Created: 2021 01 19
-Edited Last: 2022 07 19
+Created: 2022 07 21
 Author: PA
 
-This function is used to analyze light-evoked changes in firing rate.
-This function automatically identifies the light stim parameters.
-Added a variable for light channel.
-Added a variable re type of light stim (single pulse or train).
-Use firing_vs_light_test_ch to find the user input parameters.
+This function is used to analyze light-evoked changes in firing rate in
+sCRACM experiments using the polygon.
+This function was derived from firing_vs_light_ch.
 
 INPUTS explained:
+    - gridSize: number of columns in the square grid
+
+    - sweepsPerSquare: number of repeats for each illuminated
+    location/square.
+
     - discardedSweeps: specific sweeps that should NOT be analyzed due to
     artifacts. If I want to discard sweep 0024, just write 24.
 
@@ -109,12 +111,14 @@ TO DO:
     - complete documentation - ALMOST DONE
 %}
 
-function firing_vs_light_ch(obj)
+function firing_vs_light_polygon(obj)
 
 
 %%  USER INPUT ==================================================
 
 % Affects data analysis - Finding APs:
+gridSize = 5;
+sweepsPerSquare = 3;
 discardedSweeps = [];
 discardedSweepsFromEnd = 0;
 peaksOrValleys = 'v';   
@@ -419,6 +423,9 @@ end
 
 
 %% CELL ANALYSIS - firing =======================================
+
+% NEED TO EDIT THIS SO WE ANALYZE SQUARE BY SQUARE
+% for (each square) do this
 
 % Mean and Std for complete baseline firing rate
 hzBaselineMean = mean(hzBaselineBySweep);
@@ -1064,23 +1071,3 @@ disp('I saved the cell_avgs xls file')
 [isDA, isIrregularCell, lightEffectCell]
 
 end
-
-
-
-
-
-
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-
