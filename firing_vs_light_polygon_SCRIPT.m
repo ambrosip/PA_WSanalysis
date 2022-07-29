@@ -610,11 +610,17 @@ for row=[1:totalSquares]
     
     % remove all data from sweeps not included in this square
     dataSubset(setdiff(1:end,sweepOrderPerSquare(row,:)),:) = [];
+    
+    % store average data per square
     dataSquare = [dataSquare; mean(dataSubset)];
 end
 
 % adjust sweepIDs so that sweep#1 = (1 + actual number for sweep#1)
 sweepNumberPerSquare = sweepOrderPerSquare + allSweeps(1) - 1;  
+
+% concatenate dataSquare with sweepNumberPerSquare to store the number of
+% indivudual sweeps that were averaged per square
+dataSquare = [dataSquare, sweepNumberPerSquare];
 
 
 
