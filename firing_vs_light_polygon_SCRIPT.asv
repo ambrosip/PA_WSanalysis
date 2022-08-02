@@ -642,7 +642,9 @@ for row=[1:totalSquares]
     
     % each column is a sweep repeat for a square
     for column=[1:sweepsPerSquare]    
-               
+        
+        row + totalSquares * (column - 1)
+        
         % assign sweepID (1 to total # of sweeps)
         sweepOrderPerSquare(row,column) = row + totalSquares * (column - 1);   
     end
@@ -653,13 +655,15 @@ for row=[1:totalSquares]
     % remove all data from sweeps not included in this square
     dataSubset(setdiff(1:end,sweepOrderPerSquare(row,:)),:) = [];
     
-    % store square-specific data
-    dataSubsetForMeanAndSD = dataSubset(:,[22:24]); % firing rate pre, during & after light
-    dataSubsetForMode = dataSubset(:,25);           % lightEffect
-    dataSubsetForMedian = dataSubset(:,26);         % sdFromPreLightHz
+    % keep only the square-specific data (and not the cell-specific data)
+    dataSubsetForMeanAndSD = dataSubset(:,[22:24]);
+    dataSubsetForMode
     
-    % average accross sweeps
-    dataSquare = [dataSquare; mean(dataSubsetForMeanAndSD), std(dataSubsetForMeanAndSD), mode(dataSubsetForMode), median(dataSubsetForMedian)];
+    % take averages and SDs
+    dataSquare = [dataSquare; 
+    
+    % store average data per square
+    dataSquare = [dataSquare; mean(dataSubset)];
 end
 
 % adjust sweepIDs so that sweep#1 = (1 + actual number for sweep#1)
@@ -667,24 +671,10 @@ sweepNumberPerSquare = sweepOrderPerSquare + allSweeps(1) - 1;
 
 % concatenate dataSquare with sweepNumberPerSquare to store the number of
 % indivudual sweeps that were averaged per square
-dataSquareWithSweeps = [sweepNumberPerSquare, dataSquare];
-
-% re-organize data as a grid for heatmap
-% the " .' " at the end makes sure that the sweeps are placed in the
-% correct place in the grid, given an ordered polygon design - aka in each
-% sweep the light moves one square to the right, or to the first square in
-% the next row when it reached the end of the current row.
-dataForHeatmap = reshape(dataSquare(:,end),gridColumns,[]).';
-
-% plot heatmap
-% set the ColorLimits for consistent color-coding accross cells/mice
-% set the ColorMap to a flipped map with "flipud", so that more negative
-% values will be "hotter" and values closer to zero will be "cold".
-figure;
-h = heatmap(dataForHeatmap, 'ColorLimits', [-3,0], 'ColorMap', flipud(parula), 'XLabel', '');
+dataSquare = [dataSquare, sweepNumberPerSquare];
 
 
-% h = histogram2(x,y,'DisplayStyle','tile','ShowEmptyBins','on');
+
 
 
 
