@@ -146,6 +146,10 @@ ymax = 200;
 ymaxhist = 30;
 zoomWindow = 0.25;
 ymaxIsiCV = 150;
+heatmapMin = -3;
+heatmapMax = 0;
+cellImageFileName = 's2c1_dic2.tif';
+cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220720 m571 dat nphr';
 
 % Affects data saving:
 savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-07-12 polygon DATs';
@@ -658,8 +662,11 @@ for row=[1:totalSquares]
     dataSubsetForMode = dataSubset(:,25);           % lightEffect
     dataSubsetForMedian = dataSubset(:,26);         % sdFromPreLightHz
     
-    % average accross sweeps
+    % store average/STDs/mode/median accross sweeps
     dataSquare = [dataSquare; mean(dataSubsetForMeanAndSD), std(dataSubsetForMeanAndSD), mode(dataSubsetForMode), median(dataSubsetForMedian)];
+    
+    % store square-by-square data to cell data
+    dataCell = [dataCell, mean(dataSubsetForMeanAndSD), std(dataSubsetForMeanAndSD), mode(dataSubsetForMode), median(dataSubsetForMedian)];
 end
 
 % adjust sweepIDs so that sweep#1 = (1 + actual number for sweep#1)
@@ -669,6 +676,10 @@ sweepNumberPerSquare = sweepOrderPerSquare + allSweeps(1) - 1;
 % indivudual sweeps that were averaged per square
 dataSquareWithSweeps = [sweepNumberPerSquare, dataSquare];
 
+
+
+%% PLOT Polygon Heatmap 1
+
 % re-organize data as a grid for heatmap
 % the " .' " at the end makes sure that the sweeps are placed in the
 % correct place in the grid, given an ordered polygon design - aka in each
@@ -676,19 +687,80 @@ dataSquareWithSweeps = [sweepNumberPerSquare, dataSquare];
 % the next row when it reached the end of the current row.
 dataForHeatmap = reshape(dataSquare(:,end),gridColumns,[]).';
 
-% plot heatmap
+% plot heatmap as an actual heatmap
+figure('name', strcat(fileName, '_', analysisDate, ' - polygon heatmap 1'));
+
 % set the ColorLimits for consistent color-coding accross cells/mice
 % set the ColorMap to a flipped map with "flipud", so that more negative
-% values will be "hotter" and values closer to zero will be "cold".
-figure;
-h = heatmap(dataForHeatmap, 'ColorLimits', [-3,0], 'ColorMap', flipud(parula), 'XLabel', '');
+% values will be "hotter" and values closer to zero will be "colder".
+% remove labels from each square with CellLabelColor = 'none'.
+h = heatmap(dataForHeatmap, 'ColorLimits', [heatmapMin,heatmapMax], 'ColorMap', flipud(parula), 'CellLabelColor', 'none');
+
+% removing labels from x axis
+cdl = h.XDisplayLabels;                                    % Current Display Labels
+h.XDisplayLabels = repmat(' ',size(cdl,1), size(cdl,2));   % Blank Display Labels
+
+% removing labels from y axis
+cdl = h.YDisplayLabels;                                    % Current Display Labels
+h.YDisplayLabels = repmat(' ',size(cdl,1), size(cdl,2));   % Blank Display Labels
 
 
-% h = histogram2(x,y,'DisplayStyle','tile','ShowEmptyBins','on');
+
+%% PLOT - cropped cell image
+% make sure you're getting the image taken with zoom = 1
+% concatenate strings from user input to get full path to figure file
+cellImageFileDir = strcat(cellImageDir,'\',cellImageFileName);
+
+% import image
+cellImage = imread(cellImageFileDir);
+
+% crop image according to the polygon's mirror calibration
+% I verified this in PPT lol
+% the original image is 1376 x 1024 pixels
+% ASSUMPTION ALERT: the calibration of the polygon will not change over time
+% I need to crop the top 100 pixels and the bottom 51 pixels
+% imcrop determines the rectangle to keep in the following form: [XMIN YMIN WIDTH HEIGHT]
+% note that y increases from top to bottom, so ymin should match my
+% required "top crop".
+% I do not need to crop along the x axis, so xmin = 1 and width = 1376
+% the height is 1024 - 100 - 51 = 873
+croppedImage = imcrop(cellImage, [1,100,1376,873]);
+figure('name', strcat(fileName, '_', analysisDate, ' - cell image'));
+imshow(croppedImage);
 
 
 
+%% PLOT Polygon Heatmap 2
+% Made to be overlayed on top of cell image from rig
 
+% resize the heatmap matrix to match the size of the cropped image from the rig
+% the original heatmap matrix will only be as big as the number of squares
+% used in the polygon design. But the image from the rig will be a lot
+% bigger (the size of the matrix is the size of image in pixels)
+resizedHeatmap = imresize(dataForHeatmap,[size(croppedImage,1) size(croppedImage,2)],'nearest');
+
+% make DIY heatmap without the actual heatmap function
+figure('name', strcat(fileName, '_', analysisDate, ' - polygon heatmap 2'));
+imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [heatmapMin,heatmapMax]);
+
+
+
+%%
+figure('Name', '1')
+background = im2double(croppedImage);
+blendedImage = 0.5*resizedHeatmap + background;
+blendedImage = im2uint8(blendedImage);
+imshow(blendedImage)
+
+figure('Name', '2')
+imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [heatmapMin,heatmapMax]);
+
+figure('Name', '3')
+imshow(croppedImage)
+
+
+
+%%
 
 
 lightEffectCell = median(lightEffect);
