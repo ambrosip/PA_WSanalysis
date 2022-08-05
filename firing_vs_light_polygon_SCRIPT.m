@@ -101,6 +101,7 @@ ASSUMPTIONS:
     - For Avg XLS file: light stim parameters are the same in all sweeps.
     - Dopaminergic cells have total AP duration > 2 ms.
     - Irregular cells have ISI CV > 0.2
+    - An ordered polygon grid design was used - aka not random
 
 BEWARE:
     - if you add more variables into "data" for exporting, you need to
@@ -115,7 +116,7 @@ TO DO:
 obj = m571.s0138;
 
 
-%%  USER INPUT ==================================================
+%%  USER INPUT ================================================================================
 
 % Affects data analysis - Organizing data by o-stim grid
 gridColumns = 5;
@@ -155,7 +156,7 @@ cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220720 m57
 savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-07-12 polygon DATs';
 
 
-%% PREP - get info from file and create arrays ==================
+%% PREP - get info from file and create arrays ============================================
 
 % get today's date for naming output files
 analysisDate =  datestr(datetime('today'),'yyyy-mm-dd');
@@ -217,7 +218,7 @@ isiBySweep = {};
 sweepNumberArrayBySweep = {};
 
 
-%% SWEEP BY SWEEP ANALYSIS ======================================
+%% SWEEP BY SWEEP ANALYSIS ======================================================================
 
 % get data from all sweeps in file
 for sweepNumber = allSweeps
@@ -438,7 +439,7 @@ hzPreLightStd = std(hzPreLightBySweep);
 
 % counting APs accross ALL SWEEPS
 edges = [0:30];
-[N, edges] = histcounts(allTimeStamps,edges);
+[N, ~] = histcounts(allTimeStamps,edges);
 firingHz = N/length(allSweeps);
 
 % is firing modulated by light?
@@ -462,6 +463,9 @@ end
 
 % add lightEffect and sdFromPreLightHz as the last columns of the sweep by sweep data
 data = [data, lightEffect, sdFromPreLightHz];
+
+% Check if cell is irregular
+isIrregularCell = median(isIrregularBySweep);
 
 
 %% CELL ANALYSIS - AP shape (all sweeps, irrespective of square)=====================================
@@ -586,11 +590,8 @@ dataAPshape = [mouseNumber, ...
     isDA];
 
 
-%% CELL ANALYSIS - POLYGON SPECIFIC CODE - avg for each square ==========================
+%% CELL ANALYSIS - POLYGON SPECIFIC CODE - data for each square ===========================================
 % ALERT: I will have to adjust this code to account for removed sweeps!
-
-% Check if cell is irregular
-isIrregularCell = median(isIrregularBySweep);
 
 % Store cell-specific data
 dataCell = [mouseNumber, ...
@@ -641,13 +642,10 @@ sweepOrderPerSquare = []; % from 1 to totalSquares
 sweepNumberPerSquare = []; % from 1st sweep to last sweep number
 dataSquare = [];
 
-% create a figure
-figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - raster and hist'));
-
 % each row is a square
 for row=[1:totalSquares]    
     
-    % each column is a sweep repeat for a square
+    % each column is a sweep
     for column=[1:sweepsPerSquare]    
                
         % assign sweepID (1 to total # of sweeps)
@@ -681,7 +679,7 @@ dataSquareWithSweeps = [sweepNumberPerSquare, dataSquare];
 
 
 
-%% PLOT Polygon Heatmap 1 =================================================================
+%% PLOT Polygon Heatmap 1 ================================================================================
 
 % re-organize data as a grid for heatmap
 % the " .' " at the end makes sure that the sweeps are placed in the
@@ -709,7 +707,7 @@ h.YDisplayLabels = repmat(' ',size(cdl,1), size(cdl,2));   % Blank Display Label
 
 
 
-%% PLOT - cropped cell image =================================================================
+%% PLOT - cropped cell image ==================================================================================
 % make sure you're getting the image taken with zoom = 1
 % concatenate strings from user input to get full path to figure file
 cellImageFileDir = strcat(cellImageDir,'\',cellImageFileName);
@@ -731,9 +729,14 @@ croppedImage = imcrop(cellImage, [1,100,1376,873]);
 figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - cell image'));
 imshow(croppedImage);
 
+% get figure size
+pos = get(gcf, 'Position'); %// gives x left, y bottom, width, height
+width = pos(3);
+height = pos(4);
 
 
-%% PLOT - Polygon Heatmap 2 =================================================================
+
+%% PLOT - Polygon Heatmap 2 ========================================================================
 % Made to be overlayed on top of cell image from rig
 
 % resize the heatmap matrix to match the size of the cropped image from the rig
@@ -798,7 +801,7 @@ set(whiteMask, 'AlphaData', transparencyMask);
 
 
 
-%% PLOT - ISI ===================================================
+%% PLOT - ISI =====================================================================================
 
 % ISI CV pre-light across all sweeps
 figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - baseline ISI counts'));
@@ -817,7 +820,7 @@ yticks([0 ymaxIsiCV]);
 
 
 
-%% PLOT - ISI normalized ========================================
+%% PLOT - ISI normalized =============================================================================
 
 % ISI CV pre-light across all sweeps
 figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - baseline ISI prob'));
@@ -836,9 +839,10 @@ set(gcf,'Position',[50 50 400 400]);
 
 
 
-%% PLOT - Raster plot =============================
+%% PLOT - Raster plot ================================================================================
 % Zoomed in: mean +- 2SD Hz is from short pre-light baseline
 
+% create figure & name it
 figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - raster'));
 
 % plotting raster plot 
@@ -869,6 +873,9 @@ for square = [1:totalSquares]
     set(gca, 'YDir','reverse');
 end
 
+% set figure size to the same as the cropped cell image
+% FYI this only adjusts the outer figure size, not the inner figure size...
+set(gcf,'Position',[1 1 width height]);
 
 
 %% PLOT - Firing histogram =============================
