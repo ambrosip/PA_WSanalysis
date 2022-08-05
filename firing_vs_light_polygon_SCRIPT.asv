@@ -143,10 +143,10 @@ ddyPeakThreshold = 300;
   
 % Affects data display: 
 ymax = 200;
-ymaxhist = 30;
+ymaxhist = 15;
 zoomWindow = 0.25;
 ymaxIsiCV = 150;
-heatmapMin = -3;
+heatmapMin = -2;
 heatmapMax = 0;
 cellImageFileName = 's2c1_dic2.tif';
 cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220720 m571 dat nphr';
@@ -339,7 +339,7 @@ for sweepNumber = allSweeps
     % Data storage    
     % storing sweep by sweep data in a cell array
     % to export later
-    % fyi access sweep 1 data using cell2mat(sweepData(1))
+    % fyi access sweep 1 data using cell2mat(tsBySweep(1))
     tsBySweep = [tsBySweep, locs];
     isiBySweep = [isiBySweep, isiBaseline];
     sweepNumberArrayBySweep = [sweepNumberArrayBySweep, sweepNumberArray];
@@ -641,6 +641,9 @@ sweepOrderPerSquare = []; % from 1 to totalSquares
 sweepNumberPerSquare = []; % from 1st sweep to last sweep number
 dataSquare = [];
 
+% create a figure
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - raster and hist'));
+
 % each row is a square
 for row=[1:totalSquares]    
     
@@ -678,7 +681,7 @@ dataSquareWithSweeps = [sweepNumberPerSquare, dataSquare];
 
 
 
-%% PLOT Polygon Heatmap 1
+%% PLOT Polygon Heatmap 1 =================================================================
 
 % re-organize data as a grid for heatmap
 % the " .' " at the end makes sure that the sweeps are placed in the
@@ -688,7 +691,7 @@ dataSquareWithSweeps = [sweepNumberPerSquare, dataSquare];
 dataForHeatmap = reshape(dataSquare(:,end),gridColumns,[]).';
 
 % plot heatmap as an actual heatmap
-figure('name', strcat(fileName, '_', analysisDate, ' - polygon heatmap 1'));
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - heatmap 1'));
 
 % set the ColorLimits for consistent color-coding accross cells/mice
 % set the ColorMap to a flipped map with "flipud", so that more negative
@@ -706,7 +709,7 @@ h.YDisplayLabels = repmat(' ',size(cdl,1), size(cdl,2));   % Blank Display Label
 
 
 
-%% PLOT - cropped cell image
+%% PLOT - cropped cell image =================================================================
 % make sure you're getting the image taken with zoom = 1
 % concatenate strings from user input to get full path to figure file
 cellImageFileDir = strcat(cellImageDir,'\',cellImageFileName);
@@ -725,204 +728,273 @@ cellImage = imread(cellImageFileDir);
 % I do not need to crop along the x axis, so xmin = 1 and width = 1376
 % the height is 1024 - 100 - 51 = 873
 croppedImage = imcrop(cellImage, [1,100,1376,873]);
-figure('name', strcat(fileName, '_', analysisDate, ' - cell image'));
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - cell image'));
 imshow(croppedImage);
 
 
 
-%% PLOT Polygon Heatmap 2
+%% PLOT - Polygon Heatmap 2 =================================================================
 % Made to be overlayed on top of cell image from rig
 
 % resize the heatmap matrix to match the size of the cropped image from the rig
 % the original heatmap matrix will only be as big as the number of squares
-% used in the polygon design. But the image from the rig will have a lot
-% more
+% used in the polygon design. But the image from the rig will be a lot
+% bigger (the size of the matrix is the size of image in pixels)
 resizedHeatmap = imresize(dataForHeatmap,[size(croppedImage,1) size(croppedImage,2)],'nearest');
 
-figure('name', strcat(fileName, '_', analysisDate, ' - polygon heatmap 2'));
-
-
-
-fig1 = figure();
-hold on
-a = imshow(croppedImage);
-showResizedHeatmap = imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [heatmapMin,heatmapMax]);
-showResizedHeatmap.AlphaData = 0.5
-a = imshow(croppedImage);
-a.AlphaData = 0.5
-% showResizedHeatmap = imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [heatmapMin,heatmapMax], 'AlphaData', 0.9);
-
-% showResizedHeatmap = imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [heatmapMin,heatmapMax], 'AlphaData', 0.5);
-hold off;
-
-%%
-figure('Name', '1')
-background = im2double(croppedImage);
-blendedImage = 0.5*resizedHeatmap + background;
-blendedImage = im2uint8(blendedImage);
-imshow(blendedImage)
-
-figure('Name', '2')
+% make DIY heatmap without the actual heatmap function
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - heatmap 2'));
 imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [heatmapMin,heatmapMax]);
-
-figure('Name', '3')
-imshow(croppedImage)
-
+c = colorbar;
+c.Label.String = 'SDs from baseline firing rate';
 
 
-%%
+
+%% PLOT - Make a blended image with transparency =================================================================
+% White where there was no inhibition of firing
+% Transparent where there was inhibition of firing beyond significance
+% criteria (firing decreased by -2 SDs from mean baseline firing rate)
+% Note that actual criteria is determined by user input "heatmapMin"
+% If heatmapMin = -2, then the criteria is "firing decreased by -2 SDs from
+% mean baseline firing rate"
+
+% pilot code that is now obsolete:
+% figure('Name', '1')
+% background = im2double(croppedImage);
+% blendedImage = 0.5*resizedHeatmap + background;
+% blendedImage = im2uint8(blendedImage);
+% imshow(blendedImage)
+
+% creating a transparency mask
+% trasform all negative values into positive ones: -resizedHeatmap
+transparencyMask = -resizedHeatmap;
+% default values are heatmapMax=0 and heatmapMin=-2
+% so default results are transparencyMaskMin=0 and transparencyMaskMax=2
+transparencyMaskMin = -heatmapMax;
+transparencyMaskMax = -heatmapMin;
+% anything between 0 and 2 --> normalized between 1 and 0 --> transparency gradient
+transparencyMask(transparencyMask>transparencyMaskMin & transparencyMask<transparencyMaskMax) = 1 - transparencyMask(transparencyMask>transparencyMaskMin & transparencyMask<transparencyMaskMax)/transparencyMaskMax;
+% anything below 0 --> 1 --> min transparency --> white
+transparencyMask(transparencyMask<=transparencyMaskMin) = 1;
+% anything above 2 --> 0 --> max transparency --> transparent
+transparencyMask(transparencyMask>=transparencyMaskMax) = 0;
+% sanity check that transparencyMask is between 0 and 1
+max(max(transparencyMask));
+min(min(transparencyMask));
+
+figure('Name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - transparent heatmap'))
+background = imshow(croppedImage);
+% make a white image the same size as the croppedImage
+whiteImage = cat(3, ones(size(croppedImage)), ones(size(croppedImage)), ones(size(croppedImage)));
+% fyi the placement of hold on and hold off in this code matter a lot for
+% whatever reason. Any other placement leads to image overwritting instead
+% of overlaying.
+hold on;
+% overlay white mask
+whiteMask = imshow(whiteImage);
+hold off;
+% apply transparency mask to white mask
+set(whiteMask, 'AlphaData', transparencyMask);
 
 
-lightEffectCell = median(lightEffect);
-sdFromPreLightHzCell = median(sdFromPreLightHz);
 
-% % % %% PLOT - ISI ===================================================
-% % % 
-% % % % ISI CV pre-light across all sweeps
-% % % figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light - baseline ISI counts'));
-% % % 
-% % % % edges: from 0-1s in 1ms steps
-% % % edges = [0:0.001:1]; 
-% % % 
-% % % histogram(allIsiBaseline, edges);
-% % % title([strcat(fileName, ' baseline ISI counts')],'Interpreter','none');
-% % % xlabel('ISI (s)');
-% % % ylabel('Counts per bin');
-% % % axis([0 1 0 ymaxIsiCV])
-% % % xticks([0 1]);
-% % % set(gcf,'Position',[50 550 400 400]);
-% % % yticks([0 ymaxIsiCV]);
-% % % 
-% % % 
-% % % %% PLOT - ISI normalized ========================================
-% % % 
-% % % % ISI CV pre-light across all sweeps
-% % % figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light - baseline ISI prob'));
-% % % 
-% % % % edges: from 0-1s in 1ms steps
-% % % edges = [0:0.001:1]; 
-% % % 
-% % % histogram(allIsiBaseline, edges, 'Normalization', 'probability', 'FaceColor', [0 0 0],'FaceAlpha', 1, 'EdgeColor', 'none');  
-% % % title([strcat(fileName, ' baseline ISI prob')],'Interpreter','none');
-% % % xlabel('ISI (s)');
-% % % ylabel('Counts ber Bin / Total Counts');
-% % % axis([0 0.5 0 0.1])
-% % % xticks([0 0.5]);
-% % % yticks([0 0.1]);
-% % % set(gcf,'Position',[50 50 400 400]);
-% % % 
-% % % 
-% % % % No longer need this since the sweeps are shorter (8s instead of 30s) when
-% % % % using a polygon grid
-% % % % %% PLOT - Raster plot and histogram =============================
-% % % % % Complete - mean +- 2SD Hz is from long baseline (all data prior to light stim)
-% % % % 
-% % % % figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light - raster and hist'));
-% % % % subplot(2,1,1)
-% % % % hold on;
-% % % % 
-% % % % % plotting raster plot 
-% % % % for sweep = 1:length(allSweeps)
-% % % %     plot(cell2mat(tsBySweep(sweep)), cell2mat(sweepNumberArrayBySweep(sweep)), '|', 'Color', 'k')
-% % % % end
-% % % % 
-% % % % % beautifying raster plot
-% % % % title([strcat(fileName, ' raster and hist')],'Interpreter','none');
-% % % % axis([0 30 firstSweepNumber-1 lastSweepNumber+1])
-% % % % ylabel(strcat('Sweeps (', num2str(length(allSweeps)), ')'));
-% % % % yticks([]);
-% % % % xticks([]);
-% % % % 
-% % % % % adding light stim
-% % % % rectangle('Position', [lightOnsetTime firstSweepNumber-1 lightDur lastSweepNumber+1], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
-% % % % 
-% % % % % stop plotting things on this subplot
-% % % % hold off;
-% % % % 
-% % % % % flip the y-axis so that the first sweep is at the top and the last
-% % % % % sweep is at the bottom
-% % % % set(gca, 'YDir','reverse');
-% % % % 
-% % % % % plotting Hz histogram 
-% % % % subplot(2,1,2)
-% % % % hold on;
-% % % % 
-% % % % histogram('BinEdges', 0:30, 'BinCounts', firingHz, 'DisplayStyle', 'stairs', 'EdgeColor', 'k'); % 'EdgeColor','none',
-% % % % 
-% % % % % plot light stim as rectangle
-% % % % rectangle('Position', [lightOnsetTime 0 lightDur ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
-% % % % 
-% % % % % plot Hz mean as horizontal line
-% % % % yline(hzBaselineMean, '--');
-% % % % 
-% % % % % plot +- 2 SD as rectangle around mean
-% % % % % [x y width height]
-% % % % rectangle('Position', [0 hzBaselineMean-(2*hzBaselineStd) 30 4*hzBaselineStd], 'FaceColor', [0 0 0 0.1], 'EdgeColor', 'none');
-% % % % 
-% % % % xlabel('Time (s)');
-% % % % ylabel('Firing rate (Hz)');
-% % % % axis([0 30 0 ymaxhist])
-% % % % set(gcf,'Position',[500 550 500 400]);
-% % % % % xticks([0 30]);
-% % % % yticks([0 ymaxhist]);
-% % % % hold off;
-% % % 
-% % % 
-% % % %% PLOT - Raster plot and histogram =============================
-% % % % Zoomed in - mean +- 2SD Hz is from short pre-light baseline
-% % % 
-% % % figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light - raster and hist zoom'));
-% % % subplot(2,1,1)
-% % % hold on;
-% % % 
-% % % % plotting raster plot 
-% % % for sweep = 1:length(allSweeps)
-% % %     plot(cell2mat(tsBySweep(sweep)), cell2mat(sweepNumberArrayBySweep(sweep)), '|', 'Color', 'k')
-% % % end
-% % % 
-% % % % zooming in and beautifying raster plot
-% % % title([strcat(fileName, ' raster and hist zoom')],'Interpreter','none');
-% % % axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur firstSweepNumber-1 lastSweepNumber+1])
-% % % ylabel(strcat('Sweeps (', num2str(length(allSweeps)), ')'));
-% % % yticks([]);
-% % % xticks([]);
-% % % 
-% % % % adding light stim
-% % % rectangle('Position', [lightOnsetTime firstSweepNumber-1 lightDur lastSweepNumber+1], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
-% % % 
-% % % % stop plotting things on this subplot
-% % % hold off;
-% % % 
-% % % % flip the y-axis so that the first sweep is at the top and the last
-% % % % sweep is at the bottom
-% % % set(gca, 'YDir','reverse');
-% % % 
-% % % % plotting Hz histogram 
-% % % subplot(2,1,2)
-% % % hold on;
-% % % 
-% % % histogram('BinEdges', 0:30, 'BinCounts', firingHz, 'DisplayStyle', 'stairs', 'EdgeColor', 'k'); % 'EdgeColor','none',
-% % % 
-% % % % plot light stim as rectangle
-% % % rectangle('Position', [lightOnsetTime 0 lightDur ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
-% % % 
-% % % % plot Hz mean as horizontal line
-% % % yline(hzPreLightMean, '--');
-% % % 
-% % % % plot +- 2 SD as rectangle around mean
-% % % % [x y width height]
-% % % rectangle('Position', [0 hzPreLightMean-(2*hzPreLightStd) 30 4*hzPreLightStd], 'FaceColor', [0 0 0 0.1], 'EdgeColor', 'none');
-% % % 
-% % % xlabel('Time (s)');
-% % % ylabel('Firing rate (Hz)');
-% % % axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur 0 ymaxhist])
-% % % set(gcf,'Position',[500 50 500 400]);
-% % % %     xticks([0 30]);
-% % % yticks([0 ymaxhist]);
-% % % hold off;
-% % % % movegui('east')
-% % % 
-% % % 
+%% PLOT - ISI ===================================================
+
+% ISI CV pre-light across all sweeps
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - baseline ISI counts'));
+
+% edges: from 0-1s in 1ms steps
+edges = [0:0.001:1]; 
+
+histogram(allIsiBaseline, edges);
+title([strcat(fileName, ' baseline ISI counts')],'Interpreter','none');
+xlabel('ISI (s)');
+ylabel('Counts per bin');
+axis([0 1 0 ymaxIsiCV])
+xticks([0 1]);
+set(gcf,'Position',[50 550 400 400]);
+yticks([0 ymaxIsiCV]);
+
+
+
+%% PLOT - ISI normalized ========================================
+
+% ISI CV pre-light across all sweeps
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - baseline ISI prob'));
+
+% edges: from 0-1s in 1ms steps
+edges = [0:0.001:1]; 
+
+histogram(allIsiBaseline, edges, 'Normalization', 'probability', 'FaceColor', [0 0 0],'FaceAlpha', 1, 'EdgeColor', 'none');  
+title([strcat(fileName, ' baseline ISI prob')],'Interpreter','none');
+xlabel('ISI (s)');
+ylabel('Counts ber Bin / Total Counts');
+axis([0 0.5 0 0.1])
+xticks([0 0.5]);
+yticks([0 0.1]);
+set(gcf,'Position',[50 50 400 400]);
+
+
+
+%% PLOT - Raster plot =============================
+% Zoomed in: mean +- 2SD Hz is from short pre-light baseline
+
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - raster'));
+
+% plotting raster plot 
+for square = [1:totalSquares]
+    subplot(gridRows,gridColumns,square)
+    hold on;
+    
+    for sweep = [sweepOrderPerSquare(square,:)]
+        plot(cell2mat(tsBySweep(sweep)), ones(size(cell2mat(sweepNumberArrayBySweep(sweep))))+sweep, '|', 'Color', 'k')        
+    end
+    
+    % zooming in and beautifying raster plot
+    axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur sweepOrderPerSquare(square,1)-20 sweepOrderPerSquare(square,end)+20])
+    ylabel(strcat('Sweeps (', num2str(sweepsPerSquare), ')'));
+    xlabel('Time (s)');
+    yticks([]);
+    xticks(0:1:10);
+    xticklabels([]);
+
+    % adding light stim
+    rectangle('Position', [lightOnsetTime sweepOrderPerSquare(square,1)-20 lightDur sweepOrderPerSquare(square,end)+100], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+
+    % stop plotting things on this subplot
+    hold off;
+
+    % flip the y-axis so that the first sweep is at the top and the last
+    % sweep is at the bottom
+    set(gca, 'YDir','reverse');
+end
+
+
+%% PLOT - Firing histogram =============================
+% mean +- 2SD Hz is from short pre-light baseline for all sweeps
+% note that these show the AVERAGE firing rate accross sweeps
+% my criteria for labeling a cell as "suppressed" does NOT use AVERAGE. It
+% used MEDIAN. When I calculate "sdFromPreLightHz", I take the MEDIAN
+% accross sweeps, not the average. HENCE the plots don't always agree with
+% the variable sdFromPreLightHz. You can get a histogram that looks like a
+% suppressed cell, but the sdFromPreLightHz 
+
+% figuring out how many seconds in the sweep to create histogram edges
+sweepSizeDataPts = size(xch2,1);
+sweepSizeSec = sweepSizeDataPts/samplingFrequency;
+edges = [0:sweepSizeSec];
+
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - hist'));
+
+% plotting histogram plot 
+for square = [1:totalSquares]
+    tsBySquare = [];
+    subplot(gridRows,gridColumns,square)
+
+    for sweep = [sweepOrderPerSquare(square,:)]
+        tsBySquare = [tsBySquare; cell2mat(tsBySweep(sweep))]; 
+    end
+
+    [Nsquare, edges] = histcounts(tsBySquare,edges);
+    firingHzSquare = Nsquare/sweepsPerSquare;
+    histogram('BinEdges', 0:sweepSizeSec, 'BinCounts', firingHzSquare, 'DisplayStyle', 'stairs', 'EdgeColor', 'k'); 
+
+    % plot light stim as rectangle
+    rectangle('Position', [lightOnsetTime 0 lightDur ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+
+    % plot Hz mean as horizontal line
+    yline(hzPreLightMean, '--');
+
+    % plot +- 2 SD as rectangle around mean
+    % [x y width height]
+    rectangle('Position', [0 hzPreLightMean-(2*hzPreLightStd) 30 4*hzPreLightStd], 'FaceColor', [0 0 0 0.1], 'EdgeColor', 'none');
+
+    xlabel('Time (s)');
+    ylabel('Firing rate (Hz)');
+    axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur 0 ymaxhist])
+    set(gcf,'Position',[500 50 500 400]);
+    %     xticks([0 30]);
+    yticks([0 ymaxhist]);
+    hold off;
+     
+end
+
+
+
+%% PLOT - Firing histogram 2 =============================
+% mean +- 2SD Hz is from short pre-light baseline for specific squares
+
+% figuring out how many seconds in the sweep to create histogram edges
+sweepSizeDataPts = size(xch2,1);
+sweepSizeSec = sweepSizeDataPts/samplingFrequency;
+edges = [0:sweepSizeSec];
+
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - hist 2'));
+
+% plotting histogram plot 
+for square = [1:totalSquares]
+    tsBySquare = [];
+    subplot(gridRows,gridColumns,square)
+
+    for sweep = [sweepOrderPerSquare(square,:)]
+        tsBySquare = [tsBySquare; cell2mat(tsBySweep(sweep))]; 
+    end
+
+    [Nsquare, edges] = histcounts(tsBySquare,edges);
+    firingHzSquare = Nsquare/sweepsPerSquare;
+    histogram('BinEdges', 0:sweepSizeSec, 'BinCounts', firingHzSquare, 'DisplayStyle', 'stairs', 'EdgeColor', 'k'); 
+
+    % plot light stim as rectangle
+    rectangle('Position', [lightOnsetTime 0 lightDur ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+
+    % plot Hz mean as horizontal line
+    hzPreLightMeanSquare = dataSquare(square,1);
+    yline(hzPreLightMeanSquare, '--');
+
+    % plot +- 2 SD as rectangle around mean
+    % [x y width height]
+    hzPreLightStdSquare = dataSquare(square,4);
+    rectangle('Position', [0 hzPreLightMeanSquare-(2*hzPreLightStdSquare) 30 4*hzPreLightStdSquare], 'FaceColor', [0 0 0 0.1], 'EdgeColor', 'none');
+
+    xlabel('Time (s)');
+    ylabel('Firing rate (Hz)');
+    axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur 0 ymaxhist])
+    set(gcf,'Position',[500 50 500 400]);
+    %     xticks([0 30]);
+    yticks([0 ymaxhist]);
+    hold off;
+     
+end
+
+
+
+% % plotting Hz histogram 
+% subplot(2,1,2)
+% hold on;
+% 
+% histogram('BinEdges', 0:30, 'BinCounts', firingHz, 'DisplayStyle', 'stairs', 'EdgeColor', 'k'); % 'EdgeColor','none',
+% 
+% % plot light stim as rectangle
+% rectangle('Position', [lightOnsetTime 0 lightDur ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+% 
+% % plot Hz mean as horizontal line
+% yline(hzPreLightMean, '--');
+% 
+% % plot +- 2 SD as rectangle around mean
+% % [x y width height]
+% rectangle('Position', [0 hzPreLightMean-(2*hzPreLightStd) 30 4*hzPreLightStd], 'FaceColor', [0 0 0 0.1], 'EdgeColor', 'none');
+% 
+% xlabel('Time (s)');
+% ylabel('Firing rate (Hz)');
+% axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur 0 ymaxhist])
+% set(gcf,'Position',[500 50 500 400]);
+% %     xticks([0 30]);
+% yticks([0 ymaxhist]);
+% hold off;
+% % movegui('east')
+
+
+
 % % % %% PLOT - AP width ==============================================
 % % % 
 % % % % Plot all APs and avg AP (not filtered, baseline subtracted)
