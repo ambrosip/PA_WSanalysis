@@ -729,10 +729,20 @@ croppedImage = imcrop(cellImage, [1,100,1376,873]);
 figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - cell image'));
 imshow(croppedImage);
 
-% get figure size
-pos = get(gcf, 'Position'); %// gives x left, y bottom, width, height
-width = pos(3);
-height = pos(4);
+% get inner figure size
+pos = get(gcf, 'InnerPosition'); %// gives x left, y bottom, width, height
+innerWidth = pos(3)/2
+innerHeight = pos(4)/2
+
+% get outer figure size
+pos = get(gcf, 'OuterPosition'); %// gives x left, y bottom, width, height
+outerWidth = pos(3)/2
+outerHeight = pos(4)/2
+
+% set figure size to the same as the cropped cell image
+% FYI this only adjusts the outer figure size, not the inner figure size...
+set(gcf,'InnerPosition',[1 1 innerWidth innerHeight]);
+set(gcf,'OuterPosition',[1 1 outerWidth outerHeight]);
 
 
 
@@ -799,6 +809,10 @@ hold off;
 % apply transparency mask to white mask
 set(whiteMask, 'AlphaData', transparencyMask);
 
+% set figure size to the same as the cropped cell image
+% FYI this only adjusts the outer figure size, not the inner figure size...
+set(gcf,'InnerPosition',[1 1 innerWidth innerHeight]);
+set(gcf,'OuterPosition',[1 1 outerWidth outerHeight]);
 
 
 %% PLOT - ISI =====================================================================================
@@ -871,11 +885,63 @@ for square = [1:totalSquares]
     % flip the y-axis so that the first sweep is at the top and the last
     % sweep is at the bottom
     set(gca, 'YDir','reverse');
+    set(gcf, 'InnerPosition', [1 1 innerWidth innerHeight]);
 end
+
+% % set figure size to the same as the cropped cell image
+% % FYI this only adjusts the outer figure size, not the inner figure size...
+% set(gcf,'InnerPosition',[1 1 innerWidth innerHeight]);
+% set(gcf,'PositionConstraint','innerposition');
+% set(gcf,'OuterPosition',[1 1 outerWidth outerHeight]);
+
+
+
+%% PLOT - Raster plot ================================================================================
+% Zoomed in: mean +- 2SD Hz is from short pre-light baseline
+
+% create figure & name it
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - tiled raster'));
+t = tiledlayout(gridRows, gridColumns);
+
+% plotting raster plot 
+for square = [1:totalSquares]
+    nexttile
+    hold on;
+    
+    for sweep = [sweepOrderPerSquare(square,:)]
+        plot(cell2mat(tsBySweep(sweep)), ones(size(cell2mat(sweepNumberArrayBySweep(sweep))))+sweep, '|', 'Color', 'k')        
+    end
+    
+    % zooming in and beautifying raster plot
+    axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur sweepOrderPerSquare(square,1)-20 sweepOrderPerSquare(square,end)+20])
+%     ylabel(strcat('Sweeps (', num2str(sweepsPerSquare), ')'));
+%     xlabel('Time (s)');
+    yticks([]);
+    xticks(0:1:10);
+    xticklabels([]);
+
+    % adding light stim
+    rectangle('Position', [lightOnsetTime sweepOrderPerSquare(square,1)-20 lightDur sweepOrderPerSquare(square,end)+100], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+
+    % stop plotting things on this subplot
+    hold off;
+
+    % flip the y-axis so that the first sweep is at the top and the last
+    % sweep is at the bottom
+    set(gca, 'YDir','reverse');
+%     set(gcf, 'InnerPosition', [1 1 innerWidth innerHeight]);
+end
+
+t.TileSpacing = 'compact';
+t.Padding = 'compact';
+xlabel(t,'Time (s)')
+ylabel(t,strcat('Sweeps (', num2str(sweepsPerSquare), ')'));
 
 % set figure size to the same as the cropped cell image
 % FYI this only adjusts the outer figure size, not the inner figure size...
-set(gcf,'Position',[1 1 width height]);
+set(gcf,'OuterPosition',[1 1 outerWidth outerHeight]);
+set(gcf,'InnerPosition',[1 1 innerWidth innerHeight]);
+
 
 
 %% PLOT - Firing histogram =============================
