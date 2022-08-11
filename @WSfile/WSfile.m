@@ -85,6 +85,8 @@ classdef WSfile
         first_psc_kinetics(obj)
         first_psc_kinetics_v2(obj)
         firing_vs_light_ch(obj)
+        firing_vs_light_polygon(obj)
+        firing_vs_light_polygon_test(obj)
 
         
         function obj = WSfile(fileName)

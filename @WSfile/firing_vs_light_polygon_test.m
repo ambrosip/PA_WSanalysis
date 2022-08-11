@@ -97,7 +97,7 @@ TO DO:
     - complete documentation
 %}
 
-function firing_vs_light_test_ch(obj)
+function firing_vs_light_polygon_test(obj)
 
 
 %%  USER INPUT ==================================================
@@ -108,7 +108,7 @@ discardedSweepsFromEnd = 0;
 peaksOrValleys = 'v';   
 highpassThreshold = 100;
 lowpassThreshold = 1500;    % was 1500
-minPeakHeight = 20;         
+minPeakHeight = 40;         
 minPeakDistance = 0.001;    
 lightExtensionFactor = 1;
 lightChannel = 2;
@@ -300,75 +300,75 @@ for sweepNumber = allSweeps
     nAPtotal = nAPtotal + nAP;
     %----------------------------------------------------------------
     
-    
-    % PLOT firing histogram for each sweep (1/ISI)
-    sweepDuration = obj.header.Acquisition.Duration;
-    sweepTime=0;
-    inverseISIperSecBin=[];
-    
-    % naming figure file    
-    figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - ISI histogram'));      
-    
-        % Ch1 (recorded data) histogram
-        subplot(2,1,1)         
-        while sweepTime <= sweepTime+1 & sweepTime < sweepDuration
-            indicesToDelete = find(locs<sweepTime | locs>=sweepTime+1);
-            locsDuringSweepTime = locs;
-            locsDuringSweepTime(indicesToDelete) = [];
-            inverseISIperSecBin=[inverseISIperSecBin 1/mean(diff(locsDuringSweepTime))];
-            sweepTime=sweepTime+1;
-        end
-        bar(0:length(inverseISIperSecBin)-1,inverseISIperSecBin,1);
-        axis([-inf inf 0 ymaxhist]);            
-        xlabel('Bins (1 s long)');
-        ylabel('1/ISI (Hz)');
-        title([' (' num2str(sweepNumber) ') - ISI hist'],'Interpreter','none');        
-
-        % Ch2 (light stim) plot
-        subplot(2,1,2)   
-        plot(xLightCh,yLightCh);
-        yminhere = min(yLightCh)-5;
-        ymaxhere = max(yLightCh)+5;
-        axis([0 30 yminhere ymaxhere])
-        xlabel('Time (s)');
-        ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(lightChannel), ' (', obj.header.Acquisition.AnalogChannelUnits(lightChannel), ')'));        
-        set(gcf,'Position',[50 550 280 420]) % top left corner
+%     
+%     % PLOT firing histogram for each sweep (1/ISI)
+%     sweepDuration = obj.header.Acquisition.Duration;
+%     sweepTime=0;
+%     inverseISIperSecBin=[];
+%     
+%     % naming figure file    
+%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - ISI histogram'));      
+%     
+%         % Ch1 (recorded data) histogram
+%         subplot(2,1,1)         
+%         while sweepTime <= sweepTime+1 & sweepTime < sweepDuration
+%             indicesToDelete = find(locs<sweepTime | locs>=sweepTime+1);
+%             locsDuringSweepTime = locs;
+%             locsDuringSweepTime(indicesToDelete) = [];
+%             inverseISIperSecBin=[inverseISIperSecBin 1/mean(diff(locsDuringSweepTime))];
+%             sweepTime=sweepTime+1;
+%         end
+%         bar(0:length(inverseISIperSecBin)-1,inverseISIperSecBin,1);
+%         axis([-inf inf 0 ymaxhist]);            
+%         xlabel('Bins (1 s long)');
+%         ylabel('1/ISI (Hz)');
+%         title([' (' num2str(sweepNumber) ') - ISI hist'],'Interpreter','none');        
+% 
+%         % Ch2 (light stim) plot
+%         subplot(2,1,2)   
+%         plot(xLightCh,yLightCh);
+%         yminhere = min(yLightCh)-5;
+%         ymaxhere = max(yLightCh)+5;
+%         axis([0 30 yminhere ymaxhere])
+%         xlabel('Time (s)');
+%         ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(lightChannel), ' (', obj.header.Acquisition.AnalogChannelUnits(lightChannel), ')'));        
+%         set(gcf,'Position',[50 550 280 420]) % top left corner
     %----------------------------------------------------------------        
         
     
-    % PLOT firing histogram for each sweep (#APs)
-    sweepDuration = obj.header.Acquisition.Duration;
-    sweepTime=0;
-    nAPperSecBin=[];
-    
-    % naming figure file    
-    figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - nAPs histogram'));      
-    
-        % Ch1 (recorded data) histogram
-        subplot(2,1,1)         
-        while sweepTime <= sweepTime+1 & sweepTime < sweepDuration
-            indicesToDelete = find(locs<sweepTime | locs>=sweepTime+1);
-            locsDuringSweepTime = locs;
-            locsDuringSweepTime(indicesToDelete) = [];
-            nAPperSecBin = [nAPperSecBin length(locsDuringSweepTime)];
-            sweepTime = sweepTime+1;
-        end
-        bar(0:length(nAPperSecBin)-1,nAPperSecBin,1);
-        axis([-inf inf 0 ymaxhist]);            
-        xlabel('Bins (1 s long)');
-        ylabel('#APs (Hz)');
-        title([' (' num2str(sweepNumber) ') - nAPs hist'],'Interpreter','none');        
-
-        % Ch2 (light stim) plot
-        subplot(2,1,2)   
-        plot(xLightCh,yLightCh);
-        yminhere = min(yLightCh)-5;
-        ymaxhere = max(yLightCh)+5;
-        axis([0 30 yminhere ymaxhere])
-        xlabel('Time (s)');
-        ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(lightChannel), ' (', obj.header.Acquisition.AnalogChannelUnits(lightChannel), ')'));        
-        set(gcf,'Position',[350 550 280 420])
-    %----------------------------------------------------------------  
+%     % PLOT firing histogram for each sweep (#APs)
+%     sweepDuration = obj.header.Acquisition.Duration;
+%     sweepTime=0;
+%     nAPperSecBin=[];
+%     
+%     % naming figure file    
+%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - nAPs histogram'));      
+%     
+%         % Ch1 (recorded data) histogram
+%         subplot(2,1,1)         
+%         while sweepTime <= sweepTime+1 & sweepTime < sweepDuration
+%             indicesToDelete = find(locs<sweepTime | locs>=sweepTime+1);
+%             locsDuringSweepTime = locs;
+%             locsDuringSweepTime(indicesToDelete) = [];
+%             nAPperSecBin = [nAPperSecBin length(locsDuringSweepTime)];
+%             sweepTime = sweepTime+1;
+%         end
+%         bar(0:length(nAPperSecBin)-1,nAPperSecBin,1);
+%         axis([-inf inf 0 ymaxhist]);            
+%         xlabel('Bins (1 s long)');
+%         ylabel('#APs (Hz)');
+%         title([' (' num2str(sweepNumber) ') - nAPs hist'],'Interpreter','none');        
+% 
+%         % Ch2 (light stim) plot
+%         subplot(2,1,2)   
+%         plot(xLightCh,yLightCh);
+%         yminhere = min(yLightCh)-5;
+%         ymaxhere = max(yLightCh)+5;
+%         axis([0 30 yminhere ymaxhere])
+%         xlabel('Time (s)');
+%         ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(lightChannel), ' (', obj.header.Acquisition.AnalogChannelUnits(lightChannel), ')'));        
+%         set(gcf,'Position',[350 550 280 420])
+%     %----------------------------------------------------------------  
         
     
     % PLOT found peaks for each sweep    
@@ -405,116 +405,116 @@ for sweepNumber = allSweeps
         set(gcf,'Position',[650 550 500 400])
     %----------------------------------------------------------------         
     
-    % PLOT niceplot
-    figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - niceplot')); 
-    
-        % main plot
-        plot(x,yFiltered,'k','LineWidth',1)
-        xmin = lightOnsetTime-3;
-        xmax = lightOnsetTime+4;
-        ymin = -ymax;
-        axis([xmin xmax ymin ymax]);
-        title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
-        set(gca,'Visible','off');
-        set(gcf,'Position',[50 50 500 400])
-        
-        % if the light stim is a train (singleLightPulse = 0), add light
-        % stim cartoon as a train
-        if singleLightPulse == 0
-            interStimInterval = 1/stimFreq;
-            postStimInterval = interStimInterval - stimDur;
-            for nStim = 1 : stimFreq * xmax
-                startStim = lightOnsetTime + (nStim - 1) * interStimInterval;
-                line([startStim, startStim + stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
-            end
-        end
+%     % PLOT niceplot
+%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - niceplot')); 
+%     
+%         % main plot
+%         plot(x,yFiltered,'k','LineWidth',1)
+%         xmin = lightOnsetTime-3;
+%         xmax = lightOnsetTime+4;
+%         ymin = -ymax;
+%         axis([xmin xmax ymin ymax]);
+%         title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
+%         set(gca,'Visible','off');
+%         set(gcf,'Position',[50 50 500 400])
+%         
+%         % if the light stim is a train (singleLightPulse = 0), add light
+%         % stim cartoon as a train
+%         if singleLightPulse == 0
+%             interStimInterval = 1/stimFreq;
+%             postStimInterval = interStimInterval - stimDur;
+%             for nStim = 1 : stimFreq * xmax
+%                 startStim = lightOnsetTime + (nStim - 1) * interStimInterval;
+%                 line([startStim, startStim + stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+%             end
+%         end
+% 
+%         % adding light stim as rectangle
+%         % note that this code will use light stim parameters from the last sweep!
+%         % if light stim is not the same accross all sweeps, this will be
+%         % misleading!
+%         line([lightOnsetTime, lightOnsetTime + stimDur], [ymax-10,ymax-10], 'Color', [1 0 0], 'LineWidth', 10)
+%         
+% %         % adding scale bar
+% %         line([xmin,xmin+zoomWindow],[ymin,ymin],'Color','k')
+% %         line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
+% %         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str(zoomWindow*1000)," ms"))
+% %         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+%     
+%         % adding scale bar
+%         xmin = lightOnsetTime-lightDur;
+%         xmax = lightOnsetTime+2*lightDur;
+%         ymin = -ymax;
+%         line([xmax-1 xmax],[ymax ymax],'Color','k')
+%         line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
+%         text(xmax-1, ymax-((ymax-ymin)/20), "1 s")
+%         text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+%         hold off;
 
-        % adding light stim as rectangle
-        % note that this code will use light stim parameters from the last sweep!
-        % if light stim is not the same accross all sweeps, this will be
-        % misleading!
-        line([lightOnsetTime, lightOnsetTime + stimDur], [ymax-10,ymax-10], 'Color', [1 0 0], 'LineWidth', 10)
-        
+
+    %----------------------------------------------------------------
+    
+%     % PLOT zoomed in niceplot (start of light stim)
+%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - zoom start')); 
+%     
+%         % main plot
+%         plot(x,yFiltered,'k','LineWidth',1)
+%         xmin = lightOnsetTime-zoomWindow;
+%         xmax = lightOnsetTime+zoomWindow;
+%         ymin = -ymax;
+%         axis([xmin xmax ymin ymax]);
+%         title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
+%         set(gca,'Visible','off');
+%         set(gcf,'Position',[50 50 500 400])
+%         
+%         % if the light stim is a train (singleLightPulse = 0), add light
+%         % stim cartoon as a train
+%         if singleLightPulse == 0
+%             interStimInterval = 1/stimFreq;
+%             postStimInterval = interStimInterval - stimDur;
+%             for nStim = 1 : stimFreq * xmax
+%                 startStim = lightOnsetTime + (nStim - 1) * interStimInterval;
+%                 line([startStim, startStim + stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+%             end
+%         end
+%         
 %         % adding scale bar
 %         line([xmin,xmin+zoomWindow],[ymin,ymin],'Color','k')
 %         line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
 %         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str(zoomWindow*1000)," ms"))
 %         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
-    
-        % adding scale bar
-        xmin = lightOnsetTime-lightDur;
-        xmax = lightOnsetTime+2*lightDur;
-        ymin = -ymax;
-        line([xmax-1 xmax],[ymax ymax],'Color','k')
-        line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
-        text(xmax-1, ymax-((ymax-ymin)/20), "1 s")
-        text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
-        hold off;
-
-
-    %----------------------------------------------------------------
-    
-    % PLOT zoomed in niceplot (start of light stim)
-    figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - zoom start')); 
-    
-        % main plot
-        plot(x,yFiltered,'k','LineWidth',1)
-        xmin = lightOnsetTime-zoomWindow;
-        xmax = lightOnsetTime+zoomWindow;
-        ymin = -ymax;
-        axis([xmin xmax ymin ymax]);
-        title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
-        set(gca,'Visible','off');
-        set(gcf,'Position',[50 50 500 400])
-        
-        % if the light stim is a train (singleLightPulse = 0), add light
-        % stim cartoon as a train
-        if singleLightPulse == 0
-            interStimInterval = 1/stimFreq;
-            postStimInterval = interStimInterval - stimDur;
-            for nStim = 1 : stimFreq * xmax
-                startStim = lightOnsetTime + (nStim - 1) * interStimInterval;
-                line([startStim, startStim + stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
-            end
-        end
-        
-        % adding scale bar
-        line([xmin,xmin+zoomWindow],[ymin,ymin],'Color','k')
-        line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
-        text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str(zoomWindow*1000)," ms"))
-        text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
-    %---------------------------------------------------------------- 
-     
-    
-    % PLOT zoomed in niceplot (end of light stim) 
-    figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - zoom end')); 
-    
-        % main plot
-        plot(x,yFiltered,'k','LineWidth',1)
-        xmin=lightOnsetTime+lightDur-zoomWindow;
-        xmax=lightOnsetTime+lightDur+zoomWindow;
-        ymin=-ymax;
-        axis([xmin xmax ymin ymax]);
-        title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
-        set(gca,'Visible','off');
-        set(gcf,'Position',[600 50 500 400])
-        
-        % if the light stim is a train (singleLightPulse = 0), add light
-        % stim cartoon as a train
-        if singleLightPulse == 0
-            interStimInterval = 1/stimFreq;
-            postStimInterval = interStimInterval-stimDur;
-            for nStim=1:stimFreq*zoomWindow
-                startStim = lightOnsetTime+lightDur-zoomWindow + (nStim - 1) * interStimInterval;
-                line([startStim,startStim+stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
-            end
-        end
-        
-        % adding scale bar
-        line([xmin,xmin+zoomWindow],[ymin,ymin],'Color','k')
-        line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
-        text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str(zoomWindow*1000)," ms"))
-        text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+%     %---------------------------------------------------------------- 
+%      
+%     
+%     % PLOT zoomed in niceplot (end of light stim) 
+%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - zoom end')); 
+%     
+%         % main plot
+%         plot(x,yFiltered,'k','LineWidth',1)
+%         xmin=lightOnsetTime+lightDur-zoomWindow;
+%         xmax=lightOnsetTime+lightDur+zoomWindow;
+%         ymin=-ymax;
+%         axis([xmin xmax ymin ymax]);
+%         title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
+%         set(gca,'Visible','off');
+%         set(gcf,'Position',[600 50 500 400])
+%         
+%         % if the light stim is a train (singleLightPulse = 0), add light
+%         % stim cartoon as a train
+%         if singleLightPulse == 0
+%             interStimInterval = 1/stimFreq;
+%             postStimInterval = interStimInterval-stimDur;
+%             for nStim=1:stimFreq*zoomWindow
+%                 startStim = lightOnsetTime+lightDur-zoomWindow + (nStim - 1) * interStimInterval;
+%                 line([startStim,startStim+stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+%             end
+%         end
+%         
+%         % adding scale bar
+%         line([xmin,xmin+zoomWindow],[ymin,ymin],'Color','k')
+%         line([xmin,xmin],[ymin,ymin+((ymax-ymin)/10)],'Color','k')
+%         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/30),strcat(num2str(zoomWindow*1000)," ms"))
+%         text(xmin+(xmax-xmin)/130,ymin+((ymax-ymin)/12),strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
     %----------------------------------------------------------------        
     
     
@@ -539,24 +539,24 @@ for sweepNumber = allSweeps
     %----------------------------------------------------------------    
 
     
-    % PLOT one figure per sweep that shows whole sweep (filtered)    
-    figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - filtered'));  
-        
-        subplot(2,1,1)
-        plot(x,yFiltered);
-        axis([-inf inf -inf ymax]);           
-        xlabel('Time (s)');
-        ylabel(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits);
-        title([' (' num2str(sweepNumber) ') - filtered'],'Interpreter','none');
-      
-        subplot(2,1,2) 
-        plot(xLightCh,yLightCh);
-        yminhere = min(yLightCh)-5;
-        ymaxhere = max(yLightCh)+5;
-        axis([0 30 yminhere ymaxhere])
-        xlabel('Time (s)');
-        ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(lightChannel), ' (', obj.header.Acquisition.AnalogChannelUnits(lightChannel), ')'));        
-        set(gcf,'Position',[1200 50 280 420])
+%     % PLOT one figure per sweep that shows whole sweep (filtered)    
+%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - filtered'));  
+%         
+%         subplot(2,1,1)
+%         plot(x,yFiltered);
+%         axis([-inf inf -inf ymax]);           
+%         xlabel('Time (s)');
+%         ylabel(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits);
+%         title([' (' num2str(sweepNumber) ') - filtered'],'Interpreter','none');
+%       
+%         subplot(2,1,2) 
+%         plot(xLightCh,yLightCh);
+%         yminhere = min(yLightCh)-5;
+%         ymaxhere = max(yLightCh)+5;
+%         axis([0 30 yminhere ymaxhere])
+%         xlabel('Time (s)');
+%         ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(lightChannel), ' (', obj.header.Acquisition.AnalogChannelUnits(lightChannel), ')'));        
+%         set(gcf,'Position',[1200 50 280 420])
     %----------------------------------------------------------------              
 end
 

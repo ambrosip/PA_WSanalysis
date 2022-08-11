@@ -65,6 +65,14 @@ INPUTS explained:
     - ymaxIsiCV: for illustration purposes, use this value as the max range
     for the y-axis in the ISI histogram.
 
+    - heatmapMin: sets min value for color-coding the heatmap
+
+    - heatmapMax: sets max value for color-coding the heatmap
+
+    - cellImageFileName: 
+
+    - cellImageDir: folder where cell image file is located
+
     - savefileto: save CSV files to this folder.
 
 INPUTS defaults:
@@ -89,6 +97,11 @@ INPUTS defaults:
     ymaxhist = 15;
     ZoomWindow = 0.25;
     ymaxIsiCV = 150;
+    heatmapMin = -2;
+    heatmapMax = 0;
+    cellImageFileName = 's2c1_dic2.tif';
+    cellImageDir = 'E:\Priscilla - BACKUP 20200319\Ephys\2022\20220720 m571 dat nphr';
+
     savefileto = 'D:\CORONAVIRUS DATA\From MATLAB';
     
 OUTPUTS:
@@ -105,7 +118,7 @@ ASSUMPTIONS:
 
 BEWARE:
     - if you add more variables into "data" for exporting, you need to
-    adjust the code for lightEffect.
+    adjust the code at multiple places.
 
 TO DO:
     - create 'test' version with sweep by sweep plots - DONE
@@ -116,7 +129,7 @@ TO DO:
 obj = m571.s0138;
 
 
-%%  USER INPUT ================================================================================
+%%  USER INPUT ============================================================
 
 % Affects data analysis - Organizing data by o-stim grid
 gridColumns = 5;
@@ -150,13 +163,22 @@ ymaxIsiCV = 150;
 heatmapMin = -2;
 heatmapMax = 0;
 cellImageFileName = 's2c1_dic2.tif';
-cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220720 m571 dat nphr';
+cellImageDir = 'E:\Priscilla - BACKUP 20200319\Ephys\2022\20220720 m571 dat nphr';
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-07-12 polygon DATs';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-08-11 polygon';
 
 
-%% PREP - get info from file and create arrays ============================================
+
+%% PREP - get monitor info for plot display organization =====================================================
+
+monitorPositions = get(0, 'MonitorPositions' );
+maxHeight = monitorPositions(1,4) - 100;
+maxWidth = monitorPositions(1,3) - 100;
+
+
+
+%% PREP - get info from h5 file and create arrays ============================================================
 
 % get today's date for naming output files
 analysisDate =  datestr(datetime('today'),'yyyy-mm-dd');
@@ -218,7 +240,7 @@ isiBySweep = {};
 sweepNumberArrayBySweep = {};
 
 
-%% SWEEP BY SWEEP ANALYSIS ======================================================================
+%% SWEEP BY SWEEP ANALYSIS ===================================================================================
 
 % get data from all sweeps in file
 for sweepNumber = allSweeps
@@ -405,6 +427,9 @@ for sweepNumber = allSweeps
         mouseNumber, ...
         experimentDate, ...
         sweepNumber, ...
+    gridColumns, ...
+    gridRows, ...
+    sweepsPerSquare, ...
         discardedSweepsFromEnd, ...
         peaksOrValleysAsNum, ...
         highpassThreshold, ...
@@ -412,6 +437,8 @@ for sweepNumber = allSweeps
         minPeakHeight, ...        
         minPeakDistance, ...    
         lightExtensionFactor, ...
+    lightChannel, ...
+    singleLightPulse, ...
         stimDur, ... 
         stimFreq, ...
         lightDur, ...
@@ -431,7 +458,7 @@ for sweepNumber = allSweeps
 end
 
 
-%% CELL ANALYSIS - firing (all sweeps, irrespective of square) =======================================
+%% CELL ANALYSIS - firing (all sweeps, irrespective of square) ===============================================
 
 % Mean and Std for pre-light baseline firing rate
 hzPreLightMean = mean(hzPreLightBySweep);
@@ -446,15 +473,15 @@ firingHz = N/length(allSweeps);
 % if cell is inhibited, lightEffect = -1
 % if cell is excited, lightEffect = 1
 % if cell is indifferent, lightEffect = 0
-% data(sweepNumber, 23) is duringLightHz
-% data(sweepNumber, 22) is preLightHz
+% data(sweepNumber, 28) is duringLightHz
+% data(sweepNumber, 27) is preLightHz
 lightEffect = [];
 sdFromPreLightHz = [];
 for sweepNumber = [1:length(allSweeps)]
-    sdFromPreLightHz = [sdFromPreLightHz; (data(sweepNumber, 23) - data(sweepNumber, 22)) / hzPreLightStd];
-    if data(sweepNumber, 23) < hzPreLightMean - 2*hzPreLightStd
+    sdFromPreLightHz = [sdFromPreLightHz; (data(sweepNumber, 28) - data(sweepNumber, 27)) / hzPreLightStd];
+    if data(sweepNumber, 28) < hzPreLightMean - 2*hzPreLightStd
         lightEffect = [lightEffect; -1];
-    elseif data(sweepNumber, 23) > hzPreLightMean + 2*hzPreLightStd
+    elseif data(sweepNumber, 28) > hzPreLightMean + 2*hzPreLightStd
         lightEffect = [lightEffect; +1];
     else 
         lightEffect = [lightEffect; 0];
@@ -468,7 +495,7 @@ data = [data, lightEffect, sdFromPreLightHz];
 isIrregularCell = median(isIrregularBySweep);
 
 
-%% CELL ANALYSIS - AP shape (all sweeps, irrespective of square)=====================================
+%% CELL ANALYSIS - AP shape (all sweeps, irrespective of square)==============================================
 
 % calculate average AP shape/trace
 avgAP = mean(ySubsetAll);
@@ -590,7 +617,7 @@ dataAPshape = [mouseNumber, ...
     isDA];
 
 
-%% CELL ANALYSIS - POLYGON SPECIFIC CODE - data for each square ===========================================
+%% CELL ANALYSIS - POLYGON SPECIFIC CODE - data for each square ==============================================
 % ALERT: I will have to adjust this code to account for removed sweeps!
 
 % Store cell-specific data
@@ -615,7 +642,13 @@ singleLightPulse, ...
     postAPinSeconds, ...
     preAPbaselineDurationSeconds, ...
     ddyValleyThreshold, ...
-    ddyPeakThreshold, ...    
+    ddyPeakThreshold, ...   
+ymax, ...
+ymaxhist, ...
+zoomWindow, ...
+ymaxIsiCV, ...
+heatmapMin, ...
+heatmapMax, ...
     stimDur, ... 
     stimFreq, ...
     lightDur, ...    
@@ -658,10 +691,15 @@ for row=[1:totalSquares]
     % remove all data from sweeps not included in this square
     dataSubset(setdiff(1:end,sweepOrderPerSquare(row,:)),:) = [];
     
+%     % store square-specific data
+%     dataSubsetForMeanAndSD = dataSubset(:,[22:24]); % firing rate pre, during & after light
+%     dataSubsetForMode = dataSubset(:,25);           % lightEffect
+%     dataSubsetForMedian = dataSubset(:,26);         % sdFromPreLightHz   
+    
     % store square-specific data
-    dataSubsetForMeanAndSD = dataSubset(:,[22:24]); % firing rate pre, during & after light
-    dataSubsetForMode = dataSubset(:,25);           % lightEffect
-    dataSubsetForMedian = dataSubset(:,26);         % sdFromPreLightHz
+    dataSubsetForMeanAndSD = dataSubset(:,[27:29]); % firing rate pre, during & after light
+    dataSubsetForMode = dataSubset(:,30);           % lightEffect
+    dataSubsetForMedian = dataSubset(:,31);         % sdFromPreLightHz
     
     % store average/STDs/mode/median accross sweeps
     dataSquare = [dataSquare; mean(dataSubsetForMeanAndSD), std(dataSubsetForMeanAndSD), mode(dataSubsetForMode), median(dataSubsetForMedian)];
@@ -679,7 +717,44 @@ dataSquareWithSweeps = [sweepNumberPerSquare, dataSquare];
 
 
 
-%% PLOT Polygon Heatmap 1 ================================================================================
+%% PLOT 1 - cropped cell image ===============================================================================
+% make sure you're getting the image taken with zoom = 1
+% concatenate strings from user input to get full path to figure file
+cellImageFileDir = strcat(cellImageDir,'\',cellImageFileName);
+
+% import image
+cellImage = imread(cellImageFileDir);
+
+% crop image according to the polygon's mirror calibration
+% I verified this in PPT lol
+% the original image is 1376 x 1024 pixels
+% ASSUMPTION ALERT: the calibration of the polygon will not change over time
+% I need to crop the top 100 pixels and the bottom 51 pixels
+% imcrop determines the rectangle to keep in the following form: [XMIN YMIN WIDTH HEIGHT]
+% note that y increases from top to bottom, so ymin should match my
+% required "top crop".
+% I do not need to crop along the x axis, so xmin = 1 and width = 1376
+% the height is 1024 - 100 - 51 = 873
+croppedImage = imcrop(cellImage, [1,100,1376,873]);
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - cell image'));
+imshow(croppedImage, 'Border', 'tight');
+
+% get inner figure size and store half of those values
+pos = get(gcf, 'InnerPosition'); %// gives x left, y bottom, width, height
+innerWidth = pos(3)/2;
+innerHeight = pos(4)/2;
+
+% get outer figure size and store half of those values
+pos = get(gcf, 'OuterPosition'); %// gives x left, y bottom, width, height
+outerWidth = pos(3)/2;
+outerHeight = pos(4)/2;
+
+% set figure size to the stored values
+set(gcf,'InnerPosition',[0 maxHeight-innerHeight innerWidth innerHeight]);
+
+
+
+%% PLOT 2 - Polygon Heatmap 1 ================================================================================
 
 % re-organize data as a grid for heatmap
 % the " .' " at the end makes sure that the sweeps are placed in the
@@ -705,65 +780,30 @@ h.XDisplayLabels = repmat(' ',size(cdl,1), size(cdl,2));   % Blank Display Label
 cdl = h.YDisplayLabels;                                    % Current Display Labels
 h.YDisplayLabels = repmat(' ',size(cdl,1), size(cdl,2));   % Blank Display Labels
 
-
-
-%% PLOT - cropped cell image ==================================================================================
-% make sure you're getting the image taken with zoom = 1
-% concatenate strings from user input to get full path to figure file
-cellImageFileDir = strcat(cellImageDir,'\',cellImageFileName);
-
-% import image
-cellImage = imread(cellImageFileDir);
-
-% crop image according to the polygon's mirror calibration
-% I verified this in PPT lol
-% the original image is 1376 x 1024 pixels
-% ASSUMPTION ALERT: the calibration of the polygon will not change over time
-% I need to crop the top 100 pixels and the bottom 51 pixels
-% imcrop determines the rectangle to keep in the following form: [XMIN YMIN WIDTH HEIGHT]
-% note that y increases from top to bottom, so ymin should match my
-% required "top crop".
-% I do not need to crop along the x axis, so xmin = 1 and width = 1376
-% the height is 1024 - 100 - 51 = 873
-croppedImage = imcrop(cellImage, [1,100,1376,873]);
-figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - cell image'));
-imshow(croppedImage);
-
-% get inner figure size
-pos = get(gcf, 'InnerPosition'); %// gives x left, y bottom, width, height
-innerWidth = pos(3)/2
-innerHeight = pos(4)/2
-
-% get outer figure size
-pos = get(gcf, 'OuterPosition'); %// gives x left, y bottom, width, height
-outerWidth = pos(3)/2
-outerHeight = pos(4)/2
-
-% set figure size to the same as the cropped cell image
-% FYI this only adjusts the outer figure size, not the inner figure size...
-set(gcf,'InnerPosition',[1 1 innerWidth innerHeight]);
-set(gcf,'OuterPosition',[1 1 outerWidth outerHeight]);
+% re-size 
+set(gcf,'InnerPosition',[2*innerWidth maxHeight-innerHeight innerWidth innerHeight]);
 
 
 
-%% PLOT - Polygon Heatmap 2 ========================================================================
+%% PLOT 3 - Polygon Heatmap 2 ================================================================================
 % Made to be overlayed on top of cell image from rig
 
 % resize the heatmap matrix to match the size of the cropped image from the rig
 % the original heatmap matrix will only be as big as the number of squares
 % used in the polygon design. But the image from the rig will be a lot
 % bigger (the size of the matrix is the size of image in pixels)
-resizedHeatmap = imresize(dataForHeatmap,[size(croppedImage,1) size(croppedImage,2)],'nearest');
+resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImage,2)], 'nearest');
 
-% make DIY heatmap without the actual heatmap function
+% make heatmap without the heatmap function
 figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - heatmap 2'));
-imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [heatmapMin,heatmapMax]);
+imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [heatmapMin,heatmapMax], 'Border', 'tight');
+set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
 c = colorbar;
 c.Label.String = 'SDs from baseline firing rate';
 
 
 
-%% PLOT - Make a blended image with transparency =================================================================
+%% PLOT 4 - Make a blended image with transparency ===========================================================
 % White where there was no inhibition of firing
 % Transparent where there was inhibition of firing beyond significance
 % criteria (firing decreased by -2 SDs from mean baseline firing rate)
@@ -796,7 +836,7 @@ max(max(transparencyMask));
 min(min(transparencyMask));
 
 figure('Name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - transparent heatmap'))
-background = imshow(croppedImage);
+background = imshow(croppedImage, 'Border', 'tight');
 % make a white image the same size as the croppedImage
 whiteImage = cat(3, ones(size(croppedImage)), ones(size(croppedImage)), ones(size(croppedImage)));
 % fyi the placement of hold on and hold off in this code matter a lot for
@@ -811,11 +851,11 @@ set(whiteMask, 'AlphaData', transparencyMask);
 
 % set figure size to the same as the cropped cell image
 % FYI this only adjusts the outer figure size, not the inner figure size...
-set(gcf,'InnerPosition',[1 1 innerWidth innerHeight]);
-set(gcf,'OuterPosition',[1 1 outerWidth outerHeight]);
+set(gcf,'InnerPosition',[0 maxHeight-2.5*innerHeight innerWidth innerHeight]);
+% set(gcf,'OuterPosition',[1 1 outerWidth outerHeight]);
 
 
-%% PLOT - ISI =====================================================================================
+%% PLOT 5 - ISI ==============================================================================================
 
 % ISI CV pre-light across all sweeps
 figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - baseline ISI counts'));
@@ -829,12 +869,12 @@ xlabel('ISI (s)');
 ylabel('Counts per bin');
 axis([0 1 0 ymaxIsiCV])
 xticks([0 1]);
-set(gcf,'Position',[50 550 400 400]);
+set(gcf,'Position',[maxWidth-400 maxHeight-400 400 400]);
 yticks([0 ymaxIsiCV]);
 
 
 
-%% PLOT - ISI normalized =============================================================================
+%% PLOT 6 - ISI normalized ===================================================================================
 
 % ISI CV pre-light across all sweeps
 figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - baseline ISI prob'));
@@ -849,54 +889,11 @@ ylabel('Counts ber Bin / Total Counts');
 axis([0 0.5 0 0.1])
 xticks([0 0.5]);
 yticks([0 0.1]);
-set(gcf,'Position',[50 50 400 400]);
+set(gcf,'Position',[maxWidth-400 maxHeight-400-500 400 400]);
 
 
 
-%% PLOT - Raster plot ================================================================================
-% Zoomed in: mean +- 2SD Hz is from short pre-light baseline
-
-% create figure & name it
-figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - raster'));
-
-% plotting raster plot 
-for square = [1:totalSquares]
-    subplot(gridRows,gridColumns,square)
-    hold on;
-    
-    for sweep = [sweepOrderPerSquare(square,:)]
-        plot(cell2mat(tsBySweep(sweep)), ones(size(cell2mat(sweepNumberArrayBySweep(sweep))))+sweep, '|', 'Color', 'k')        
-    end
-    
-    % zooming in and beautifying raster plot
-    axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur sweepOrderPerSquare(square,1)-20 sweepOrderPerSquare(square,end)+20])
-    ylabel(strcat('Sweeps (', num2str(sweepsPerSquare), ')'));
-    xlabel('Time (s)');
-    yticks([]);
-    xticks(0:1:10);
-    xticklabels([]);
-
-    % adding light stim
-    rectangle('Position', [lightOnsetTime sweepOrderPerSquare(square,1)-20 lightDur sweepOrderPerSquare(square,end)+100], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
-
-    % stop plotting things on this subplot
-    hold off;
-
-    % flip the y-axis so that the first sweep is at the top and the last
-    % sweep is at the bottom
-    set(gca, 'YDir','reverse');
-    set(gcf, 'InnerPosition', [1 1 innerWidth innerHeight]);
-end
-
-% % set figure size to the same as the cropped cell image
-% % FYI this only adjusts the outer figure size, not the inner figure size...
-% set(gcf,'InnerPosition',[1 1 innerWidth innerHeight]);
-% set(gcf,'PositionConstraint','innerposition');
-% set(gcf,'OuterPosition',[1 1 outerWidth outerHeight]);
-
-
-
-%% PLOT - Raster plot ================================================================================
+%% PLOT 7 - Raster plot (tiled) ==============================================================================
 % Zoomed in: mean +- 2SD Hz is from short pre-light baseline
 
 % create figure & name it
@@ -918,13 +915,17 @@ for square = [1:totalSquares]
 %     xlabel('Time (s)');
     yticks([]);
     xticks(0:1:10);
-    xticklabels([]);
 
     % adding light stim
     rectangle('Position', [lightOnsetTime sweepOrderPerSquare(square,1)-20 lightDur sweepOrderPerSquare(square,end)+100], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
 
     % stop plotting things on this subplot
     hold off;
+    
+    % remove x labels from all plots except the last
+    if square ~= gridRows * gridColumns
+        xticklabels([]);
+    end
 
     % flip the y-axis so that the first sweep is at the top and the last
     % sweep is at the bottom
@@ -939,12 +940,12 @@ ylabel(t,strcat('Sweeps (', num2str(sweepsPerSquare), ')'));
 
 % set figure size to the same as the cropped cell image
 % FYI this only adjusts the outer figure size, not the inner figure size...
-set(gcf,'OuterPosition',[1 1 outerWidth outerHeight]);
-set(gcf,'InnerPosition',[1 1 innerWidth innerHeight]);
+% set(gcf,'OuterPosition',[1 1 outerWidth outerHeight]);
+set(gcf,'InnerPosition',[innerWidth maxHeight-2.5*innerHeight innerWidth innerHeight]);
 
 
 
-%% PLOT - Firing histogram =============================
+%% PLOT 8 - Firing histogram (tiled) =========================================================================
 % mean +- 2SD Hz is from short pre-light baseline for all sweeps
 
 % note that these show the AVERAGE firing rate accross sweeps
@@ -960,17 +961,20 @@ sweepSizeDataPts = size(xch2,1);
 sweepSizeSec = sweepSizeDataPts/samplingFrequency;
 edges = [0:sweepSizeSec];
 
-figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - hist 1'));
+% create figure & name it
+figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - tiled hist 1'));
+t = tiledlayout(gridRows, gridColumns);
 
 % plotting histogram plot 
 for square = [1:totalSquares]
     tsBySquare = [];
-    subplot(gridRows,gridColumns,square)
-
+    nexttile
+    hold on;
+    
     for sweep = [sweepOrderPerSquare(square,:)]
         tsBySquare = [tsBySquare; cell2mat(tsBySweep(sweep))]; 
     end
-
+    
     [Nsquare, edges] = histcounts(tsBySquare,edges);
     firingHzSquare = Nsquare/sweepsPerSquare;
     histogram('BinEdges', 0:sweepSizeSec, 'BinCounts', firingHzSquare, 'DisplayStyle', 'stairs', 'EdgeColor', 'k'); 
@@ -985,346 +989,542 @@ for square = [1:totalSquares]
     % [x y width height]
     rectangle('Position', [0 hzPreLightMean-(2*hzPreLightStd) 30 4*hzPreLightStd], 'FaceColor', [0 0 0 0.1], 'EdgeColor', 'none');
 
-    xlabel('Time (s)');
-    ylabel('Firing rate (Hz)');
     axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur 0 ymaxhist])
-    set(gcf,'Position',[500 50 500 400]);
-    %     xticks([0 30]);
     yticks([0 ymaxhist]);
-    hold off;
-     
+    xticks(0:1:10);
+    
+    % remove y labels from all plots except the first
+    if square ~= 1 
+        yticklabels([]);
+    end
+    
+    % remove x labels from all plots except the last
+    if square ~= gridRows * gridColumns
+        xticklabels([]);
+    end
+    
+    hold off;    
 end
 
+t.TileSpacing = 'compact';
+t.Padding = 'compact';
+xlabel(t,'Time (s)')
+ylabel(t,'Firing rate (Hz)');
+
+% set figure size to the same as the cropped cell image
+% FYI this only adjusts the outer figure size, not the inner figure size...
+% set(gcf,'OuterPosition',[1 1 outerWidth outerHeight]);
+set(gcf,'InnerPosition',[2*innerWidth maxHeight-2.5*innerHeight innerWidth innerHeight]);
 
 
-%% PLOT - Firing histogram 2 =============================
+
+%% PLOT 9 - AP width =========================================================================================
+
+% Plot all APs and avg AP (not filtered, baseline subtracted)
+% Ddy based ONset is marked with a blue arrow >
+% Avg based PEAK is marked with a red arrow ^
+% Avg based VALLEY is marked with a red arrow v
+% Ddy based OFFset is marked with a blue arrow <
+% Avg based OFFset is marked with a red arrow <
+figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light_polygon - AP width'));     
+hold on;
+    plot(xSubset, ySubsetAll,'Color', [0.75, 0.75, 0.75, 0.5], 'LineWidth', 0.2);
+    plot(xSubset, avgAP,'Color','black','LineWidth',1.5); 
+    plot(xSubset(avgAPpeakInDataPoints), max(avgAP),'^','color', 'r');
+    plot(xSubset(avgAPvalleyInDataPoints), min(avgAP),'v','color', 'r');
+    plot(ddyBasedOffsetInMilliSeconds, avgAP(ddyBasedOffsetInDataPoints), '<', 'color', 'b');
+    plot(ddyBasedOnsetInMilliSeconds, avgAP(ddyBasedOnsetInDataPoints), '>', 'color', 'b');
+    plot(avgAPoffsetInMilliSeconds, avgAP(avgAPoffsetInDataPoints), '<', 'color', 'r');
+    xlabel('Time (ms)');
+    ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+    title([fileName ' AP width'],'Interpreter','none');
+hold off;
+set(gcf,'Position',[maxWidth-300 maxHeight-400 400 400]);
+
+% Display y axis inverted to match how extracelullar spikes are most often displayed in the literature
+set(gca, 'YDir','reverse');
+
+% adding scale bar
+xmaxHere = 1000*(preAPinSeconds+postAPinSeconds);
+line([xmaxHere-2 xmaxHere],[min(avgAP) min(avgAP)],'Color','k')
+line([xmaxHere xmaxHere],[min(avgAP) min(avgAP)+10],'Color','k')
+text(xmaxHere-2, min(avgAP)+5, "2 ms")
+text(xmaxHere-2, min(avgAP)+10, strcat("10 ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+
+
+
+%% PLOT 10 - AP width with derivatives =======================================================================
+
+% Plot the first (blue) and second (red) derivative of the avg
+% Use this dor troubleshooting and adjusting ddyPeakThreshold and ddyValleyThreshold
+figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light_polygon - AP width ddy'));
+hold on;
+    plot(xSubset, avgAP,'Color','black','LineWidth',1);
+    plot(xForDy, dy,'Color', 'b', 'LineWidth', 1);
+    plot(xForDdy, ddy,'Color', 'r', 'LineWidth', 1);
+    plot(ddyBasedOnsetInMilliSeconds, ddy(ddyBasedOnsetInDataPoints+1), '>', 'color', 'b');
+    plot(ddyBasedOffsetInMilliSeconds, ddy(ddyBasedOffsetInDataPoints), '<', 'color', 'b');
+    line([0 xSubset(end)],[ddyPeakThreshold ddyPeakThreshold], 'LineStyle', '-.');
+    line([0 xSubset(end)],[-ddyValleyThreshold -ddyValleyThreshold], 'LineStyle', '--');
+    xlabel('Time (ms)');
+    ylabel('Amplitude');
+    title([fileName ' AP width ddy'],'Interpreter','none');
+    legend('avg AP', 'avg AP dy', 'avg AP ddy', 'ddy based ONset', 'ddy based OFFset', 'ddyPeakThreshold', 'ddyValleyThreshold', 'Location', 'northeast');
+hold off;
+set(gcf,'Position',[maxWidth-300 maxHeight-400-500 400 400]);
+
+
+
+%% EXPORTING XLS files ==========================================
+
+% stores key sweep by sweep data
+filename = strcat(fileName, '_', analysisDate, " - firing_vs_light_polygon - sweep_by_sweep");
+fulldirectory = strcat(savefileto,'\',filename,'.xls');        
+dataInCellFormat = {};
+dataInCellFormat = num2cell(data);
+labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
+    {'mouse', ...
+    'date', ...
+    'sweep', ...
+    'gridColumns', ...
+    'gridRows', ...
+    'sweepsPerSquare', ...    
+    'discardedSweeps', ...
+    'peaks(1)OrValleys(-1)', ...
+    'highpassThreshold', ...
+    'lowpassThreshold', ...
+    'minPeakHeight', ...        
+    'minPeakDistance', ...    
+    'lightExtensionFactor', ...
+    'lightChannel', ...
+    'singleLightPulse', ...
+    'lightPulseDur(s)', ... 
+    'lightStimFreq(Hz)', ...
+    'lightDur(s)', ...
+    'baselineHz', ...
+    'baselineIsiMean(s)', ...
+    'baselineIsiSD(s)', ...
+    'baselineIsiCV', ...
+    'irregular', ...
+    'preLightAPs', ...
+    'duringLightAPs', ...
+    'postLightAPs', ...
+    'preLightHz', ...
+    'duringLightHz', ...
+    'postLightHz', ...
+    'lightEffect', ...
+    'sdFromPreLightHz'});
+writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
+disp('I saved the sweep_by_sweep xls file')
+
+% stores all timestamps from all sweeps in a single column
+filename = strcat(fileName, '_', analysisDate, " - firing_vs_light_polygon - all_AP_timestamps");
+fulldirectory = strcat(savefileto,'\',filename,'.xls');        
+writematrix(allTimeStamps, fulldirectory, 'WriteMode', 'overwritesheet');
+disp('I saved the all_AP_timestamps xls file')
+
+% stores AP shape data in a single row
+filename = strcat(fileName, '_', analysisDate, " - firing_vs_light_polygon - AP_shape");
+fulldirectory = strcat(savefileto,'\',filename,'.xls');        
+dataInCellFormat = {};
+dataInCellFormat = num2cell(dataAPshape);
+labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
+    {'mouse', ...
+    'date', ...
+    'firstSweep', ...
+    'lastSweep', ...
+    'discardedSweepsFromEnd', ...
+    'peaks(1)OrValleys(-1)', ...
+    'highpassThreshold', ...
+    'lowpassThreshold', ...
+    'minPeakHeight', ...        
+    'minPeakDistance', ...
+    'preAP(s)', ...
+    'postAP(s)', ...
+    'baselinePreAPdur(s)', ...
+    'ddyValleyThreshold', ...
+    'ddyPeakThreshold', ...
+    'nAPtotal', ...
+    'ddyBasedOnset(ms)', ...
+    'APvalley(ms)', ...
+    'APpeak(ms)', ...
+    'ddyBasedOffset(ms)', ...
+    'avgBasedOffset(ms)', ...
+    'halfWidth(ms)', ...
+    'biphasicDuration(ms)', ...
+    'totalDurationDdyBased(ms)', ...
+    'totalDurationAvgBased(ms)', ...
+    'isDA'});
+writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
+disp('I saved the AP_shape xls file')
+
+
+% create cell array with strings for naming square-by-square data
+squareVariables = cell(1,size(dataSquare,1)*size(dataSquare,2));
+for square = [1:totalSquares]
+    startingIndex = square*8 - 7;
+    squareVariables(startingIndex) = {strcat('sq', num2str(square), '-preLight(Hz)AVG')};
+    squareVariables(startingIndex+1) = {strcat('sq', num2str(square), '-duringLight(Hz)AVG')};
+    squareVariables(startingIndex+2) = {strcat('sq', num2str(square), '-postLight(Hz)AVG')};
+    squareVariables(startingIndex+3) = {strcat('sq', num2str(square), '-preLight(Hz)STD')};
+    squareVariables(startingIndex+4) = {strcat('sq', num2str(square), '-duringLight(Hz)STD')};
+    squareVariables(startingIndex+5) = {strcat('sq', num2str(square), '-postLight(Hz)STD')};
+    squareVariables(startingIndex+6) = {strcat('sq', num2str(square), '-lightEffect(-1,0,1)')};
+    squareVariables(startingIndex+7) = {strcat('sq', num2str(square), '-medianSdFromPreLightHz')};
+end
+
+% stores cell data in a single row
+filename = strcat(fileName, '_', analysisDate, " - firing_vs_light_polygon - cell");
+fulldirectory = strcat(savefileto,'\',filename,'.xls');        
+dataInCellFormat = {};
+dataInCellFormat = num2cell(dataCell);
+dataInCellFormat = [dataInCellFormat, cellImageFileName];
+labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
+    {'mouse', ...
+    'date', ...
+    'firstSweep', ...
+    'lastSweep', ...
+    'nSweeps', ...
+    'gridColumns', ...
+    'gridRows', ...
+    'sweepsPerSquare', ...
+    'discardedSweepsFromEnd', ...
+    'peaks(1)OrValleys(-1)', ...
+    'highpassThreshold', ...
+    'lowpassThreshold', ...
+    'minPeakHeight', ...        
+    'minPeakDistance', ...
+    'lightExtensionFactor', ...
+    'lightChannel', ...
+    'singleLightPulse(1)', ...
+    'preAP(s)', ...
+    'postAP(s)', ...
+    'baselinePreAPdur(s)', ...
+    'ddyValleyThreshold', ...
+    'ddyPeakThreshold', ...
+    'ymax', ...
+    'ymaxhist', ...
+    'zoomWindow', ...
+    'ymaxIsiCV', ...
+    'heatmapMin', ...
+    'heatmapMax', ...
+    'lightPulseDur(s)', ... 
+    'lightStimFreq(Hz)', ...
+    'lightDur(s)', ...   
+    'nAPtotalForShape', ...
+    'halfWidth(ms)', ...
+    'biphasicDuration(ms)', ...
+    'totalDurationDdyBased(ms)', ...
+    'totalDurationAvgBased(ms)', ...
+    'baselineHzMean', ...
+    'baselineHzSD', ...
+    'baselineHzCV', ...
+    'baselineISImean', ...
+    'baselineISIsd', ...
+    'baselineISIcv', ...
+    'isDA(0,1)', ...
+    'isIrregular(0,1)', ...
+    squareVariables{:}, ...
+    'cellImageFileName'});
+writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
+disp('I saved the cell_avgs xls file')
+
+
+
+%% Obsolete code
+
+%% PLOT 7.1 - Raster plot (subplots) ================================================================================
+% Obsolete code - I replaced subplots by tiled plots
+% Zoomed in: mean +- 2SD Hz is from short pre-light baseline
+
+% % create figure & name it
+% figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - raster'));
+% 
+% % plotting raster plot 
+% for square = [1:totalSquares]
+%     subplot(gridRows,gridColumns,square)
+%     hold on;
+%     
+%     for sweep = [sweepOrderPerSquare(square,:)]
+%         plot(cell2mat(tsBySweep(sweep)), ones(size(cell2mat(sweepNumberArrayBySweep(sweep))))+sweep, '|', 'Color', 'k')        
+%     end
+%     
+%     % zooming in and beautifying raster plot
+%     axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur sweepOrderPerSquare(square,1)-20 sweepOrderPerSquare(square,end)+20])
+%     ylabel(strcat('Sweeps (', num2str(sweepsPerSquare), ')'));
+%     xlabel('Time (s)');
+%     yticks([]);
+%     xticks(0:1:10);
+%     xticklabels([]);
+% 
+%     % adding light stim
+%     rectangle('Position', [lightOnsetTime sweepOrderPerSquare(square,1)-20 lightDur sweepOrderPerSquare(square,end)+100], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+% 
+%     % stop plotting things on this subplot
+%     hold off;
+% 
+%     % flip the y-axis so that the first sweep is at the top and the last
+%     % sweep is at the bottom
+%     set(gca, 'YDir','reverse');
+%     set(gcf, 'InnerPosition', [0 maxHeight-innerHeight-400 innerWidth innerHeight]);
+% end
+
+
+%% PLOT 8.1 - Firing histogram (subplots) ======================================
+% Obsolete code - I replaced subplots by tiled plots
+% mean +- 2SD Hz is from short pre-light baseline for all sweeps
+
+% % note that these show the AVERAGE firing rate accross sweeps
+% % my criteria for labeling a cell as "suppressed" does NOT use AVERAGE. It
+% % used MEDIAN. When I calculate "sdFromPreLightHz", I take the MEDIAN
+% % accross sweeps, not the average. HENCE the plots don't always agree with
+% % the variable sdFromPreLightHz. You can get a histogram that looks like a
+% % suppressed cell (the average crosses the mean+-2SD, but the
+% % sdFromPreLightHz is not -2SD.
+% 
+% % figuring out how many seconds in the sweep to create histogram edges
+% sweepSizeDataPts = size(xch2,1);
+% sweepSizeSec = sweepSizeDataPts/samplingFrequency;
+% edges = [0:sweepSizeSec];
+% 
+% figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - hist 1'));
+% 
+% % plotting histogram plot 
+% for square = [1:totalSquares]
+%     tsBySquare = [];
+%     subplot(gridRows,gridColumns,square)
+% 
+%     for sweep = [sweepOrderPerSquare(square,:)]
+%         tsBySquare = [tsBySquare; cell2mat(tsBySweep(sweep))]; 
+%     end
+% 
+%     [Nsquare, edges] = histcounts(tsBySquare,edges);
+%     firingHzSquare = Nsquare/sweepsPerSquare;
+%     histogram('BinEdges', 0:sweepSizeSec, 'BinCounts', firingHzSquare, 'DisplayStyle', 'stairs', 'EdgeColor', 'k'); 
+% 
+%     % plot light stim as rectangle
+%     rectangle('Position', [lightOnsetTime 0 lightDur ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+% 
+%     % plot Hz mean as horizontal line
+%     yline(hzPreLightMean, '--');
+% 
+%     % plot +- 2 SD as rectangle around mean
+%     % [x y width height]
+%     rectangle('Position', [0 hzPreLightMean-(2*hzPreLightStd) 30 4*hzPreLightStd], 'FaceColor', [0 0 0 0.1], 'EdgeColor', 'none');
+% 
+%     xlabel('Time (s)');
+%     ylabel('Firing rate (Hz)');
+%     axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur 0 ymaxhist])
+%     set(gcf, 'InnerPosition', [innerWidth maxHeight-innerHeight innerWidth innerHeight]);
+%     yticks([0 ymaxhist]);
+%     hold off;     
+% end
+
+
+%% PLOT 9.1 - Firing histogram 2 (subplots) =============================
+% Obsolete code - I replaced subplots by tiled plots
+% Obsolete code - I prefer to compare the square-by-square data to the
+% cell's average firing rate and not the square-specific firing rate
 % mean +- 2SD Hz is from short pre-light baseline for specific squares
 
-% figuring out how many seconds in the sweep to create histogram edges
-sweepSizeDataPts = size(xch2,1);
-sweepSizeSec = sweepSizeDataPts/samplingFrequency;
-edges = [0:sweepSizeSec];
-
-figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - hist 2'));
-
-% plotting histogram plot 
-for square = [1:totalSquares]
-    tsBySquare = [];
-    subplot(gridRows,gridColumns,square)
-
-    for sweep = [sweepOrderPerSquare(square,:)]
-        tsBySquare = [tsBySquare; cell2mat(tsBySweep(sweep))]; 
-    end
-
-    [Nsquare, edges] = histcounts(tsBySquare,edges);
-    firingHzSquare = Nsquare/sweepsPerSquare;
-    histogram('BinEdges', 0:sweepSizeSec, 'BinCounts', firingHzSquare, 'DisplayStyle', 'stairs', 'EdgeColor', 'k'); 
-
-    % plot light stim as rectangle
-    rectangle('Position', [lightOnsetTime 0 lightDur ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
-
-    % plot Hz mean as horizontal line
-    hzPreLightMeanSquare = dataSquare(square,1);
-    yline(hzPreLightMeanSquare, '--');
-
-    % plot +- 2 SD as rectangle around mean
-    % [x y width height]
-    hzPreLightStdSquare = dataSquare(square,4);
-    rectangle('Position', [0 hzPreLightMeanSquare-(2*hzPreLightStdSquare) 30 4*hzPreLightStdSquare], 'FaceColor', [0 0 0 0.1], 'EdgeColor', 'none');
-
-    xlabel('Time (s)');
-    ylabel('Firing rate (Hz)');
-    axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur 0 ymaxhist])
-    set(gcf,'Position',[500 50 500 400]);
-    %     xticks([0 30]);
-    yticks([0 ymaxhist]);
-    hold off;
-     
-end
+% % figuring out how many seconds in the sweep to create histogram edges
+% sweepSizeDataPts = size(xch2,1);
+% sweepSizeSec = sweepSizeDataPts/samplingFrequency;
+% edges = [0:sweepSizeSec];
+% 
+% figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - hist 2'));
+% 
+% % plotting histogram plot 
+% for square = [1:totalSquares]
+%     tsBySquare = [];
+%     subplot(gridRows,gridColumns,square)
+% 
+%     for sweep = [sweepOrderPerSquare(square,:)]
+%         tsBySquare = [tsBySquare; cell2mat(tsBySweep(sweep))]; 
+%     end
+% 
+%     [Nsquare, edges] = histcounts(tsBySquare,edges);
+%     firingHzSquare = Nsquare/sweepsPerSquare;
+%     histogram('BinEdges', 0:sweepSizeSec, 'BinCounts', firingHzSquare, 'DisplayStyle', 'stairs', 'EdgeColor', 'k'); 
+% 
+%     % plot light stim as rectangle
+%     rectangle('Position', [lightOnsetTime 0 lightDur ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+% 
+%     % plot Hz mean as horizontal line
+%     hzPreLightMeanSquare = dataSquare(square,1);
+%     yline(hzPreLightMeanSquare, '--');
+% 
+%     % plot +- 2 SD as rectangle around mean
+%     % [x y width height]
+%     hzPreLightStdSquare = dataSquare(square,4);
+%     rectangle('Position', [0 hzPreLightMeanSquare-(2*hzPreLightStdSquare) 30 4*hzPreLightStdSquare], 'FaceColor', [0 0 0 0.1], 'EdgeColor', 'none');
+% 
+%     xlabel('Time (s)');
+%     ylabel('Firing rate (Hz)');
+%     axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur 0 ymaxhist])
+%     set(gcf, 'InnerPosition', [innerWidth maxHeight-innerHeight-100 innerWidth innerHeight]);
+%     yticks([0 ymaxhist]);
+%     hold off;     
+% end
 
 
+%% PLOT 9.2 - Firing histogram 2 (tiled) ================================================================================
+% Obsolete code - I prefer to compare the square-by-square data to the
+% cell's average firing rate and not the square-specific firing rate
+% mean +- 2SD Hz is from short pre-light baseline for specific squares
+
+% % figuring out how many seconds in the sweep to create histogram edges
+% sweepSizeDataPts = size(xch2,1);
+% sweepSizeSec = sweepSizeDataPts/samplingFrequency;
+% edges = [0:sweepSizeSec];
+% 
+% % create figure & name it
+% figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon - tiled hist 2'));
+% t = tiledlayout(gridRows, gridColumns);
+% 
+% % plotting histogram plot 
+% for square = [1:totalSquares]
+%     tsBySquare = [];
+%     nexttile
+%     hold on;
+%     
+%     for sweep = [sweepOrderPerSquare(square,:)]
+%         tsBySquare = [tsBySquare; cell2mat(tsBySweep(sweep))]; 
+%     end
+%     
+%     [Nsquare, edges] = histcounts(tsBySquare,edges);
+%     firingHzSquare = Nsquare/sweepsPerSquare;
+%     histogram('BinEdges', 0:sweepSizeSec, 'BinCounts', firingHzSquare, 'DisplayStyle', 'stairs', 'EdgeColor', 'k'); 
+% 
+%     % plot light stim as rectangle
+%     rectangle('Position', [lightOnsetTime 0 lightDur ymaxhist], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+% 
+%     % plot Hz mean as horizontal line
+%     hzPreLightMeanSquare = dataSquare(square,1);
+%     yline(hzPreLightMeanSquare, '--');
+% 
+%     % plot +- 2 SD as rectangle around mean
+%     % [x y width height]
+%     hzPreLightStdSquare = dataSquare(square,4);
+%     rectangle('Position', [0 hzPreLightMeanSquare-(2*hzPreLightStdSquare) 30 4*hzPreLightStdSquare], 'FaceColor', [0 0 0 0.1], 'EdgeColor', 'none');
+% 
+%     axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur 0 ymaxhist])
+%     yticks([0 ymaxhist]);
+%     xticks(0:1:10);
+%     
+%     % remove y labels from all plots except the first
+%     if square ~= 1 
+%         yticklabels([]);
+%     end
+%     
+%     % remove x labels from all plots except the last
+%     if square ~= gridRows * gridColumns
+%         xticklabels([]);
+%     end
+%     
+%     hold off;    
+% end
+% 
+% t.TileSpacing = 'compact';
+% t.Padding = 'compact';
+% xlabel(t,'Time (s)')
+% ylabel(t,'Firing rate (Hz)');
+% 
+% % set figure size to the same as the cropped cell image
+% set(gcf,'InnerPosition',[0 maxHeight-innerHeight-500 innerWidth innerHeight]);
 
 
-% % % %% PLOT - AP width ==============================================
-% % % 
-% % % % Plot all APs and avg AP (not filtered, baseline subtracted)
-% % % % Ddy based ONset is marked with a blue arrow >
-% % % % Avg based PEAK is marked with a red arrow ^
-% % % % Avg based VALLEY is marked with a red arrow v
-% % % % Ddy based OFFset is marked with a blue arrow <
-% % % % Avg based OFFset is marked with a red arrow <
-% % % figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light - AP width'));     
-% % % hold on;
-% % %     plot(xSubset, ySubsetAll,'Color', [0.75, 0.75, 0.75, 0.5], 'LineWidth', 0.2);
-% % %     plot(xSubset, avgAP,'Color','black','LineWidth',1.5); 
-% % %     plot(xSubset(avgAPpeakInDataPoints), max(avgAP),'^','color', 'r');
-% % %     plot(xSubset(avgAPvalleyInDataPoints), min(avgAP),'v','color', 'r');
-% % %     plot(ddyBasedOffsetInMilliSeconds, avgAP(ddyBasedOffsetInDataPoints), '<', 'color', 'b');
-% % %     plot(ddyBasedOnsetInMilliSeconds, avgAP(ddyBasedOnsetInDataPoints), '>', 'color', 'b');
-% % %     plot(avgAPoffsetInMilliSeconds, avgAP(avgAPoffsetInDataPoints), '<', 'color', 'r');
-% % %     xlabel('Time (ms)');
-% % %     ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
-% % %     title([fileName ' AP width'],'Interpreter','none');
-% % % hold off;
-% % % set(gcf,'Position',[1000 50 400 400]);
-% % % 
-% % % % Display y axis inverted to match how extracelullar spikes are most often displayed in the literature
-% % % set(gca, 'YDir','reverse');
-% % % 
-% % % % adding scale bar
-% % % xmaxHere = 1000*(preAPinSeconds+postAPinSeconds);
-% % % line([xmaxHere-2 xmaxHere],[min(avgAP) min(avgAP)],'Color','k')
-% % % line([xmaxHere xmaxHere],[min(avgAP) min(avgAP)+10],'Color','k')
-% % % text(xmaxHere-2, min(avgAP)+5, "2 ms")
-% % % text(xmaxHere-2, min(avgAP)+10, strcat("10 ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
-% % % 
-% % % 
-% % % %% PLOT - AP width with derivatives =============================
-% % % 
-% % % % Plot the first (blue) and second (red) derivative of the avg
-% % % % Use this dor troubleshooting and adjusting ddyPeakThreshold and ddyValleyThreshold
-% % % figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light - AP width ddy'));
-% % % hold on;
-% % %     plot(xSubset, avgAP,'Color','black','LineWidth',1);
-% % %     plot(xForDy, dy,'Color', 'b', 'LineWidth', 1);
-% % %     plot(xForDdy, ddy,'Color', 'r', 'LineWidth', 1);
-% % %     plot(ddyBasedOnsetInMilliSeconds, ddy(ddyBasedOnsetInDataPoints+1), '>', 'color', 'b');
-% % %     plot(ddyBasedOffsetInMilliSeconds, ddy(ddyBasedOffsetInDataPoints), '<', 'color', 'b');
-% % %     line([0 xSubset(end)],[ddyPeakThreshold ddyPeakThreshold], 'LineStyle', '-.');
-% % %     line([0 xSubset(end)],[-ddyValleyThreshold -ddyValleyThreshold], 'LineStyle', '--');
-% % %     xlabel('Time (ms)');
-% % %     ylabel('Amplitude');
-% % %     title([fileName ' AP width ddy'],'Interpreter','none');
-% % %     legend('avg AP', 'avg AP dy', 'avg AP ddy', 'ddy based ONset', 'ddy based OFFset', 'ddyPeakThreshold', 'ddyValleyThreshold', 'Location', 'northeast');
-% % % hold off;
-% % % set(gcf,'Position',[1000 550 400 400]);
-% % % 
-% % % 
-% % % %% PLOT - AP width with derivatives normalized ==================
-% % % 
-% % % % % Plot the first (blue) and second (red) derivative of the avg - Normalized
-% % % % figure('name', strcat(fileName,' y dy ddy Normalized'));
-% % % % hold on;
-% % % %     plot(xSubset, avgAP/max(avgAP),'Color','black','LineWidth',1);
-% % % %     plot(xForDy, dy/max(dy),'Color', 'b', 'LineWidth', 1);
-% % % %     plot(xForDdy, ddy/max(ddy),'Color', 'r', 'LineWidth', 1);
-% % % %     plot(ddyAfterLastPeakOrValleyInMilliSeconds, ddy(ddyAfterLastPeakOrValleyInDataPoints)/max(ddy), 'o', 'color', 'k');
-% % % %     plot(ddyBasedOffsetInMilliSeconds, ddy(ddyBasedOffsetInDataPoints)/max(ddy), '<', 'color', 'b');
-% % % %     plot(ddyBasedOnsetInMilliSeconds, ddy(ddyBasedOnsetInDataPoints)/max(ddy), '>', 'color', 'b');
-% % % %     xlabel('Time (ms)');
-% % % %     ylabel('Normalized Amplitude (au)');
-% % % %     title([fileName ' Normalized y dy ddy'],'Interpreter','none');
-% % % %     legend('avg AP', 'avg AP dy', 'avg AP ddy', 'Location', 'northwest');
-% % % % hold off;
-% % % % movegui('northeast');
-% % % 
-% % % 
-% % % %% PLOT - niceplot of first sweep ===============================
-% % % 
-% % % % plotting niceplot of first sweep    
-% % % figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light - niceplot 1st sweep'));
-% % % plot(x,yFilteredAll(:,1),'k','LineWidth',1);
-% % % axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur -ymax ymax]);
-% % % title([fileName ' - firing_vs_light - niceplot 1st sweep'],'Interpreter','none');
-% % % set(gca,'Visible','off');
-% % % set(gcf,'Position',[1400 50 500 400]);
-% % % 
-% % % % if the light stim is a train (singleLightPulse = 0), add light
-% % % % stim cartoon as a train.
-% % % % adding light stim as train - faithful to light stim parameters
-% % % % note that this code will use light stim parameters from the last sweep!
-% % % % if light stim is not the same accross all sweeps, this will be
-% % % % misleading!
-% % % if singleLightPulse == 0
-% % %     for nStim=1:length(lightPulseStart)
-% % %         line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
-% % %     end
-% % % end
-% % % 
-% % % % adding light stim as rectangle
-% % % % note that this code will use light stim parameters from the last sweep!
-% % % % if light stim is not the same accross all sweeps, this will be
-% % % % misleading!
-% % % line([lightOnsetTime,lightOnsetTime+lightDur],[ymax-10,ymax-10],'Color',[0 0.4470 0.7410],'LineWidth',10)
-% % % 
-% % % % adding scale bar
-% % % xmin = lightOnsetTime-lightDur;
-% % % xmax = lightOnsetTime+2*lightDur;
-% % % ymin = -ymax;
-% % % line([xmax-1 xmax],[ymax ymax],'Color','k')
-% % % line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
-% % % text(xmax-1, ymax-((ymax-ymin)/20), "1 s")
-% % % text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
-% % % hold off;
-% % % 
-% % % 
-% % % %% PLOT - niceplot of all sweeps ================================
-% % % 
-% % % % plotting niceplot     
-% % % figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light - niceplot all'));
-% % % plot(x,yFilteredAll,'Color',[0, 0, 0, 0.25]);
-% % % axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur -ymax ymax]);
-% % % title([fileName ' - firing_vs_light - niceplot all'],'Interpreter','none');
-% % % set(gca,'Visible','off');
-% % % set(gcf,'Position',[1400 550 500 400]);
-% % % 
-% % % % adding light stim   
-% % % % if the light stim is a train (singleLightPulse = 0), add light
-% % % % stim cartoon as a train.
-% % % % note that this code will use light stim parameters from the last sweep!
-% % % % if light stim is not the same accross all sweeps, this will be
-% % % % misleading!
-% % % if singleLightPulse == 0
-% % %     for nStim=1:length(lightPulseStart)
-% % %         line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
-% % %     end
-% % % end
-% % % 
-% % % % adding light stim
-% % % % note that this code will use light stim parameters from the last sweep!
-% % % % if light stim is not the same accross all sweeps, this will be
-% % % % misleading!
-% % % line([lightOnsetTime,lightOnsetTime+lightDur],[ymax-10,ymax-10],'Color',[0 0.4470 0.7410],'LineWidth',10)
-% % % 
-% % % % adding scale bar
-% % % xmin = lightOnsetTime-lightDur;
-% % % xmax = lightOnsetTime+2*lightDur;
-% % % ymin = -ymax;
-% % % line([xmax-1 xmax],[ymax ymax],'Color','k')
-% % % line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
-% % % text(xmax-1, ymax-((ymax-ymin)/20), "1 s")
-% % % text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
-% % % 
-% % % 
-% % % %% EXPORTING XLS files ==========================================
-% % % 
-% % % % stores key sweep by sweep data
-% % % filename = strcat(fileName, '_', analysisDate, " - firing_vs_light - sweep_by_sweep");
-% % % fulldirectory = strcat(savefileto,'\',filename,'.xls');        
-% % % dataInCellFormat = {};
-% % % dataInCellFormat = num2cell(data);
-% % % labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
-% % %     {'mouse', ...
-% % %     'date', ...
-% % %     'sweep', ...
-% % %     'discardedSweeps', ...
-% % %     'peaks(1)OrValleys(-1)', ...
-% % %     'highpassThreshold', ...
-% % %     'lowpassThreshold', ...
-% % %     'minPeakHeight', ...        
-% % %     'minPeakDistance', ...    
-% % %     'lightExtensionFactor', ...
-% % %     'lightPulseDur(s)', ... 
-% % %     'lightStimFreq(Hz)', ...
-% % %     'lightDur(s)', ...
-% % %     'baselineHz', ...
-% % %     'baselineIsiMean(s)', ...
-% % %     'baselineIsiSD(s)', ...
-% % %     'baselineIsiCV', ...
-% % %     'irregular', ...
-% % %     'preLightAPs', ...
-% % %     'duringLightAPs', ...
-% % %     'postLightAPs', ...
-% % %     'preLightHz', ...
-% % %     'duringLightHz', ...
-% % %     'postLightHz', ...
-% % %     'lightEffect', ...
-% % %     'sdFromPreLightHz'});
-% % % writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
-% % % disp('I saved the sweep_by_sweep xls file')
-% % % 
-% % % % stores all timestamps from all sweeps in a single column
-% % % filename = strcat(fileName, '_', analysisDate, " - firing_vs_light - all_AP_timestamps");
-% % % fulldirectory = strcat(savefileto,'\',filename,'.xls');        
-% % % writematrix(allTimeStamps, fulldirectory, 'WriteMode', 'overwritesheet');
-% % % disp('I saved the all_AP_timestamps xls file')
-% % % 
-% % % % stores AP shape data in a single row
-% % % filename = strcat(fileName, '_', analysisDate, " - firing_vs_light - AP_shape");
-% % % fulldirectory = strcat(savefileto,'\',filename,'.xls');        
-% % % dataInCellFormat = {};
-% % % dataInCellFormat = num2cell(dataAPshape);
-% % % labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
-% % %     {'mouse', ...
-% % %     'date', ...
-% % %     'firstSweep', ...
-% % %     'lastSweep', ...
-% % %     'discardedSweepsFromEnd', ...
-% % %     'peaks(1)OrValleys(-1)', ...
-% % %     'highpassThreshold', ...
-% % %     'lowpassThreshold', ...
-% % %     'minPeakHeight', ...        
-% % %     'minPeakDistance', ...
-% % %     'preAP(s)', ...
-% % %     'postAP(s)', ...
-% % %     'baselinePreAPdur(s)', ...
-% % %     'ddyValleyThreshold', ...
-% % %     'ddyPeakThreshold', ...
-% % %     'nAPtotal', ...
-% % %     'ddyBasedOnset(ms)', ...
-% % %     'APvalley(ms)', ...
-% % %     'APpeak(ms)', ...
-% % %     'ddyBasedOffset(ms)', ...
-% % %     'avgBasedOffset(ms)', ...
-% % %     'halfWidth(ms)', ...
-% % %     'biphasicDuration(ms)', ...
-% % %     'totalDurationDdyBased(ms)', ...
-% % %     'totalDurationAvgBased(ms)', ...
-% % %     'isDA'});
-% % % writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
-% % % disp('I saved the AP_shape xls file')
-% % % 
-% % % % stores avg data in a single row
-% % % filename = strcat(fileName, '_', analysisDate, " - firing_vs_light - cell_avgs");
-% % % fulldirectory = strcat(savefileto,'\',filename,'.xls');        
-% % % dataInCellFormat = {};
-% % % dataInCellFormat = num2cell(dataCell);
-% % % labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
-% % %     {'mouse', ...
-% % %     'date', ...
-% % %     'firstSweep', ...
-% % %     'lastSweep', ...
-% % %     'nSweeps', ...
-% % %     'discardedSweepsFromEnd', ...
-% % %     'peaks(1)OrValleys(-1)', ...
-% % %     'highpassThreshold', ...
-% % %     'lowpassThreshold', ...
-% % %     'minPeakHeight', ...        
-% % %     'minPeakDistance', ...
-% % %     'lightExtensionFactor', ...
-% % %     'preAP(s)', ...
-% % %     'postAP(s)', ...
-% % %     'baselinePreAPdur(s)', ...
-% % %     'ddyValleyThreshold', ...
-% % %     'ddyPeakThreshold', ...
-% % %     'lightPulseDur(s)', ... 
-% % %     'lightStimFreq(Hz)', ...
-% % %     'lightDur(s)', ...   
-% % %     'nAPtotalForShape', ...
-% % %     'halfWidth(ms)', ...
-% % %     'biphasicDuration(ms)', ...
-% % %     'totalDurationDdyBased(ms)', ...
-% % %     'totalDurationAvgBased(ms)', ...
-% % %     'baselineHzMean', ...
-% % %     'baselineHzSD', ...
-% % %     'baselineHzCV', ...
-% % %     'baselineISImean', ...
-% % %     'baselineISIsd', ...
-% % %     'baselineISIcv', ...
-% % %     'preLightHzMean', ...
-% % %     'preLightHzSD', ...
-% % %     'duringLightHzMean', ...
-% % %     'duringLightHzSD', ...
-% % %     'postLightHzMean', ...
-% % %     'postLightHzSD', ...
-% % %     'lightEffect(SDfromMean)', ...
-% % %     'lightEffect(duringHz/preHz)', ...
-% % %     'isDA(0,1)', ...
-% % %     'isIrregular(0,1)', ...
-% % %     'lightEffect(-1,0,1)', ...
-% % %     'medianSdFromPreLightHz'});
-% % % writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
-% % % disp('I saved the cell_avgs xls file')
-% % % 
-% % % % print stuff
-% % % [isDA, isIrregularCell, lightEffectCell]
+%% PLOT - AP width with derivatives normalized ==================
+
+% % Plot the first (blue) and second (red) derivative of the avg - Normalized
+% figure('name', strcat(fileName,' y dy ddy Normalized'));
+% hold on;
+%     plot(xSubset, avgAP/max(avgAP),'Color','black','LineWidth',1);
+%     plot(xForDy, dy/max(dy),'Color', 'b', 'LineWidth', 1);
+%     plot(xForDdy, ddy/max(ddy),'Color', 'r', 'LineWidth', 1);
+%     plot(ddyAfterLastPeakOrValleyInMilliSeconds, ddy(ddyAfterLastPeakOrValleyInDataPoints)/max(ddy), 'o', 'color', 'k');
+%     plot(ddyBasedOffsetInMilliSeconds, ddy(ddyBasedOffsetInDataPoints)/max(ddy), '<', 'color', 'b');
+%     plot(ddyBasedOnsetInMilliSeconds, ddy(ddyBasedOnsetInDataPoints)/max(ddy), '>', 'color', 'b');
+%     xlabel('Time (ms)');
+%     ylabel('Normalized Amplitude (au)');
+%     title([fileName ' Normalized y dy ddy'],'Interpreter','none');
+%     legend('avg AP', 'avg AP dy', 'avg AP ddy', 'Location', 'northwest');
+% hold off;
+% movegui('northeast');
+
+
+%% PLOT - niceplot of first sweep ===============================
+
+% % plotting niceplot of first sweep    
+% figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light - niceplot 1st sweep'));
+% plot(x,yFilteredAll(:,1),'k','LineWidth',1);
+% axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur -ymax ymax]);
+% title([fileName ' - firing_vs_light - niceplot 1st sweep'],'Interpreter','none');
+% set(gca,'Visible','off');
+% set(gcf,'Position',[1400 50 500 400]);
+% 
+% % if the light stim is a train (singleLightPulse = 0), add light
+% % stim cartoon as a train.
+% % adding light stim as train - faithful to light stim parameters
+% % note that this code will use light stim parameters from the last sweep!
+% % if light stim is not the same accross all sweeps, this will be
+% % misleading!
+% if singleLightPulse == 0
+%     for nStim=1:length(lightPulseStart)
+%         line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+%     end
+% end
+% 
+% % adding light stim as rectangle
+% % note that this code will use light stim parameters from the last sweep!
+% % if light stim is not the same accross all sweeps, this will be
+% % misleading!
+% line([lightOnsetTime,lightOnsetTime+lightDur],[ymax-10,ymax-10],'Color',[0 0.4470 0.7410],'LineWidth',10)
+% 
+% % adding scale bar
+% xmin = lightOnsetTime-lightDur;
+% xmax = lightOnsetTime+2*lightDur;
+% ymin = -ymax;
+% line([xmax-1 xmax],[ymax ymax],'Color','k')
+% line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
+% text(xmax-1, ymax-((ymax-ymin)/20), "1 s")
+% text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+% hold off;
+
+
+%% PLOT - niceplot of all sweeps ================================
+
+% % plotting niceplot     
+% figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light - niceplot all'));
+% plot(x,yFilteredAll,'Color',[0, 0, 0, 0.25]);
+% axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur -ymax ymax]);
+% title([fileName ' - firing_vs_light - niceplot all'],'Interpreter','none');
+% set(gca,'Visible','off');
+% set(gcf,'Position',[1400 550 500 400]);
+% 
+% % adding light stim   
+% % if the light stim is a train (singleLightPulse = 0), add light
+% % stim cartoon as a train.
+% % note that this code will use light stim parameters from the last sweep!
+% % if light stim is not the same accross all sweeps, this will be
+% % misleading!
+% if singleLightPulse == 0
+%     for nStim=1:length(lightPulseStart)
+%         line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[ymax,ymax],'Color',[0 0.4470 0.7410],'LineWidth',10)
+%     end
+% end
+% 
+% % adding light stim
+% % note that this code will use light stim parameters from the last sweep!
+% % if light stim is not the same accross all sweeps, this will be
+% % misleading!
+% line([lightOnsetTime,lightOnsetTime+lightDur],[ymax-10,ymax-10],'Color',[0 0.4470 0.7410],'LineWidth',10)
+% 
+% % adding scale bar
+% xmin = lightOnsetTime-lightDur;
+% xmax = lightOnsetTime+2*lightDur;
+% ymin = -ymax;
+% line([xmax-1 xmax],[ymax ymax],'Color','k')
+% line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
+% text(xmax-1, ymax-((ymax-ymin)/20), "1 s")
+% text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
