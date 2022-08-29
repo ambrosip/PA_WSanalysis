@@ -98,8 +98,6 @@ TO DO:
 %}
 
 function firing_vs_light_polygon_test(obj)
-
-
 %%  USER INPUT ==================================================
 
 % Affects data analysis - Finding APs:
@@ -107,7 +105,7 @@ discardedSweeps = [];
 discardedSweepsFromEnd = 0;
 peaksOrValleys = 'v';   
 highpassThreshold = 100;
-lowpassThreshold = 1500;    % was 1500
+lowpassThreshold = 1500;    
 minPeakHeight = 40;         
 minPeakDistance = 0.001;    
 lightExtensionFactor = 1;
