@@ -1,17 +1,13 @@
 %{ 
 DOCUMENTATION
-Created: 2022 07 21
+Created: 2022 08 30
 Author: PA
 
-This function is used to analyze light-evoked changes in firing rate in
-sCRACM experiments using the polygon.
-This function was derived from firing_vs_light_ch.
+This function is used to analyze light-evoked PSCs in sCRACM experiments using the polygon.
+This function was derived from firing_vs_light_polygon, but went through A LOT of rewritting.
 
 INPUTS explained:
     - gridSize: number of columns in the square grid
-
-    - sweepsPerSquare: number of repeats for each illuminated
-    location/square.
 
     - discardedSweeps: specific sweeps that should NOT be analyzed due to
     artifacts. If I want to discard sweep 0024, just write 24.
@@ -46,7 +42,7 @@ INPUTS explained:
     to 1.
 
     - lightChannel: channel where the info about the light stim is stored.
-    Usually 2 or 3.
+    Usually 2 or 3. 
 
     - singleLightPulse: boolean variable (0 or 1) determining whether this
     sweep has a single light pulse (1) or a train of light pulses (0).
@@ -91,7 +87,6 @@ INPUTS defaults:
     postAPinSeconds = 0.01;           
     preAPbaselineDurationSeconds = 0.002;
     ddyValleyThreshold = 30;
-    ddyPeakThreshold = 10;
 
     ymax = 75;
     ymaxhist = 15;
@@ -115,10 +110,13 @@ ASSUMPTIONS:
     - Dopaminergic cells have total AP duration > 2 ms.
     - Irregular cells have ISI CV > 0.2
     - An ordered polygon grid design was used - aka not random
+    - Width and frequency of polygon stim is the the same as LED o-stim
+    (only relevant if you use the polygon channel as the light stim
+    channel)
 
 BEWARE:
     - if you add more variables into "data" for exporting, you need to
-    adjust the code at multiple places.
+    adjust the code at multiple places. i think I finally fixed this
 
 TO DO:
     - create 'test' version with sweep by sweep plots - DONE
@@ -134,32 +132,26 @@ obj = m571.s0138;
 % Affects data analysis - Organizing data by o-stim grid
 gridColumns = 5;
 gridRows = 5;
-% sweepsPerSquare = 3;
 
-% Affects data analysis - Finding APs:
-discardedSweeps = [187];
+% Affects data analysis - Finding/quantifyting oIPSCs
+discardedSweeps = [];
 discardedSweepsFromEnd = 0;
-peaksOrValleys = 'v';   
-highpassThreshold = 100;
-lowpassThreshold = 1500;    % was 1500
-minPeakHeight = 20;         
-minPeakDistance = 0.001; 
-lightExtensionFactor = 1;
-lightChannel = 2;
+lightStimCh = 4;
 singleLightPulse = 1; 
+inwardORoutward = -1;    % 1 (positive) is outward; -1 (negative) in inward
+baselineDurationInSeconds = 0.01;
+lightPulseAnalysisWindowInSeconds = 0.02;
+thresholdInDataPts = 5; %% ALERT! Changed from 10 to 5
+rsTestPulseOnsetTime = 1;
 
-% Affects data analysis - AP shape:
-preAPinSeconds = 0.005;            
-postAPinSeconds = 0.01;           
-preAPbaselineDurationSeconds = 0.002;
-ddyValleyThreshold = 600;
-ddyPeakThreshold = 300;
-  
+% Affects oIPSC decay fit
+bGuess = 1;         % -1000     % 1
+fastTauGuess = 0.01;    % in seconds
+slowTauGuess = 0.1;     % in seconds
+
 % Affects data display: 
-ymax = 200;
-ymaxhist = 15;
-zoomWindow = 0.25;
-ymaxIsiCV = 150;
+ymin = -375;       %-2050
+ymax = 150;          %50
 heatmapMin = -2;
 heatmapMax = 0;
 cellImageFileName = 's2c1_dic2.tif';
@@ -169,7 +161,6 @@ cellImageDir = 'E:\Priscilla - BACKUP 20200319\Ephys\2022\20220720 m571 dat nphr
 savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-08-11 polygon';
 
 
-
 %% PREP - get monitor info for plot display organization =====================================================
 
 monitorPositions = get(0, 'MonitorPositions' );
@@ -177,13 +168,12 @@ maxHeight = monitorPositions(1,4) - 100;
 maxWidth = monitorPositions(1,3) - 100;
 
 
-
 %% PREP - get info from h5 file and create arrays ============================================================
 
 % get today's date for naming output files
 analysisDate =  datestr(datetime('today'),'yyyy-mm-dd');
 
-% getting info from file
+% getting info from h5 file
 mouseNumber = getMouseNumber(obj);
 experimentDate = getExperimentDate(obj);
 samplingFrequency = obj.header.Acquisition.SampleRate;
@@ -219,18 +209,11 @@ if mod(totalSweeps, totalSquares) ~= 0
     sweepsPerSquare = totalSweeps / totalSquares;
 end   
 
-% comment this out because it would mess up with assigning sweeps to
-% squares. Deal with discarded sweeps later in a different way
-% % removing sweeps that should be discarded based on user input
-% for i=discardedSweeps
-%     allSweeps = allSweeps(allSweeps~=i);
-% end
-
 % creating matrixes/arrays that will be filled
 yFilteredAll = [];
 allTimeStamps = [];
 baselineTimeStamps = [];
-allIsiBaseline = [];
+allBaselineIsi = [];
 hzBaselineBySweep = [];
 hzPreLightBySweep = [];
 hzDuringLightBySweep = [];
@@ -240,6 +223,7 @@ isiStdBySweep = [];
 isiCvBySweep = [];
 isIrregularBySweep = [];
 data = [];
+isDiscardedBySweep = [];
 
 % creating matrixes/arrays that will be filled for AP shape
 xSubset = [];
@@ -261,18 +245,15 @@ sweepNumberArrayBySweep = {};
 % get data from all sweeps in file
 for sweepNumber = allSweeps
     
-    % DO NOT analyze discarded sweeps
-    if ismember(sweepNumber, discardedSweeps)
-        
+    % ignore discarded sweeps
+    if ismember(sweepNumber, discardedSweeps)        
         isDiscarded = 1;
         yFiltered = NaN(sweepDurationInDataPts, 1);
         pks = NaN;
         locs = NaN;
-        
-    
-    % DO analyze other sweeps
-    else  
-        
+            
+    % analyze all other sweeps
+    else         
         isDiscarded = 0;
         
         % get raw data
@@ -286,16 +267,38 @@ for sweepNumber = allSweeps
             [pks,locs,w,p] = findpeaks(yFiltered,x,'MinPeakHeight',minPeakHeight,'MinPeakDistance',minPeakDistance);
         else
             [pks,locs,w,p] = findpeaks(-yFiltered,x,'MinPeakHeight',minPeakHeight,'MinPeakDistance',minPeakDistance);
-        end
-       
+        end       
     end
+    
+    % store info about which sweeps were discarded
+    isDiscardedBySweep = [isDiscardedBySweep; isDiscarded];
+    %----------------------------------------------------------------------
+    
     
     % get light stim data
     [xch2,ych2] = obj.xy(sweepNumber, lightChannel); 
 
     % get light stim parameters
+    % if you are using a TTL pulse (5V) to control the LED, use code #1
+    % if you are using an analog output (0-5V), use code #2
+    % ALERT let's just use the polygon TTL pulse for now, since the analog
+    % output is soooo small, making the detection of the light pulse start
+    % and end times really hard with simple methods.
+    
+    % code #1 - works
+    % look for a big change 
     lightPulseStart = find(diff(ych2>1)>0);
     lightPulseEnd = find(diff(ych2<1)>0);
+
+%     % code #2 - does not always work
+%     % look for a small change
+%     % to avoid artifacts, use both the derivative and the absolute value of
+%     % ych2 to find the start and end times of each light pulse
+%     % ALERT need to check this code with a train o-stim
+%     lightPulseStart = find(diff(ych2)>0.075 & ych2(1:end-1)<0.05);
+%     lightPulseEnd = find(diff(ych2)<-0.075 & ych2(1:end-1)>0.05);
+    
+    % continue to get light stim info
     lightOnsetTime = lightPulseStart(1)/samplingFrequency;                       % in seconds
     stimDur = (lightPulseEnd(end)-lightPulseStart(end))/samplingFrequency;       % duration of each light pulse in the train (s)
 
@@ -311,21 +314,19 @@ for sweepNumber = allSweeps
     else
         stimInterval = 0;
         stimFreq = 1;
-        lightDur = stimDur;
-        
-    end        
+        lightDur = stimDur;       
+    end     
+    %----------------------------------------------------------------------
 
     
-    % saving data for niceplot
+    % save data for niceplot
     % y data for each sweep is in a column
-    yFilteredAll = [yFilteredAll, yFiltered];    
+    yFilteredAll = [yFilteredAll, yFiltered];
+    %----------------------------------------------------------------------
 
-    % create list of sweepNumber with the same size as list of timestamps 
-    % to organize raster plot 
-    sweepNumberArray = sweepNumber.* ones(length(locs),1);
-
+    
     % storing all AP timestamps
-    allTimeStamps = [allTimeStamps; locs];
+    allTimeStamps = [allTimeStamps; locs];   
 
     % getting all of the APs timestamps prior to light stim (aka full
     % baseline, from 0s to lightOnsetTime)
@@ -334,19 +335,9 @@ for sweepNumber = allSweeps
     indicesToDelete = find(locs >= lightOnsetTime);
     locsBaseline(indicesToDelete) = [];
     baselineTimeStamps = [baselineTimeStamps; locsBaseline];
+    %----------------------------------------------------------------------
 
-    % getting all the ISIs (inter-spike-intervals) prior to light stim
-    % to plot baseline ISI histogram and calculate ISI CV
-    isiBaseline = diff(locsBaseline);
-    allIsiBaseline = [allIsiBaseline; isiBaseline];
-
-%     % storing sweep by sweep data in a structure
-%     % fyi access sweep 1 data using dataPerSweep.s0128ts
-%     dataPerSweep.(strcat('s',num2str(sweepNumber),'ts')) = locs;
-%     dataPerSweep.(strcat('s',num2str(sweepNumber),'hz')) = length(locsBaseline)/lightOnsetTime;
-%     dataPerSweep.(strcat('s',num2str(sweepNumber),'isi')) = isiBaseline;
-    %----------------------------------------------------------------
-
+    
     % Getting peak/valley amplitudes pre, during and post light
     % to do manual quality control of found peaks later
     if peaksOrValleys == 'peaks'
@@ -362,6 +353,7 @@ for sweepNumber = allSweeps
     end
     %----------------------------------------------------------------
 
+    
     % Getting timestamps pre, during, and post light  
         % locsPreLight will be different from locsBaseline: locsPreLight is
         % the baseline immediately before the light stim (from
@@ -392,37 +384,71 @@ for sweepNumber = allSweeps
     indicesToDelete = find(locs<(lightOnsetTime+lightDur*lightExtensionFactor) | locs>(lightOnsetTime+(lightDur*lightExtensionFactor)+lightDur));
     locsPostLight(indicesToDelete) = [];
     pksPostLight(indicesToDelete) = [];
-    %----------------------------------------------------------------
+    %----------------------------------------------------------------   
+     
 
-    % Data storage    
+    % check if there are any NaNs in locs - if so, this is data from a
+    % discarded sweep, and we will signal that by assigning NaNs to all
+    % stored variables.
+    % among the stored variables we have all the ISIs (inter-spike-intervals)
+    % prior to light stim.
+    % These ISIs will be used to plot the ISI histogram and calculate ISI CV 
+    if any(isnan(locs))       
+        hzBaseline = NaN;
+        hzPreLight = NaN;
+        hzDuringLight = NaN;
+        hzPostLight = NaN;
+        isiBaseline = NaN;
+        isiCv = NaN;
+        isiMean = NaN;
+        isiStd = NaN;        
+    else        
+        hzBaseline = length(locsBaseline)/lightOnsetTime;
+        hzPreLight = length(locsPreLight)/lightDur;
+        hzDuringLight = length(locsDuringLight)/lightDur;
+        hzPostLight = length(locsPostLight)/lightDur;
+        isiBaseline = diff(locsBaseline);
+        isiCv = std(isiBaseline)/mean(isiBaseline);
+        isiMean = mean(isiBaseline);
+        isiStd = std(isiBaseline);       
+    end
+    
+    % storing sweep by sweep data in arrays for easy mean & std calculations later
+    hzBaselineBySweep = [hzBaselineBySweep; hzBaseline];
+    hzPreLightBySweep = [hzPreLightBySweep; hzPreLight];
+    hzDuringLightBySweep = [hzDuringLightBySweep; hzDuringLight];
+    hzPostLightBySweep = [hzPostLightBySweep; hzPostLight];
+    allBaselineIsi = [allBaselineIsi; isiBaseline];
+    isiCvBySweep = [isiCvBySweep, isiCv];
+    isiMeanBySweep = [isiMeanBySweep, isiMean];
+    isiStdBySweep = [isiStdBySweep, isiStd];       
+    
+    % create list of sweepNumber with the same size as list of timestamps 
+    % to organize raster plot 
+    sweepNumberArray = sweepNumber.* ones(length(locs),1);
+    
     % storing sweep by sweep data in a cell array
     % to export later
     % fyi access sweep 1 data using cell2mat(tsBySweep(1))
     tsBySweep = [tsBySweep, locs];
     isiBySweep = [isiBySweep, isiBaseline];
     sweepNumberArrayBySweep = [sweepNumberArrayBySweep, sweepNumberArray];
-
-    % storing sweep by sweep data in an array for easy mean & std calculations later
-    hzBaselineBySweep = [hzBaselineBySweep, length(locsBaseline)/lightOnsetTime];
-    hzPreLightBySweep = [hzPreLightBySweep, length(locsPreLight)/lightDur];
-    hzDuringLightBySweep = [hzDuringLightBySweep, length(locsDuringLight)/lightDur];
-    hzPostLightBySweep = [hzPostLightBySweep, length(locsPostLight)/lightDur];
-    isiCvBySweep = [isiCvBySweep, std(isiBaseline)/mean(isiBaseline)];
-    isiMeanBySweep = [isiMeanBySweep, mean(isiBaseline)];
-    isiStdBySweep = [isiStdBySweep, std(isiBaseline)];
     %----------------------------------------------------------------
-
+    
     % checking if cell is irregular (ISI CV > 0.2)
     % ASSUMPTION ALERT, MIGHT NEED UPDATING
-    if std(isiBaseline)/mean(isiBaseline) > 0.2
-        isIrregular = 1;
-    else 
-        isIrregular = 0;
+    if isiCv > 0.2
+        isIrregular = 1;        
+    elseif isiCv <= 0.2
+        isIrregular = 0;        
+    else
+        isIrregular = NaN;        
     end
 
     isIrregularBySweep = [isIrregularBySweep, isIrregular];
     %----------------------------------------------------------------
 
+    
     % Collecting AP shape data   
     % Store total number of APs found in complete baseline period
     nAP = size(locsBaseline,1);
@@ -452,20 +478,20 @@ for sweepNumber = allSweeps
 
     end   
 
-    nAPtotal = nAPtotal + nAP;
-        
+    nAPtotal = nAPtotal + nAP;        
     %----------------------------------------------------------------
     
+    
     % Data that will be exported       
-    % storing a subset of sweep by sweep data that will be exported
-    % this dataset is the one I'm used to manipulating with a few changes
+    % Storing a subset of sweep by sweep data that will be exported
     data = [data; ...
         mouseNumber, ...
         experimentDate, ...
         sweepNumber, ...
-    gridColumns, ...
-    gridRows, ...
-    sweepsPerSquare, ...
+        isDiscarded, ...
+        gridColumns, ...
+        gridRows, ...
+        sweepsPerSquare, ...
         discardedSweepsFromEnd, ...
         peaksOrValleysAsNum, ...
         highpassThreshold, ...
@@ -473,23 +499,23 @@ for sweepNumber = allSweeps
         minPeakHeight, ...        
         minPeakDistance, ...    
         lightExtensionFactor, ...
-    lightChannel, ...
-    singleLightPulse, ...
+        lightChannel, ...
+        singleLightPulse, ...
         stimDur, ... 
         stimFreq, ...
         lightDur, ...
-        length(locsBaseline)/lightOnsetTime, ...
-        mean(isiBaseline), ...
-        std(isiBaseline), ...
-        std(isiBaseline)/mean(isiBaseline), ...
+        hzBaseline, ...
+        isiMean, ...
+        isiStd, ... 
+        isiCv, ...
         isIrregular, ...
         length(locsPreLight), ...
         length(locsDuringLight), ...
         length(locsPostLight), ...
-        length(locsPreLight)/lightDur, ...
-        length(locsDuringLight)/lightDur, ...
-        length(locsPostLight)/lightDur, ...
-        isDiscarded];   
+        hzPreLight, ...
+        hzDuringLight, ...
+        hzPostLight, ...
+        ];   
     %----------------------------------------------------------------
     
 end
@@ -510,44 +536,61 @@ firingHz = N/length(allSweeps);
 % if cell is inhibited, lightEffect = -1
 % if cell is excited, lightEffect = 1
 % if cell is indifferent, lightEffect = 0
-% data(sweepNumber, 28) is duringLightHz
-% data(sweepNumber, 27) is preLightHz
-lightEffect = [];
-sdFromPreLightHz = [];
+lightEffectBySweep = [];
+sdFromPreLightHzBySweep = [];
 for sweepNumber = [1:length(allSweeps)]
-    sdFromPreLightHz = [sdFromPreLightHz; (data(sweepNumber, 28) - data(sweepNumber, 27)) / hzPreLightStd];
-    if data(sweepNumber, 28) < hzPreLightMean - 2*hzPreLightStd
-        lightEffect = [lightEffect; -1];
-    elseif data(sweepNumber, 28) > hzPreLightMean + 2*hzPreLightStd
-        lightEffect = [lightEffect; +1];
+    
+    % calculate change in firing as standard deviations from pre-light
+    % baseline mean
+    sdFromPreLightHz = (hzDuringLightBySweep(sweepNumber) - hzPreLightMean) / hzPreLightStd;
+    
+    % store sweep-by-sweep change in firing
+    sdFromPreLightHzBySweep = [sdFromPreLightHzBySweep; sdFromPreLightHz];
+    
+    % check if this is a discarded sweep. If so, assign NaN to stored
+    % variables
+    if isDiscardedBySweep(sweepNumber) == 1
+        lightEffectBySweep = [lightEffectBySweep; NaN];
+       
+    % if this is not a discarded sweep, assign a "boolean" value to the
+    % variable lightEffect. -1 means that the cell was supressed. +1 means
+    % that the cell was excited. 0 means that the cell did not change its
+    % firing rate
+    elseif sdFromPreLightHz < -2
+        lightEffectBySweep = [lightEffectBySweep; -1];
+        
+    elseif sdFromPreLightHz > 2
+        lightEffectBySweep = [lightEffectBySweep; +1];
+        
     else 
-        lightEffect = [lightEffect; 0];
+        lightEffectBySweep = [lightEffectBySweep; 0];
+        
     end
 end
 
 % add lightEffect and sdFromPreLightHz as the last columns of the sweep by sweep data
-data = [data, lightEffect, sdFromPreLightHz];
+data = [data, lightEffectBySweep, sdFromPreLightHzBySweep];
 
 % Check if cell is irregular
-isIrregularCell = median(isIrregularBySweep);
+isIrregularCell = median(isIrregularBySweep, 'omitnan');
 
 
 %% CELL ANALYSIS - AP shape (all sweeps, irrespective of square)==============================================
 
 % calculate average AP shape/trace
 avgAP = mean(ySubsetAll);
-%----------------------------------------------------------------
+%--------------------------------------------------------------------------
 
 % create x axis for plotting AP shape
 xSubset = 1000*linspace(0,(preAPinSeconds + postAPinSeconds), length(ySubsetForAPshape));
-%----------------------------------------------------------------
+%--------------------------------------------------------------------------
 
 % find AP peak and valley
 avgAPpeakInDataPoints = find(avgAP==max(avgAP));
 avgAPvalleyInDataPoints = find(avgAP==min(avgAP));
 avgAPpeakInMilliSeconds = xSubset(avgAPpeakInDataPoints);
 avgAPvalleyInMilliSeconds = xSubset(avgAPvalleyInDataPoints);
-%----------------------------------------------------------------
+%--------------------------------------------------------------------------
 
 % calculating derivatives and creating xAxis to plot derivatives. 
 % for each derivative, the xAxis length decreases by 1 point.
@@ -557,40 +600,13 @@ dy = diff(avgAP)./diff(xSubset);
 ddy = diff(dy)./diff(xForDy);
 xForDdy = xForDy;
 xForDdy(end) = [];  % remove last point from xAxis
-%----------------------------------------------------------------
+%--------------------------------------------------------------------------
 
 % Find AP ONset based on 2nd derivative - ddy == min of first valley
 [pks1,locs1,w,p] = findpeaks(-ddy,xForDdy,'MinPeakHeight',ddyValleyThreshold);
 ddyBasedOnsetInMilliSeconds = locs1(1);       
 ddyBasedOnsetInDataPoints = round(ddyBasedOnsetInMilliSeconds*(samplingFrequency/1000));
-%----------------------------------------------------------------
-
-% Find AP OFFset based on 2nd derivative - ddy == zero after last peak
-[pks2,locs2,w,p] = findpeaks(ddy,xForDdy,'MinPeakHeight',ddyPeakThreshold);
-ddyLastPeakInMilliSeconds = locs2(end);     
-ddyLastPeakInDataPoints = round(ddyLastPeakInMilliSeconds*(samplingFrequency/1000));
-ddyLastValleyInMilliSeconds = locs1(end);     
-ddyLastValleyInDataPoints = round(ddyLastValleyInMilliSeconds*(samplingFrequency/1000));
-ddyAfterLastPeakOrValley = ddy;
-ddyBasedOffsetInDataPoints = [];
-
-% if last peak is before last valley, look for when ddy crosses 0 after last valley
-if ddyLastPeakInMilliSeconds < ddyLastValleyInMilliSeconds
-    ddyAfterLastPeakOrValley(1:ddyLastValleyInDataPoints) = [];
-    ddyAfterLastPeakOrValleyInDataPoints = ddyLastValleyInDataPoints;
-    ddyCrossesZeroPt = find(diff(sign(ddyAfterLastPeakOrValley))>0, 1);
-    ddyBasedOffsetInDataPoints = ddyLastValleyInDataPoints + ddyCrossesZeroPt + 1;
-% if last peak is after last valley, look for when ddy crosses 0 after last peak
-else
-    ddyAfterLastPeakOrValley(1:ddyLastPeakInDataPoints) = [];
-    ddyAfterLastPeakOrValleyInDataPoints = ddyLastPeakInDataPoints;
-    ddyCrossesZeroPt = find(diff(sign(ddyAfterLastPeakOrValley))<0, 1);
-    ddyBasedOffsetInDataPoints = ddyLastPeakInDataPoints + ddyCrossesZeroPt + 1;
-end 
-
-ddyBasedOffsetInMilliSeconds = xForDdy(ddyBasedOffsetInDataPoints);
-ddyAfterLastPeakOrValleyInMilliSeconds = xForDdy(ddyAfterLastPeakOrValleyInDataPoints);
-%----------------------------------------------------------------
+%--------------------------------------------------------------------------
 
 % Find AP offset based on avgAP==0 after peak
 % Assumes that AP valley precedes the AP peak
@@ -604,25 +620,29 @@ if isempty(find(round(avgAPafterPeak)==0, 1))
     avgAPoffsetInMilliSeconds = xSubset(end);
     avgAPoffsetInDataPoints = length(xSubset); 
 end
-%----------------------------------------------------------------
+%--------------------------------------------------------------------------
 
 % Calculate AP width and duration based on multiple criteria
 halfWidth = avgAPpeakInMilliSeconds - avgAPvalleyInMilliSeconds;
 biphasicDuration = avgAPpeakInMilliSeconds - ddyBasedOnsetInMilliSeconds;
-totalDurationDdyBased = ddyBasedOffsetInMilliSeconds - ddyBasedOnsetInMilliSeconds;
+% I am commenting this duration calculation out because the
+% ddyBasedOffsetInMilliSeconds is often incorrect and it takes one extra
+% uneccessary user input.
+% totalDurationDdyBased = ddyBasedOffsetInMilliSeconds - ddyBasedOnsetInMilliSeconds;
 totalDurationAvgBased = avgAPoffsetInMilliSeconds - ddyBasedOnsetInMilliSeconds;
-%----------------------------------------------------------------
+%--------------------------------------------------------------------------
 
 % Check if AP duration is consistent with DA cell
 % DA cells have total duration > 2 ms
 % To be conservative, I'm taking the average between my two duration
-% metrics
-if (totalDurationDdyBased + totalDurationAvgBased)/2 > 2
+% metrics: if (totalDurationDdyBased + totalDurationAvgBased)/2 > 2
+% UPDATE Aug 30 2022: don't take the average. Just ignore totalDurationDdyBased.
+if totalDurationAvgBased > 2
     isDA = 1;
 else
     isDA = 0;
 end
-%----------------------------------------------------------------
+%--------------------------------------------------------------------------
 
 % store AP shape data 
 % cannot add to sweep by sweep data cuz it's just 1 row
@@ -640,16 +660,13 @@ dataAPshape = [mouseNumber, ...
     postAPinSeconds, ...
     preAPbaselineDurationSeconds, ...
     ddyValleyThreshold, ...
-    ddyPeakThreshold, ...
     nAPtotal, ...
     ddyBasedOnsetInMilliSeconds, ...
     avgAPvalleyInMilliSeconds, ...
     avgAPpeakInMilliSeconds, ...
-    ddyBasedOffsetInMilliSeconds, ...
     avgAPoffsetInMilliSeconds, ...
     halfWidth, ...
     biphasicDuration, ...
-    totalDurationDdyBased, ...
     totalDurationAvgBased, ...
     isDA];
 
@@ -662,113 +679,118 @@ dataCell = [mouseNumber, ...
     experimentDate, ...
     firstSweepNumber, ...
     lastSweepNumber, ...
-    length(allSweeps), ...
-gridColumns, ...
-gridRows, ...
-sweepsPerSquare, ...
-    discardedSweepsFromEnd, ...
+    length(allSweeps) - length(discardedSweeps), ...
+    gridColumns, ...
+    gridRows, ...
     peaksOrValleysAsNum, ...
     highpassThreshold, ...
     lowpassThreshold, ...
     minPeakHeight, ...        
     minPeakDistance, ...    
     lightExtensionFactor, ...
-lightChannel, ...
-singleLightPulse, ...
-    preAPinSeconds, ...
-    postAPinSeconds, ...
-    preAPbaselineDurationSeconds, ...
-    ddyValleyThreshold, ...
-    ddyPeakThreshold, ...   
-ymax, ...
-ymaxhist, ...
-zoomWindow, ...
-ymaxIsiCV, ...
-heatmapMin, ...
-heatmapMax, ...
+    lightChannel, ...
+    singleLightPulse, ...
+    heatmapMin, ...
+    heatmapMax, ...
     stimDur, ... 
     stimFreq, ...
     lightDur, ...    
-    nAPtotal, ...
     halfWidth, ...
-    biphasicDuration, ...
-    totalDurationDdyBased, ...
     totalDurationAvgBased, ...    
-    mean(hzBaselineBySweep), ...
-    std(hzBaselineBySweep), ...
-    std(hzBaselineBySweep)/mean(hzBaselineBySweep), ...
-    mean(allIsiBaseline), ...
-    std(allIsiBaseline), ...
-    std(allIsiBaseline)/mean(allIsiBaseline), ...
-isDA, ...
-isIrregularCell];
+    mean(hzBaselineBySweep, 'omitnan'), ...
+    std(hzBaselineBySweep, 'omitnan'), ...
+    std(hzBaselineBySweep, 'omitnan')/mean(hzBaselineBySweep, 'omitnan'), ...
+    mean(allBaselineIsi, 'omitnan'), ...
+    std(allBaselineIsi, 'omitnan'), ...
+    std(allBaselineIsi, 'omitnan')/mean(allBaselineIsi, 'omitnan'), ...
+    isDA, ...
+    isIrregularCell];
 
 % Assigning sweeps to each o-stim area (square)
 % Each row in sweepIDperSquare correspond to a square
 % Each column in sweepIDperSquare corresponds to a repeat sweep in that
 % square.
 totalSquares = gridColumns * gridRows;
-sweepOrderPerSquare = []; % from 1 to totalSquares
-sweepNumberPerSquare = []; % from 1st sweep to last sweep number
+relativeSweepNumberPerSquare = []; % from 1 to totalSquares
+absoluteSweepNumberPerSquare = []; % from 1st sweep to last sweep number
 dataSquare = [];
+dataCellSingleRow = dataCell;
 
 % to properly plot histograms later, I need to keep track of sweeps per
 % square taking into consideration any discarded sweeps. I will call this
 % variable sweepsPerSquarePerSquare
-sweepsPerSquarePerSquare = [];
+sweepsPerSquarePerSquareAll = [];
 
 % each row is a square
-for row=[1:totalSquares]    
+for row=[1:totalSquares]
+    
+    % create/erase arrays that will be filled for each square
+    dataSubsetForMeanAndSD = [];
+    dataSubsetForMode = [];
+    dataSubsetForMedian = [];
     
     % each column is a sweep
     for column=[1:sweepsPerSquare]    
                
-        % assign sweepID (1 to total # of sweeps)
-        sweepOrderPerSquare(row,column) = row + totalSquares * (column - 1);   
-    end
-         
-    % create a copy of the data per sweep
-    dataSubset = data;
-    
-    % remove all data from sweeps not included in this square
-    dataSubset(setdiff(1:end,sweepOrderPerSquare(row,:)),:) = [];
-    
-    % remove all data from discarded sweeps
-    % each subsetRow (row in dataSubset) is data from a sweep
-    dataSubsetClean = [];
-    for subsetRow = [1:size(dataSubset,1)]
-        % the sweep number is stored on the 3rd column of dataSubset
-        sweepNumber = dataSubset(subsetRow,3);
-        if ismember(sweepNumber, discardedSweeps)
-            disp('heyo I blocked trash from polygon data from this sweep:');
-            sweepNumber
+        % store relative sweepID (1 to total # of sweeps)
+        relativeSweepNumber = row + totalSquares * (column - 1);
+        relativeSweepNumberPerSquare(row,column) = relativeSweepNumber;
+        
+        % store absolute sweepID (firstSweepNumber to lastSweepNumber)
+        absoluteSweepNumber = relativeSweepNumber + firstSweepNumber - 1;                
+        absoluteSweepNumberPerSquare(row,column) = absoluteSweepNumber;
+        
+        % ignore data from discarded sweeps
+        if ismember(absoluteSweepNumber, discardedSweeps)
+            disp('heyo I blocked trash sweep from polygon data');
+        
+        % save data from other sweeps    
         else
-            dataSubsetClean = [dataSubsetClean; dataSubset(subsetRow,:)];
-        end
+            dataSubsetForMeanAndSD = [dataSubsetForMeanAndSD; ...
+                                        hzPreLightBySweep(relativeSweepNumber), ...
+                                        hzDuringLightBySweep(relativeSweepNumber), ...
+                                        hzPostLightBySweep(relativeSweepNumber)];
+                                    
+            dataSubsetForMode = [dataSubsetForMode; ...
+                                        lightEffectBySweep(relativeSweepNumber)];
+            
+            dataSubsetForMedian = [dataSubsetForMedian; ...
+                                        sdFromPreLightHzBySweep(relativeSweepNumber)];
+        
+        end 
+        
     end
     
-    sweepsPerSquarePerSquare = [sweepsPerSquarePerSquare; size(dataSubsetClean,1)];
     
-    % store square-specific data
-    % ALERT: if you change the order of things in data, you need to update
-    % the numbers below
-    dataSubsetForMeanAndSD = dataSubsetClean(:,[27:29]); % firing rate pre, during & after light
-    dataSubsetForMode = dataSubsetClean(:,31);           % lightEffect
-    dataSubsetForMedian = dataSubsetClean(:,32);         % sdFromPreLightHz
+    % store number of sweeps analyzed for each square
+    sweepsPerSquarePerSquare = size(dataSubsetForMeanAndSD,1);
+    sweepsPerSquarePerSquareAll = [sweepsPerSquarePerSquareAll; sweepsPerSquarePerSquare];
     
-    % store average/STDs/mode/median accross sweeps
-    dataSquare = [dataSquare; size(dataSubsetClean,1), mean(dataSubsetForMeanAndSD), std(dataSubsetForMeanAndSD), mode(dataSubsetForMode), median(dataSubsetForMedian)];
+    % store data for each square
+    dataSquare = [dataSquare; ...
+                    sweepsPerSquarePerSquare, ...
+                    mean(dataSubsetForMeanAndSD), ...
+                    std(dataSubsetForMeanAndSD), ...
+                    mode(dataSubsetForMode), ...
+                    median(dataSubsetForMedian)];
     
-    % store square-by-square data to cell data
-    dataCell = [dataCell, size(dataSubsetClean,1), mean(dataSubsetForMeanAndSD), std(dataSubsetForMeanAndSD), mode(dataSubsetForMode), median(dataSubsetForMedian)];
+    % store square-by-square data together with cell data
+    dataCellSingleRow = [dataCellSingleRow, ...
+                    sweepsPerSquarePerSquare, ...
+                    mean(dataSubsetForMeanAndSD), ...
+                    std(dataSubsetForMeanAndSD), ...
+                    mode(dataSubsetForMode), ...
+                    median(dataSubsetForMedian)];   
 end
 
-% adjust sweepIDs so that sweep#1 = (1 + actual number for sweep#1)
-sweepNumberPerSquare = sweepOrderPerSquare + allSweeps(1) - 1;
+% concatenate dataSquare with absoluteSweepNumberPerSquare and a column
+% vector with square ID numbers
+dataSquareWithSweeps = [[1:totalSquares]', absoluteSweepNumberPerSquare, dataSquare];
 
-% concatenate dataSquare with sweepNumberPerSquare to store the number of
-% indivudual sweeps that were averaged per square
-dataSquareWithSweeps = [sweepNumberPerSquare, dataSquare];
+% concatenate dataSquareWithSweeps with dataCell
+% use repmat to copy dataCell into multiple rows - as many rows as there
+% are squares
+dataCellMultipleRows = [repmat(dataCell,totalSquares,1), dataSquareWithSweeps];
 
 
 
@@ -918,7 +940,7 @@ figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon -
 % edges: from 0-1s in 1ms steps
 edges = [0:0.001:1]; 
 
-histogram(allIsiBaseline, edges);
+histogram(allBaselineIsi, edges);
 title([strcat(fileName, ' baseline ISI counts')],'Interpreter','none');
 xlabel('ISI (s)');
 ylabel('Counts per bin');
@@ -937,7 +959,7 @@ figure('name', strcat(fileName, '_', analysisDate, ' - firing_vs_light_polygon -
 % edges: from 0-1s in 1ms steps
 edges = [0:0.001:1]; 
 
-histogram(allIsiBaseline, edges, 'Normalization', 'probability', 'FaceColor', [0 0 0],'FaceAlpha', 1, 'EdgeColor', 'none');  
+histogram(allBaselineIsi, edges, 'Normalization', 'probability', 'FaceColor', [0 0 0],'FaceAlpha', 1, 'EdgeColor', 'none');  
 title([strcat(fileName, ' baseline ISI prob')],'Interpreter','none');
 xlabel('ISI (s)');
 ylabel('Counts ber Bin / Total Counts');
@@ -960,19 +982,19 @@ for square = [1:totalSquares]
     nexttile
     hold on;
     
-    for sweep = [sweepOrderPerSquare(square,:)]
+    for sweep = [relativeSweepNumberPerSquare(square,:)]
         plot(cell2mat(tsBySweep(sweep)), ones(size(cell2mat(sweepNumberArrayBySweep(sweep))))+sweep, '|', 'Color', 'k')        
     end
     
     % zooming in and beautifying raster plot
-    axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur sweepOrderPerSquare(square,1)-20 sweepOrderPerSquare(square,end)+20])
+    axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur relativeSweepNumberPerSquare(square,1)-20 relativeSweepNumberPerSquare(square,end)+20])
 %     ylabel(strcat('Sweeps (', num2str(sweepsPerSquare), ')'));
 %     xlabel('Time (s)');
     yticks([]);
     xticks(0:1:10);
 
     % adding light stim
-    rectangle('Position', [lightOnsetTime sweepOrderPerSquare(square,1)-20 lightDur sweepOrderPerSquare(square,end)+100], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
+    rectangle('Position', [lightOnsetTime relativeSweepNumberPerSquare(square,1)-20 lightDur relativeSweepNumberPerSquare(square,end)+100], 'FaceColor', [0 0.4470 0.7410 0.1], 'EdgeColor', 'none');
 
     % stop plotting things on this subplot
     hold off;
@@ -1026,12 +1048,12 @@ for square = [1:totalSquares]
     nexttile
     hold on;
     
-    for sweep = [sweepOrderPerSquare(square,:)]
+    for sweep = [relativeSweepNumberPerSquare(square,:)]
         tsBySquare = [tsBySquare; cell2mat(tsBySweep(sweep))]; 
     end
     
     [Nsquare, edges] = histcounts(tsBySquare,edges);
-    firingHzSquare = Nsquare/sweepsPerSquarePerSquare(square);
+    firingHzSquare = Nsquare/sweepsPerSquarePerSquareAll(square);
     histogram('BinEdges', 0:sweepSizeSec, 'BinCounts', firingHzSquare, 'DisplayStyle', 'stairs', 'EdgeColor', 'k'); 
 
     % plot light stim as rectangle
@@ -1087,7 +1109,7 @@ hold on;
     plot(xSubset, avgAP,'Color','black','LineWidth',1.5); 
     plot(xSubset(avgAPpeakInDataPoints), max(avgAP),'^','color', 'r');
     plot(xSubset(avgAPvalleyInDataPoints), min(avgAP),'v','color', 'r');
-    plot(ddyBasedOffsetInMilliSeconds, avgAP(ddyBasedOffsetInDataPoints), '<', 'color', 'b');
+%     plot(ddyBasedOffsetInMilliSeconds, avgAP(ddyBasedOffsetInDataPoints), '<', 'color', 'b');
     plot(ddyBasedOnsetInMilliSeconds, avgAP(ddyBasedOnsetInDataPoints), '>', 'color', 'b');
     plot(avgAPoffsetInMilliSeconds, avgAP(avgAPoffsetInDataPoints), '<', 'color', 'r');
     xlabel('Time (ms)');
@@ -1118,13 +1140,14 @@ hold on;
     plot(xForDy, dy,'Color', 'b', 'LineWidth', 1);
     plot(xForDdy, ddy,'Color', 'r', 'LineWidth', 1);
     plot(ddyBasedOnsetInMilliSeconds, ddy(ddyBasedOnsetInDataPoints+1), '>', 'color', 'b');
-    plot(ddyBasedOffsetInMilliSeconds, ddy(ddyBasedOffsetInDataPoints), '<', 'color', 'b');
-    line([0 xSubset(end)],[ddyPeakThreshold ddyPeakThreshold], 'LineStyle', '-.');
+%     plot(ddyBasedOffsetInMilliSeconds, ddy(ddyBasedOffsetInDataPoints), '<', 'color', 'b');
+%     line([0 xSubset(end)],[ddyPeakThreshold ddyPeakThreshold], 'LineStyle', '-.');
     line([0 xSubset(end)],[-ddyValleyThreshold -ddyValleyThreshold], 'LineStyle', '--');
     xlabel('Time (ms)');
     ylabel('Amplitude');
     title([fileName ' AP width ddy'],'Interpreter','none');
-    legend('avg AP', 'avg AP dy', 'avg AP ddy', 'ddy based ONset', 'ddy based OFFset', 'ddyPeakThreshold', 'ddyValleyThreshold', 'Location', 'northeast');
+%     legend('avg AP', 'avg AP dy', 'avg AP ddy', 'ddy based ONset', 'ddy based OFFset', 'ddyPeakThreshold', 'ddyValleyThreshold', 'Location', 'northeast');
+    legend('avg AP', 'avg AP dy', 'avg AP ddy', 'ddy based ONset', 'ddyValleyThreshold', 'Location', 'northeast');
 hold off;
 set(gcf,'Position',[maxWidth-300 maxHeight-400-500 400 400]);
 
@@ -1132,7 +1155,7 @@ set(gcf,'Position',[maxWidth-300 maxHeight-400-500 400 400]);
 
 %% EXPORTING XLS files ==========================================
 
-% stores key sweep by sweep data
+% store key sweep-by-sweep data
 filename = strcat(fileName, '_', analysisDate, " - firing_vs_light_polygon - sweep_by_sweep");
 fulldirectory = strcat(savefileto,'\',filename,'.xls');        
 dataInCellFormat = {};
@@ -1141,10 +1164,11 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     {'mouse', ...
     'date', ...
     'sweep', ...
+    'isDiscarded(1)orNot(0)', ...
     'gridColumns', ...
     'gridRows', ...
     'sweepsPerSquare', ...    
-    'discardedSweeps', ...
+    'discardedSweepsFromEnd', ...
     'peaks(1)OrValleys(-1)', ...
     'highpassThreshold', ...
     'lowpassThreshold', ...
@@ -1152,7 +1176,7 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'minPeakDistance', ...    
     'lightExtensionFactor', ...
     'lightChannel', ...
-    'singleLightPulse', ...
+    'singleLightPulse(1)orTrain(0)', ...
     'lightPulseDur(s)', ... 
     'lightStimFreq(Hz)', ...
     'lightDur(s)', ...
@@ -1167,19 +1191,79 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'preLightHz', ...
     'duringLightHz', ...
     'postLightHz', ...
-    'isDiscarded(1)orNot(0)', ...
     'lightEffect', ...
     'sdFromPreLightHz'});
 writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the sweep_by_sweep xls file')
+%--------------------------------------------------------------------------
 
-% stores all timestamps from all sweeps in a single column
+
+% store key square-by-square data - each row is a square
+filename = strcat(fileName, '_', analysisDate, " - firing_vs_light_polygon - square_by_square");
+fulldirectory = strcat(savefileto,'\',filename,'.xls');        
+dataInCellFormat = {};
+dataInCellFormat = num2cell(dataCellMultipleRows);
+% create cell array for variable naming
+headings = cell(1, sweepsPerSquare);
+for sweep = [1:sweepsPerSquare]
+    headings(sweep) = {strcat('sweep', num2str(sweep))};
+end
+labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
+    {'mouse', ...
+    'date', ...
+    'firstSweep', ...
+    'lastSweep', ...
+    'nSweeps', ...
+    'gridColumns', ...
+    'gridRows', ...
+    'peaks(1)OrValleys(-1)', ...
+    'highpassThreshold', ...
+    'lowpassThreshold', ...
+    'minPeakHeight', ...        
+    'minPeakDistance', ...
+    'lightExtensionFactor', ...
+    'lightChannel', ...
+    'singleLightPulse(1)orTrain(0)', ...
+    'heatmapMin', ...
+    'heatmapMax', ...
+    'lightPulseDur(s)', ... 
+    'lightStimFreq(Hz)', ...
+    'lightDur(s)', ...   
+    'APhalfWidth(ms)', ...
+    'APduration(ms)', ...
+    'baselineHzMean', ...
+    'baselineHzSD', ...
+    'baselineHzCV', ...
+    'baselineISImean', ...
+    'baselineISIsd', ...
+    'baselineISIcv', ...
+    'isDA(0,1)', ...
+    'isIrregular(0,1)', ...
+    'square', ...
+    headings{:}, ...
+    'sweepsPerSquare', ...
+    'preLight(Hz)AVG', ...
+    'duringLight(Hz)AVG', ...
+    'postLight(Hz)AVG', ...
+    'preLight(Hz)STD', ...
+    'duringLight(Hz)STD', ...
+    'postLight(Hz)STD', ...
+    'lightEffect(-1,0,1)', ...
+    'medianSdFromPreLightHz'});
+writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
+disp('I saved the square_by_square xls file')
+%--------------------------------------------------------------------------
+
+
+% store all timestamps from all sweeps in a single column
 filename = strcat(fileName, '_', analysisDate, " - firing_vs_light_polygon - all_AP_timestamps");
 fulldirectory = strcat(savefileto,'\',filename,'.xls');        
 writematrix(allTimeStamps, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the all_AP_timestamps xls file')
+%--------------------------------------------------------------------------
 
-% stores AP shape data in a single row
+
+% store AP shape data in a single row
 filename = strcat(fileName, '_', analysisDate, " - firing_vs_light_polygon - AP_shape");
 fulldirectory = strcat(savefileto,'\',filename,'.xls');        
 dataInCellFormat = {};
@@ -1199,27 +1283,32 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'postAP(s)', ...
     'baselinePreAPdur(s)', ...
     'ddyValleyThreshold', ...
-    'ddyPeakThreshold', ...
     'nAPtotal', ...
     'ddyBasedOnset(ms)', ...
     'APvalley(ms)', ...
     'APpeak(ms)', ...
-    'ddyBasedOffset(ms)', ...
     'avgBasedOffset(ms)', ...
     'halfWidth(ms)', ...
     'biphasicDuration(ms)', ...
-    'totalDurationDdyBased(ms)', ...
     'totalDurationAvgBased(ms)', ...
     'isDA'});
 writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the AP_shape xls file')
+%--------------------------------------------------------------------------
 
+
+% store cell data with square-by-square info in a single row
+filename = strcat(fileName, '_', analysisDate, " - firing_vs_light_polygon - square_by_square cell");
+fulldirectory = strcat(savefileto,'\',filename,'.xls');        
+dataInCellFormat = {};
+dataInCellFormat = num2cell(dataCellSingleRow);
+dataInCellFormat = [dataInCellFormat, cellImageFileName];
 
 % create cell array with strings for naming square-by-square data
 squareVariables = cell(1,size(dataSquare,1)*size(dataSquare,2));
 for square = [1:totalSquares]
     startingIndex = square*9 - 8;
-    squareVariables(startingIndex) = {strcat('sq', num2str(square), '-sweepsPerSquare')}
+    squareVariables(startingIndex) = {strcat('sq', num2str(square), '-sweepsPerSquare')};
     squareVariables(startingIndex+1) = {strcat('sq', num2str(square), '-preLight(Hz)AVG')};
     squareVariables(startingIndex+2) = {strcat('sq', num2str(square), '-duringLight(Hz)AVG')};
     squareVariables(startingIndex+3) = {strcat('sq', num2str(square), '-postLight(Hz)AVG')};
@@ -1230,12 +1319,7 @@ for square = [1:totalSquares]
     squareVariables(startingIndex+8) = {strcat('sq', num2str(square), '-medianSdFromPreLightHz')};
 end
 
-% stores cell data in a single row
-filename = strcat(fileName, '_', analysisDate, " - firing_vs_light_polygon - cell");
-fulldirectory = strcat(savefileto,'\',filename,'.xls');        
-dataInCellFormat = {};
-dataInCellFormat = num2cell(dataCell);
-dataInCellFormat = [dataInCellFormat, cellImageFileName];
+% label stored data
 labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     {'mouse', ...
     'date', ...
@@ -1244,8 +1328,6 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'nSweeps', ...
     'gridColumns', ...
     'gridRows', ...
-    'sweepsPerSquare', ...
-    'discardedSweepsFromEnd', ...
     'peaks(1)OrValleys(-1)', ...
     'highpassThreshold', ...
     'lowpassThreshold', ...
@@ -1253,26 +1335,14 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'minPeakDistance', ...
     'lightExtensionFactor', ...
     'lightChannel', ...
-    'singleLightPulse(1)', ...
-    'preAP(s)', ...
-    'postAP(s)', ...
-    'baselinePreAPdur(s)', ...
-    'ddyValleyThreshold', ...
-    'ddyPeakThreshold', ...
-    'ymax', ...
-    'ymaxhist', ...
-    'zoomWindow', ...
-    'ymaxIsiCV', ...
+    'singleLightPulse(1)orTrain(0)', ...
     'heatmapMin', ...
     'heatmapMax', ...
     'lightPulseDur(s)', ... 
     'lightStimFreq(Hz)', ...
     'lightDur(s)', ...   
-    'nAPtotalForShape', ...
-    'halfWidth(ms)', ...
-    'biphasicDuration(ms)', ...
-    'totalDurationDdyBased(ms)', ...
-    'totalDurationAvgBased(ms)', ...
+    'APhalfWidth(ms)', ...
+    'APduration(ms)', ...
     'baselineHzMean', ...
     'baselineHzSD', ...
     'baselineHzCV', ...
@@ -1284,7 +1354,7 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     squareVariables{:}, ...
     'cellImageFileName'});
 writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
-disp('I saved the cell_avgs xls file')
+disp('I saved the square_by_square cell xls file')
 
 
 
@@ -1585,3 +1655,38 @@ disp('I saved the cell_avgs xls file')
 % line([xmax xmax],[ymax ymax-((ymax-ymin)/10)],'Color','k')
 % text(xmax-1, ymax-((ymax-ymin)/20), "1 s")
 % text(xmax-1, ymax-((ymax-ymin)/10), strcat(num2str((ymax-ymin)/10)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+
+
+%     % storing sweep by sweep data in a structure
+%     % fyi access sweep 1 data using dataPerSweep.s0128ts
+%     dataPerSweep.(strcat('s',num2str(sweepNumber),'ts')) = locs;
+%     dataPerSweep.(strcat('s',num2str(sweepNumber),'hz')) = length(locsBaseline)/lightOnsetTime;
+%     dataPerSweep.(strcat('s',num2str(sweepNumber),'isi')) = isiBaseline;
+
+
+% Obsolete AP shape code 
+% % Find AP OFFset based on 2nd derivative - ddy == zero after last peak
+% [pks2,locs2,w,p] = findpeaks(ddy,xForDdy,'MinPeakHeight',ddyPeakThreshold);
+% ddyLastPeakInMilliSeconds = locs2(end);     
+% ddyLastPeakInDataPoints = round(ddyLastPeakInMilliSeconds*(samplingFrequency/1000));
+% ddyLastValleyInMilliSeconds = locs1(end);     
+% ddyLastValleyInDataPoints = round(ddyLastValleyInMilliSeconds*(samplingFrequency/1000));
+% ddyAfterLastPeakOrValley = ddy;
+% ddyBasedOffsetInDataPoints = [];
+% 
+% % if last peak is before last valley, look for when ddy crosses 0 after last valley
+% if ddyLastPeakInMilliSeconds < ddyLastValleyInMilliSeconds
+%     ddyAfterLastPeakOrValley(1:ddyLastValleyInDataPoints) = [];
+%     ddyAfterLastPeakOrValleyInDataPoints = ddyLastValleyInDataPoints;
+%     ddyCrossesZeroPt = find(diff(sign(ddyAfterLastPeakOrValley))>0, 1);
+%     ddyBasedOffsetInDataPoints = ddyLastValleyInDataPoints + ddyCrossesZeroPt + 1;
+% % if last peak is after last valley, look for when ddy crosses 0 after last peak
+% else
+%     ddyAfterLastPeakOrValley(1:ddyLastPeakInDataPoints) = [];
+%     ddyAfterLastPeakOrValleyInDataPoints = ddyLastPeakInDataPoints;
+%     ddyCrossesZeroPt = find(diff(sign(ddyAfterLastPeakOrValley))<0, 1);
+%     ddyBasedOffsetInDataPoints = ddyLastPeakInDataPoints + ddyCrossesZeroPt + 1;
+% end 
+% 
+% ddyBasedOffsetInMilliSeconds = xForDdy(ddyBasedOffsetInDataPoints);
+% ddyAfterLastPeakOrValleyInMilliSeconds = xForDdy(ddyAfterLastPeakOrValleyInDataPoints);
