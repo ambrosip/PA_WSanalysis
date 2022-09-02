@@ -122,12 +122,12 @@ rsTestPulseOnsetTime = 1;
 % Affects data display: 
 ymin = -1500;           %-2050
 ymax = 600;             %50
-cellImageFileNameDIC = 's3c1_z1_dic.tif';
-cellImageFileNameAlexa = 's3c1_z1_647.tif';
-cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220727 m075 dls loop';
+cellImageFileNameDIC = 's3c3_dic.tif';
+cellImageFileNameAlexa = 's3c3_647_sum stack.tif';
+cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220815 m370 asc spiral';
 
 % Affects data saving:
-savefileto = 'D:\Temp\From MATLAB 2022 09 31 psc better';
+savefileto = 'D:\Temp\From MATLAB 2022 09 02 psc polygon';
 
 % % Affects oIPSC decay fit - Not currently implemented in polygon code
 % bGuess = 1;             % -1000     % 1
@@ -779,6 +779,14 @@ cellImageFileDir = strcat(cellImageDir,'\',cellImageFileNameAlexa);
 % import image
 cellImage = imread(cellImageFileDir);
 
+% normalize image to max intensity value
+% this is important for dealing with summed z-stacks (instead of max
+% intensity z-stacks)
+if max(max(cellImage))/256 > 1
+    adjustmentFactor = (max(max(cellImage))/256) * 256;
+    cellImage = cellImage/adjustmentFactor;
+end
+    
 % invert alexa image so that black = white
 % I wanted to do this anyway, but MATLAB also forced my hand. When I save
 % images with my saveAllFigs function, MATLAB turns all white annotations
@@ -826,6 +834,14 @@ cellImageFileDir = strcat(cellImageDir,'\',cellImageFileNameAlexa);
 % import image
 cellImage = imread(cellImageFileDir);
 
+% normalize image to max intensity value
+% this is important for dealing with summed z-stacks (instead of max
+% intensity z-stacks)
+if max(max(cellImage))/256 > 1
+    adjustmentFactor = (max(max(cellImage))/256) * 256;
+    cellImage = cellImage/adjustmentFactor;
+end
+
 % invert alexa image so that black = white
 % I wanted to do this anyway, but MATLAB also forced my hand. When I save
 % images with my saveAllFigs function, MATLAB turns all white annotations
@@ -836,7 +852,9 @@ invertedImage = imcomplement(cellImage);
 croppedImage = imcrop(invertedImage, [1,100,1376,873]);
 figure('name', strcat(fileName, '_', analysisDate, ' - psc_vs_light_polygon - Alexa image'));
 hold on;
-imshow(croppedImage, 'Border', 'tight');
+% added range [0 max(max(cellImage))] so that I can use summed stacks
+% in addition to max intensity stacks. 
+imshow(croppedImage,[0 max(max(cellImage))], 'Border', 'tight');
 
 % add scale bar to figure
 % ASSUMPTION ALERT: same parameters as DIC image
