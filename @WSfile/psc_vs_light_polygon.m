@@ -101,10 +101,7 @@ TO DO:
     discarded sweeps list, matlab does not plot any of the tiled niceplots!
 %}
 
-% function psc_vs_light_polygon(obj)
-% obj = m075.s0004;
-obj = m076.s0116;
-
+function psc_vs_light_polygon(obj)
 %%  USER INPUT ============================================================
 
 % Affects data analysis - Organizing data by o-stim grid
@@ -125,12 +122,12 @@ rsTestPulseOnsetTime = 1;
 % Affects data display: 
 ymin = -1500;           %-2050
 ymax = 600;             %50
-cellImageFileNameDIC = 's1c1_z1_moved1_dic.tif';
-cellImageFileNameAlexa = 's1c1_z1_moved1_647.tif';
-cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220728 m076 dms loop';
+cellImageFileNameDIC = 's3c1_z1_dic.tif';
+cellImageFileNameAlexa = 's3c1_z1_647.tif';
+cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220727 m075 dls loop';
 
 % Affects data saving:
-savefileto = 'D:\Temp\From MATLAB 2022 08 31 psc';
+savefileto = 'D:\Temp\From MATLAB 2022 09 31 psc better';
 
 % % Affects oIPSC decay fit - Not currently implemented in polygon code
 % bGuess = 1;             % -1000     % 1
@@ -1129,3 +1126,5 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'cellImageFileNameAlexa'});
 writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the square_by_square cell xls file')
+
+end

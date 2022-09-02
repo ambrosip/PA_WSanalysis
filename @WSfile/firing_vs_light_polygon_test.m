@@ -1,12 +1,45 @@
 %{ 
 DOCUMENTATION
 Created: 2021 03 18
-Edited Last: 2022 08 30
+Edited Last: 2022 08 31
+Works? Yes
 Author: PA
 
-This function is used to test the input parameters to be used in the 
-function "firing_vs_light_ch".
-This code is outdated compared to the related script and non-test version
+This function is used to test the user input parameters to be used in the 
+function "firing_vs_light_polygon".
+
+This code is outdated compared to the related script and non-test version,
+but it does not matter, because this code is only used to plot AP shape and
+found peaks for quality control purposes. Use this code to set/change the
+following user inputs:
+- discardedSweeps
+- discardedSweepsFromEnd
+- peaksOrValleys 
+- minPeakHeight        
+- minPeakDistance
+- lightChannel
+- singleLightPulse 
+- ddyValleyThreshold
+- ymax
+
+other inputs you might have to adjust (very rare):
+- highpassThreshold
+- lowpassThreshold   
+- lightExtensionFactor
+
+inputs that don't matter here at all, but you need to adjust appropriately
+in "firing_vs_light_polygon":
+- gridColumns
+- gridRows
+- ymaxhist
+- zoomWindow
+- ymaxIsiCV
+- heatmapMin
+- heatmapMax
+- cellImageFileName
+- cellImageDir
+- savefileto
+
 
 INPUTS explained:
     - gridSize: number of columns in the square grid
@@ -129,8 +162,8 @@ function firing_vs_light_polygon_test(obj)
 %%  USER INPUT ==================================================
 
 % Affects data analysis - Organizing data by o-stim grid
-gridColumns = 5;
-gridRows = 5;
+gridColumns = 3;
+gridRows = 3;
 
 % Affects data analysis - Finding APs:
 discardedSweeps = [];
@@ -138,8 +171,8 @@ discardedSweepsFromEnd = 0;
 peaksOrValleys = 'v';   
 highpassThreshold = 100;
 lowpassThreshold = 1500;    
-minPeakHeight = 20;         
-minPeakDistance = 0.001; 
+minPeakHeight = 25;         
+minPeakDistance = 0.05; 
 lightExtensionFactor = 1;
 lightChannel = 2;
 singleLightPulse = 1; 
@@ -151,17 +184,17 @@ preAPbaselineDurationSeconds = 0.002;
 ddyValleyThreshold = 600;
   
 % Affects data display: 
-ymax = 200;
+ymax = 100;
 ymaxhist = 15;
 zoomWindow = 0.25;
 ymaxIsiCV = 150;
 heatmapMin = -2;
 heatmapMax = 0;
-cellImageFileName = 's2c1_dic2.tif';
-cellImageDir = 'E:\Priscilla - BACKUP 20200319\Ephys\2022\20220720 m571 dat nphr';
+cellImageFileName = 's1c2_dic_moved.tif';
+cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220630 m572 dat nphr';
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-08-11 polygon';
+savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-08-31 polygon';
 
 
 %% PREP - get monitor info for plot display organization =====================================================
@@ -347,7 +380,7 @@ for sweepNumber = allSweeps
 %     inverseISIperSecBin=[];
 %     
 %     % naming figure file    
-%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - ISI histogram'));      
+%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_polygon_test - ISI histogram'));      
 %     
 %         % Ch1 (recorded data) histogram
 %         subplot(2,1,1)         
@@ -382,7 +415,7 @@ for sweepNumber = allSweeps
 %     nAPperSecBin=[];
 %     
 %     % naming figure file    
-%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - nAPs histogram'));      
+%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_polygon_test - nAPs histogram'));      
 %     
 %         % Ch1 (recorded data) histogram
 %         subplot(2,1,1)         
@@ -416,7 +449,7 @@ for sweepNumber = allSweeps
     hzDuringLight = length(locsDuringLight)/lightDur;
     hzPostLight = length(locsPostLight)/lightDur;   
     
-    figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - found peaks')); 
+    figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_polygon_test - found peaks')); 
         
         % Ch1 subplot (recorded data)
         subplot(2,1,1);
@@ -426,7 +459,7 @@ for sweepNumber = allSweeps
         plot(locsPreLight,pksPreLight,'o','color','blue');
         plot(locsPostLight,pksPostLight,'o','color','blue');
         hold off;
-        axis([lightOnsetTime-4 lightOnsetTime+lightDur+4 -inf ymax])
+        axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur -inf ymax])
         xlabel('Time (s)');
         ylabel(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits);
         title([obj.file ' (' num2str(sweepNumber) ') - peaks'],'Interpreter','none');
@@ -439,19 +472,19 @@ for sweepNumber = allSweeps
         plot(xLightCh,yLightCh)
         yminhere = min(yLightCh)-5;
         ymaxhere = max(yLightCh)+5;
-        axis([lightOnsetTime-4 lightOnsetTime+lightDur+4 yminhere ymaxhere])
+        axis([lightOnsetTime-lightDur lightOnsetTime+2*lightDur yminhere ymaxhere])
         xlabel('Time (s)');
         ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(lightChannel), ' (', obj.header.Acquisition.AnalogChannelUnits(lightChannel), ')'));
         set(gcf,'Position',[650 550 500 400])
     %----------------------------------------------------------------         
     
 %     % PLOT niceplot
-%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - niceplot')); 
+%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_polygon_test - niceplot')); 
 %     
 %         % main plot
 %         plot(x,yFiltered,'k','LineWidth',1)
-%         xmin = lightOnsetTime-3;
-%         xmax = lightOnsetTime+4;
+%         xmin = lightOnsetTime-3;      % maybe change to lightOnsetTime-lightDur
+%         xmax = lightOnsetTime+4;      % maybe change to lightOnsetTime+2*lightDur
 %         ymin = -ymax;
 %         axis([xmin xmax ymin ymax]);
 %         title([obj.file ' (' num2str(sweepNumber) ')'],'Interpreter','none');
@@ -495,7 +528,7 @@ for sweepNumber = allSweeps
     %----------------------------------------------------------------
     
 %     % PLOT zoomed in niceplot (start of light stim)
-%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - zoom start')); 
+%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_polygon_test - zoom start')); 
 %     
 %         % main plot
 %         plot(x,yFiltered,'k','LineWidth',1)
@@ -527,7 +560,7 @@ for sweepNumber = allSweeps
 %      
 %     
 %     % PLOT zoomed in niceplot (end of light stim) 
-%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - zoom end')); 
+%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_polygon_test - zoom end')); 
 %     
 %         % main plot
 %         plot(x,yFiltered,'k','LineWidth',1)
@@ -559,7 +592,7 @@ for sweepNumber = allSweeps
     
     
 %     % PLOT one figure per sweep that shows whole sweep (raw)    
-%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - raw'));   
+%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_polygon_test - raw'));   
 %         
 %         subplot(2,1,1)
 %         plot(x,y);
@@ -580,7 +613,7 @@ for sweepNumber = allSweeps
 
     
 %     % PLOT one figure per sweep that shows whole sweep (filtered)    
-%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_test_ch - filtered'));  
+%     figure('name', strcat(fileName, ' (', num2str(sweepNumber), ')_', analysisDate, ' - firing_vs_light_polygon_test - filtered'));  
 %         
 %         subplot(2,1,1)
 %         plot(x,yFiltered);
@@ -656,7 +689,7 @@ end
 % Avg based VALLEY is marked with a red arrow v
 % Ddy based OFFset is marked with a blue arrow <
 % Avg based OFFset is marked with a red arrow <
-figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light_polygon - AP width'));     
+figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light_polygon_test - AP width'));     
 hold on;
     plot(xSubset, ySubsetAll,'Color', [0.75, 0.75, 0.75, 0.5], 'LineWidth', 0.2);
     plot(xSubset, avgAP,'Color','black','LineWidth',1.5); 
@@ -687,7 +720,7 @@ text(xmaxHere-2, min(avgAP)+10, strcat("10 ",obj.header.Ephys.ElectrodeManager.E
 
 % Plot the first (blue) and second (red) derivative of the avg
 % Use this dor troubleshooting and adjusting ddyPeakThreshold and ddyValleyThreshold
-figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light_polygon - AP width ddy'));
+figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light_polygon_test - AP width ddy'));
 hold on;
     plot(xSubset, avgAP,'Color','black','LineWidth',1);
     plot(xForDy, dy,'Color', 'b', 'LineWidth', 1);

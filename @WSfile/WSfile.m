@@ -87,6 +87,7 @@ classdef WSfile
         firing_vs_light_ch(obj)
         firing_vs_light_polygon(obj)
         firing_vs_light_polygon_test(obj)
+        psc_vs_light_polygon(obj)
 
         
         function obj = WSfile(fileName)

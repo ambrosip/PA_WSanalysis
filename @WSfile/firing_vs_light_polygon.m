@@ -1,6 +1,8 @@
 %{ 
 DOCUMENTATION
 Created: 2022 07 21
+Edited Last: 2022 08 31
+Works? Yes
 Author: PA
 
 This function is used to analyze light-evoked changes in firing rate in
@@ -126,20 +128,20 @@ TO DO:
 %}
 
 function firing_vs_light_polygon(obj)
-%%  USER INPUT ============================================================
+%%  USER INPUT ==================================================
 
 % Affects data analysis - Organizing data by o-stim grid
-gridColumns = 5;
-gridRows = 5;
+gridColumns = 3;
+gridRows = 3;
 
 % Affects data analysis - Finding APs:
-discardedSweeps = [157,158];
+discardedSweeps = [];
 discardedSweepsFromEnd = 0;
 peaksOrValleys = 'v';   
 highpassThreshold = 100;
 lowpassThreshold = 1500;    
-minPeakHeight = 20;         
-minPeakDistance = 0.001; 
+minPeakHeight = 25;         
+minPeakDistance = 0.05; 
 lightExtensionFactor = 1;
 lightChannel = 2;
 singleLightPulse = 1; 
@@ -151,17 +153,17 @@ preAPbaselineDurationSeconds = 0.002;
 ddyValleyThreshold = 600;
   
 % Affects data display: 
-ymax = 200;
+ymax = 100;
 ymaxhist = 15;
 zoomWindow = 0.25;
 ymaxIsiCV = 150;
 heatmapMin = -2;
 heatmapMax = 0;
-cellImageFileName = 's2c1_dic2.tif';
-cellImageDir = 'E:\Priscilla - BACKUP 20200319\Ephys\2022\20220720 m571 dat nphr';
+cellImageFileName = 's1c2_dic_moved.tif';
+cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220630 m572 dat nphr';
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-08-11 polygon';
+savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-08-31 polygon';
 
 
 

@@ -42,7 +42,7 @@ function psc_vs_light_single(obj)
 %%%  USER INPUT ==================================================
 
 % Affects data analysis:
-lightStimCh = 2;
+lightStimCh = 4;
 discardedSweeps = [];
 discardedSweepsFromEnd = 0;
 inwardORoutward = -1;    % 1 (positive) is outward; -1 (negative) in inward
@@ -57,11 +57,11 @@ fastTauGuess = 0.01;    % in seconds
 slowTauGuess = 0.1;     % in seconds
 
 % Affects data display:
-ymin = -375;       %-2050
-ymax = 150;          %50
+ymin = -1500;       %-2050   % -375
+ymax = 600;          %50    % 150
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-06-24 polygon ephys 2';
+savefileto = 'D:\Temp\From MATLAB 2022 08 31 psc';
 
 
 %% PREP - get info from file and create arrays ==================
