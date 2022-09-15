@@ -115,17 +115,17 @@ lightExtensionFactor = 1;
 preAPinSeconds = 0.005;            
 postAPinSeconds = 0.01;           
 preAPbaselineDurationSeconds = 0.002;
-ddyValleyThreshold = 60;
-ddyPeakThreshold = 35;
+ddyValleyThreshold = 15;
+ddyPeakThreshold = 15;
   
 % Affects data display: 
-ymax = 75;
-ymaxhist = 15;
+ymax = 150;
+ymaxhist = 30;
 zoomWindow = 0.25;
 ymaxIsiCV = 150;
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-04-13 d spiral';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-09-12 chrimson not excited by blue light';
 
 
 %% PREP - get info from file and create arrays ==================
@@ -433,126 +433,126 @@ data(sweepNumber, 23)
 data = [data, lightEffect, sdFromPreLightHz];
 
 
-%% CELL ANALYSIS - AP shape =====================================
-
-% calculate average AP shape/trace
-avgAP = mean(ySubsetAll);
-%----------------------------------------------------------------
-
-% create x axis for plotting AP shape
-xSubset = 1000*linspace(0,(preAPinSeconds + postAPinSeconds), length(ySubsetForAPshape));
-%----------------------------------------------------------------
-
-% find AP peak and valley
-avgAPpeakInDataPoints = find(avgAP==max(avgAP));
-avgAPvalleyInDataPoints = find(avgAP==min(avgAP));
-avgAPpeakInMilliSeconds = xSubset(avgAPpeakInDataPoints);
-avgAPvalleyInMilliSeconds = xSubset(avgAPvalleyInDataPoints);
-%----------------------------------------------------------------
-
-% calculating derivatives and creating xAxis to plot derivatives. 
-% for each derivative, the xAxis length decreases by 1 point.
-xForDy = xSubset;
-xForDy(end) = [];   % remove last point from xAxis
-dy = diff(avgAP)./diff(xSubset);
-ddy = diff(dy)./diff(xForDy);
-xForDdy = xForDy;
-xForDdy(end) = [];  % remove last point from xAxis
-%----------------------------------------------------------------
-
-% Find AP ONset based on 2nd derivative - ddy == min of first valley
-[pks1,locs1,w,p] = findpeaks(-ddy,xForDdy,'MinPeakHeight',ddyValleyThreshold);
-ddyBasedOnsetInMilliSeconds = locs1(1);       
-ddyBasedOnsetInDataPoints = round(ddyBasedOnsetInMilliSeconds*(samplingFrequency/1000));
-%----------------------------------------------------------------
-
-% Find AP OFFset based on 2nd derivative - ddy == zero after last peak
-[pks2,locs2,w,p] = findpeaks(ddy,xForDdy,'MinPeakHeight',ddyPeakThreshold);
-ddyLastPeakInMilliSeconds = locs2(end);     
-ddyLastPeakInDataPoints = round(ddyLastPeakInMilliSeconds*(samplingFrequency/1000));
-ddyLastValleyInMilliSeconds = locs1(end);     
-ddyLastValleyInDataPoints = round(ddyLastValleyInMilliSeconds*(samplingFrequency/1000));
-ddyAfterLastPeakOrValley = ddy;
-ddyBasedOffsetInDataPoints = [];
-
-% if last peak is before last valley, look for when ddy crosses 0 after last valley
-if ddyLastPeakInMilliSeconds < ddyLastValleyInMilliSeconds
-    ddyAfterLastPeakOrValley(1:ddyLastValleyInDataPoints) = [];
-    ddyAfterLastPeakOrValleyInDataPoints = ddyLastValleyInDataPoints;
-    ddyCrossesZeroPt = find(diff(sign(ddyAfterLastPeakOrValley))>0, 1);
-    ddyBasedOffsetInDataPoints = ddyLastValleyInDataPoints + ddyCrossesZeroPt + 1;
-% if last peak is after last valley, look for when ddy crosses 0 after last peak
-else
-    ddyAfterLastPeakOrValley(1:ddyLastPeakInDataPoints) = [];
-    ddyAfterLastPeakOrValleyInDataPoints = ddyLastPeakInDataPoints;
-    ddyCrossesZeroPt = find(diff(sign(ddyAfterLastPeakOrValley))<0, 1);
-    ddyBasedOffsetInDataPoints = ddyLastPeakInDataPoints + ddyCrossesZeroPt + 1;
-end 
-
-ddyBasedOffsetInMilliSeconds = xForDdy(ddyBasedOffsetInDataPoints);
-ddyAfterLastPeakOrValleyInMilliSeconds = xForDdy(ddyAfterLastPeakOrValleyInDataPoints);
-%----------------------------------------------------------------
-
-% Find AP offset based on avgAP==0 after peak
-% Assumes that AP valley precedes the AP peak
-avgAPafterPeak = avgAP;
-avgAPafterPeak(1:avgAPpeakInDataPoints) = [];
-avgAPoffsetInDataPoints = avgAPpeakInDataPoints + find(round(avgAPafterPeak)==0, 1);
-avgAPoffsetInMilliSeconds = xSubset(avgAPoffsetInDataPoints);
-
-% To avoid errors in the CSV in case matlab fails to find the offset:
-if isempty(find(round(avgAPafterPeak)==0, 1))
-    avgAPoffsetInMilliSeconds = xSubset(end);
-    avgAPoffsetInDataPoints = length(xSubset); 
-end
-%----------------------------------------------------------------
-
-% Calculate AP width and duration based on multiple criteria
-halfWidth = avgAPpeakInMilliSeconds - avgAPvalleyInMilliSeconds;
-biphasicDuration = avgAPpeakInMilliSeconds - ddyBasedOnsetInMilliSeconds;
-totalDurationDdyBased = ddyBasedOffsetInMilliSeconds - ddyBasedOnsetInMilliSeconds;
-totalDurationAvgBased = avgAPoffsetInMilliSeconds - ddyBasedOnsetInMilliSeconds;
-%----------------------------------------------------------------
-
-% Check if AP duration is consistent with DA cell
-% DA cells have total duration > 2 ms
-% To be conservative, I'm taking the average between my two duration
-% metrics
-if (totalDurationDdyBased + totalDurationAvgBased)/2 > 2
-    isDA = 1;
-else
-    isDA = 0;
-end
-%----------------------------------------------------------------
-
-% store AP shape data 
-% cannot add to sweep by sweep data cuz it's just 1 row
-dataAPshape = [mouseNumber, ...
-    experimentDate, ...
-    firstSweepNumber, ...
-    lastSweepNumber, ...
-    discardedSweepsFromEnd, ...
-    peaksOrValleysAsNum, ...
-    highpassThreshold, ...
-    lowpassThreshold, ...
-    minPeakHeight, ...        
-    minPeakDistance, ... 
-    preAPinSeconds, ...
-    postAPinSeconds, ...
-    preAPbaselineDurationSeconds, ...
-    ddyValleyThreshold, ...
-    ddyPeakThreshold, ...
-    nAPtotal, ...
-    ddyBasedOnsetInMilliSeconds, ...
-    avgAPvalleyInMilliSeconds, ...
-    avgAPpeakInMilliSeconds, ...
-    ddyBasedOffsetInMilliSeconds, ...
-    avgAPoffsetInMilliSeconds, ...
-    halfWidth, ...
-    biphasicDuration, ...
-    totalDurationDdyBased, ...
-    totalDurationAvgBased, ...
-    isDA];
+% %% CELL ANALYSIS - AP shape =====================================
+% 
+% % calculate average AP shape/trace
+% avgAP = mean(ySubsetAll);
+% %----------------------------------------------------------------
+% 
+% % create x axis for plotting AP shape
+% xSubset = 1000*linspace(0,(preAPinSeconds + postAPinSeconds), length(ySubsetForAPshape));
+% %----------------------------------------------------------------
+% 
+% % find AP peak and valley
+% avgAPpeakInDataPoints = find(avgAP==max(avgAP));
+% avgAPvalleyInDataPoints = find(avgAP==min(avgAP));
+% avgAPpeakInMilliSeconds = xSubset(avgAPpeakInDataPoints);
+% avgAPvalleyInMilliSeconds = xSubset(avgAPvalleyInDataPoints);
+% %----------------------------------------------------------------
+% 
+% % calculating derivatives and creating xAxis to plot derivatives. 
+% % for each derivative, the xAxis length decreases by 1 point.
+% xForDy = xSubset;
+% xForDy(end) = [];   % remove last point from xAxis
+% dy = diff(avgAP)./diff(xSubset);
+% ddy = diff(dy)./diff(xForDy);
+% xForDdy = xForDy;
+% xForDdy(end) = [];  % remove last point from xAxis
+% %----------------------------------------------------------------
+% 
+% % Find AP ONset based on 2nd derivative - ddy == min of first valley
+% [pks1,locs1,w,p] = findpeaks(-ddy,xForDdy,'MinPeakHeight',ddyValleyThreshold);
+% ddyBasedOnsetInMilliSeconds = locs1(1);       
+% ddyBasedOnsetInDataPoints = round(ddyBasedOnsetInMilliSeconds*(samplingFrequency/1000));
+% %----------------------------------------------------------------
+% 
+% % Find AP OFFset based on 2nd derivative - ddy == zero after last peak
+% [pks2,locs2,w,p] = findpeaks(ddy,xForDdy,'MinPeakHeight',ddyPeakThreshold);
+% ddyLastPeakInMilliSeconds = locs2(end);     
+% ddyLastPeakInDataPoints = round(ddyLastPeakInMilliSeconds*(samplingFrequency/1000));
+% ddyLastValleyInMilliSeconds = locs1(end);     
+% ddyLastValleyInDataPoints = round(ddyLastValleyInMilliSeconds*(samplingFrequency/1000));
+% ddyAfterLastPeakOrValley = ddy;
+% ddyBasedOffsetInDataPoints = [];
+% 
+% % if last peak is before last valley, look for when ddy crosses 0 after last valley
+% if ddyLastPeakInMilliSeconds < ddyLastValleyInMilliSeconds
+%     ddyAfterLastPeakOrValley(1:ddyLastValleyInDataPoints) = [];
+%     ddyAfterLastPeakOrValleyInDataPoints = ddyLastValleyInDataPoints;
+%     ddyCrossesZeroPt = find(diff(sign(ddyAfterLastPeakOrValley))>0, 1);
+%     ddyBasedOffsetInDataPoints = ddyLastValleyInDataPoints + ddyCrossesZeroPt + 1;
+% % if last peak is after last valley, look for when ddy crosses 0 after last peak
+% else
+%     ddyAfterLastPeakOrValley(1:ddyLastPeakInDataPoints) = [];
+%     ddyAfterLastPeakOrValleyInDataPoints = ddyLastPeakInDataPoints;
+%     ddyCrossesZeroPt = find(diff(sign(ddyAfterLastPeakOrValley))<0, 1);
+%     ddyBasedOffsetInDataPoints = ddyLastPeakInDataPoints + ddyCrossesZeroPt + 1;
+% end 
+% 
+% ddyBasedOffsetInMilliSeconds = xForDdy(ddyBasedOffsetInDataPoints);
+% ddyAfterLastPeakOrValleyInMilliSeconds = xForDdy(ddyAfterLastPeakOrValleyInDataPoints);
+% %----------------------------------------------------------------
+% 
+% % Find AP offset based on avgAP==0 after peak
+% % Assumes that AP valley precedes the AP peak
+% avgAPafterPeak = avgAP;
+% avgAPafterPeak(1:avgAPpeakInDataPoints) = [];
+% avgAPoffsetInDataPoints = avgAPpeakInDataPoints + find(round(avgAPafterPeak)==0, 1);
+% avgAPoffsetInMilliSeconds = xSubset(avgAPoffsetInDataPoints);
+% 
+% % To avoid errors in the CSV in case matlab fails to find the offset:
+% if isempty(find(round(avgAPafterPeak)==0, 1))
+%     avgAPoffsetInMilliSeconds = xSubset(end);
+%     avgAPoffsetInDataPoints = length(xSubset); 
+% end
+% %----------------------------------------------------------------
+% 
+% % Calculate AP width and duration based on multiple criteria
+% halfWidth = avgAPpeakInMilliSeconds - avgAPvalleyInMilliSeconds;
+% biphasicDuration = avgAPpeakInMilliSeconds - ddyBasedOnsetInMilliSeconds;
+% totalDurationDdyBased = ddyBasedOffsetInMilliSeconds - ddyBasedOnsetInMilliSeconds;
+% totalDurationAvgBased = avgAPoffsetInMilliSeconds - ddyBasedOnsetInMilliSeconds;
+% %----------------------------------------------------------------
+% 
+% % Check if AP duration is consistent with DA cell
+% % DA cells have total duration > 2 ms
+% % To be conservative, I'm taking the average between my two duration
+% % metrics
+% if (totalDurationDdyBased + totalDurationAvgBased)/2 > 2
+%     isDA = 1;
+% else
+%     isDA = 0;
+% end
+% %----------------------------------------------------------------
+% 
+% % store AP shape data 
+% % cannot add to sweep by sweep data cuz it's just 1 row
+% dataAPshape = [mouseNumber, ...
+%     experimentDate, ...
+%     firstSweepNumber, ...
+%     lastSweepNumber, ...
+%     discardedSweepsFromEnd, ...
+%     peaksOrValleysAsNum, ...
+%     highpassThreshold, ...
+%     lowpassThreshold, ...
+%     minPeakHeight, ...        
+%     minPeakDistance, ... 
+%     preAPinSeconds, ...
+%     postAPinSeconds, ...
+%     preAPbaselineDurationSeconds, ...
+%     ddyValleyThreshold, ...
+%     ddyPeakThreshold, ...
+%     nAPtotal, ...
+%     ddyBasedOnsetInMilliSeconds, ...
+%     avgAPvalleyInMilliSeconds, ...
+%     avgAPpeakInMilliSeconds, ...
+%     ddyBasedOffsetInMilliSeconds, ...
+%     avgAPoffsetInMilliSeconds, ...
+%     halfWidth, ...
+%     biphasicDuration, ...
+%     totalDurationDdyBased, ...
+%     totalDurationAvgBased, ...
+%     isDA];
 
 
 %% CELL ANALYSIS - avg from all sweeps ==========================
@@ -563,49 +563,49 @@ isIrregularCell = median(isIrregularBySweep);
 lightEffectCell = median(lightEffect);
 sdFromPreLightHzCell = median(sdFromPreLightHz);
 
-dataCell = [mouseNumber, ...
-    experimentDate, ...
-    firstSweepNumber, ...
-    lastSweepNumber, ...
-    length(allSweeps), ...
-    discardedSweepsFromEnd, ...
-    peaksOrValleysAsNum, ...
-    highpassThreshold, ...
-    lowpassThreshold, ...
-    minPeakHeight, ...        
-    minPeakDistance, ...    
-    lightExtensionFactor, ...
-    preAPinSeconds, ...
-    postAPinSeconds, ...
-    preAPbaselineDurationSeconds, ...
-    ddyValleyThreshold, ...
-    ddyPeakThreshold, ...    
-    stimDur, ... 
-    stimFreq, ...
-    lightDur, ...    
-    nAPtotal, ...
-    halfWidth, ...
-    biphasicDuration, ...
-    totalDurationDdyBased, ...
-    totalDurationAvgBased, ...    
-    mean(hzBaselineBySweep), ...
-    std(hzBaselineBySweep), ...
-    std(hzBaselineBySweep)/mean(hzBaselineBySweep), ...
-    mean(allIsiBaseline), ...
-    std(allIsiBaseline), ...
-    std(allIsiBaseline)/mean(allIsiBaseline), ...
-    mean(hzPreLightBySweep), ...
-    std(hzPreLightBySweep), ...
-    mean(hzDuringLightBySweep), ...
-    std(hzDuringLightBySweep), ...
-    mean(hzPostLightBySweep), ...
-    std(hzPostLightBySweep), ...
-    (mean(hzDuringLightBySweep) - mean(hzPreLightBySweep))/std(hzPreLightBySweep), ...
-    mean(hzDuringLightBySweep)/mean(hzPreLightBySweep), ...
-    isDA, ...
-    isIrregularCell, ...
-    lightEffectCell, ...
-    sdFromPreLightHzCell];
+% dataCell = [mouseNumber, ...
+%     experimentDate, ...
+%     firstSweepNumber, ...
+%     lastSweepNumber, ...
+%     length(allSweeps), ...
+%     discardedSweepsFromEnd, ...
+%     peaksOrValleysAsNum, ...
+%     highpassThreshold, ...
+%     lowpassThreshold, ...
+%     minPeakHeight, ...        
+%     minPeakDistance, ...    
+%     lightExtensionFactor, ...
+%     preAPinSeconds, ...
+%     postAPinSeconds, ...
+%     preAPbaselineDurationSeconds, ...
+%     ddyValleyThreshold, ...
+%     ddyPeakThreshold, ...    
+%     stimDur, ... 
+%     stimFreq, ...
+%     lightDur, ...    
+%     nAPtotal, ...
+%     halfWidth, ...
+%     biphasicDuration, ...
+%     totalDurationDdyBased, ...
+%     totalDurationAvgBased, ...    
+%     mean(hzBaselineBySweep), ...
+%     std(hzBaselineBySweep), ...
+%     std(hzBaselineBySweep)/mean(hzBaselineBySweep), ...
+%     mean(allIsiBaseline), ...
+%     std(allIsiBaseline), ...
+%     std(allIsiBaseline)/mean(allIsiBaseline), ...
+%     mean(hzPreLightBySweep), ...
+%     std(hzPreLightBySweep), ...
+%     mean(hzDuringLightBySweep), ...
+%     std(hzDuringLightBySweep), ...
+%     mean(hzPostLightBySweep), ...
+%     std(hzPostLightBySweep), ...
+%     (mean(hzDuringLightBySweep) - mean(hzPreLightBySweep))/std(hzPreLightBySweep), ...
+%     mean(hzDuringLightBySweep)/mean(hzPreLightBySweep), ...
+%     isDA, ...
+%     isIrregularCell, ...
+%     lightEffectCell, ...
+%     sdFromPreLightHzCell];
 
 
 %% PLOT - ISI ===================================================
@@ -753,59 +753,59 @@ hold off;
 % movegui('east')
 
 
-%% PLOT - AP width ==============================================
-
-% Plot all APs and avg AP (not filtered, baseline subtracted)
-% Ddy based ONset is marked with a blue arrow >
-% Avg based PEAK is marked with a red arrow ^
-% Avg based VALLEY is marked with a red arrow v
-% Ddy based OFFset is marked with a blue arrow <
-% Avg based OFFset is marked with a red arrow <
-figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light - AP width'));     
-hold on;
-    plot(xSubset, ySubsetAll,'Color', [0.75, 0.75, 0.75, 0.5], 'LineWidth', 0.2);
-    plot(xSubset, avgAP,'Color','black','LineWidth',1.5); 
-    plot(xSubset(avgAPpeakInDataPoints), max(avgAP),'^','color', 'r');
-    plot(xSubset(avgAPvalleyInDataPoints), min(avgAP),'v','color', 'r');
-    plot(ddyBasedOffsetInMilliSeconds, avgAP(ddyBasedOffsetInDataPoints), '<', 'color', 'b');
-    plot(ddyBasedOnsetInMilliSeconds, avgAP(ddyBasedOnsetInDataPoints), '>', 'color', 'b');
-    plot(avgAPoffsetInMilliSeconds, avgAP(avgAPoffsetInDataPoints), '<', 'color', 'r');
-    xlabel('Time (ms)');
-    ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
-    title([fileName ' AP width'],'Interpreter','none');
-hold off;
-set(gcf,'Position',[1000 50 400 400]);
-
-% Display y axis inverted to match how extracelullar spikes are most often displayed in the literature
-set(gca, 'YDir','reverse');
-
-% adding scale bar
-xmaxHere = 1000*(preAPinSeconds+postAPinSeconds);
-line([xmaxHere-2 xmaxHere],[min(avgAP) min(avgAP)],'Color','k')
-line([xmaxHere xmaxHere],[min(avgAP) min(avgAP)+10],'Color','k')
-text(xmaxHere-2, min(avgAP)+5, "2 ms")
-text(xmaxHere-2, min(avgAP)+10, strcat("10 ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
-
-
-%% PLOT - AP width with derivatives =============================
-
-% Plot the first (blue) and second (red) derivative of the avg
-% Use this dor troubleshooting and adjusting ddyPeakThreshold and ddyValleyThreshold
-figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light - AP width ddy'));
-hold on;
-    plot(xSubset, avgAP,'Color','black','LineWidth',1);
-    plot(xForDy, dy,'Color', 'b', 'LineWidth', 1);
-    plot(xForDdy, ddy,'Color', 'r', 'LineWidth', 1);
-    plot(ddyBasedOnsetInMilliSeconds, ddy(ddyBasedOnsetInDataPoints+1), '>', 'color', 'b');
-    plot(ddyBasedOffsetInMilliSeconds, ddy(ddyBasedOffsetInDataPoints), '<', 'color', 'b');
-    line([0 xSubset(end)],[ddyPeakThreshold ddyPeakThreshold], 'LineStyle', '-.');
-    line([0 xSubset(end)],[-ddyValleyThreshold -ddyValleyThreshold], 'LineStyle', '--');
-    xlabel('Time (ms)');
-    ylabel('Amplitude');
-    title([fileName ' AP width ddy'],'Interpreter','none');
-    legend('avg AP', 'avg AP dy', 'avg AP ddy', 'ddy based ONset', 'ddy based OFFset', 'ddyPeakThreshold', 'ddyValleyThreshold', 'Location', 'northeast');
-hold off;
-set(gcf,'Position',[1000 550 400 400]);
+% %% PLOT - AP width ==============================================
+% 
+% % Plot all APs and avg AP (not filtered, baseline subtracted)
+% % Ddy based ONset is marked with a blue arrow >
+% % Avg based PEAK is marked with a red arrow ^
+% % Avg based VALLEY is marked with a red arrow v
+% % Ddy based OFFset is marked with a blue arrow <
+% % Avg based OFFset is marked with a red arrow <
+% figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light - AP width'));     
+% hold on;
+%     plot(xSubset, ySubsetAll,'Color', [0.75, 0.75, 0.75, 0.5], 'LineWidth', 0.2);
+%     plot(xSubset, avgAP,'Color','black','LineWidth',1.5); 
+%     plot(xSubset(avgAPpeakInDataPoints), max(avgAP),'^','color', 'r');
+%     plot(xSubset(avgAPvalleyInDataPoints), min(avgAP),'v','color', 'r');
+%     plot(ddyBasedOffsetInMilliSeconds, avgAP(ddyBasedOffsetInDataPoints), '<', 'color', 'b');
+%     plot(ddyBasedOnsetInMilliSeconds, avgAP(ddyBasedOnsetInDataPoints), '>', 'color', 'b');
+%     plot(avgAPoffsetInMilliSeconds, avgAP(avgAPoffsetInDataPoints), '<', 'color', 'r');
+%     xlabel('Time (ms)');
+%     ylabel(strcat("Baseline Subtracted ", obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
+%     title([fileName ' AP width'],'Interpreter','none');
+% hold off;
+% set(gcf,'Position',[1000 50 400 400]);
+% 
+% % Display y axis inverted to match how extracelullar spikes are most often displayed in the literature
+% set(gca, 'YDir','reverse');
+% 
+% % adding scale bar
+% xmaxHere = 1000*(preAPinSeconds+postAPinSeconds);
+% line([xmaxHere-2 xmaxHere],[min(avgAP) min(avgAP)],'Color','k')
+% line([xmaxHere xmaxHere],[min(avgAP) min(avgAP)+10],'Color','k')
+% text(xmaxHere-2, min(avgAP)+5, "2 ms")
+% text(xmaxHere-2, min(avgAP)+10, strcat("10 ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+% 
+% 
+% %% PLOT - AP width with derivatives =============================
+% 
+% % Plot the first (blue) and second (red) derivative of the avg
+% % Use this dor troubleshooting and adjusting ddyPeakThreshold and ddyValleyThreshold
+% figure('name', strcat(fileName, " ", analysisDate, ' - firing_vs_light - AP width ddy'));
+% hold on;
+%     plot(xSubset, avgAP,'Color','black','LineWidth',1);
+%     plot(xForDy, dy,'Color', 'b', 'LineWidth', 1);
+%     plot(xForDdy, ddy,'Color', 'r', 'LineWidth', 1);
+%     plot(ddyBasedOnsetInMilliSeconds, ddy(ddyBasedOnsetInDataPoints+1), '>', 'color', 'b');
+%     plot(ddyBasedOffsetInMilliSeconds, ddy(ddyBasedOffsetInDataPoints), '<', 'color', 'b');
+%     line([0 xSubset(end)],[ddyPeakThreshold ddyPeakThreshold], 'LineStyle', '-.');
+%     line([0 xSubset(end)],[-ddyValleyThreshold -ddyValleyThreshold], 'LineStyle', '--');
+%     xlabel('Time (ms)');
+%     ylabel('Amplitude');
+%     title([fileName ' AP width ddy'],'Interpreter','none');
+%     legend('avg AP', 'avg AP dy', 'avg AP ddy', 'ddy based ONset', 'ddy based OFFset', 'ddyPeakThreshold', 'ddyValleyThreshold', 'Location', 'northeast');
+% hold off;
+% set(gcf,'Position',[1000 550 400 400]);
 
 
 %% PLOT - AP width with derivatives normalized ==================

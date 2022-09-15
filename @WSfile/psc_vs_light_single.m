@@ -61,7 +61,7 @@ ymin = -1500;       %-2050   % -375
 ymax = 600;          %50    % 150
 
 % Affects data saving:
-savefileto = 'D:\Temp\From MATLAB 2022 08 31 psc';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-09-14 polygon asc spiral m729';
 
 
 %% PREP - get info from file and create arrays ==================

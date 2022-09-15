@@ -103,7 +103,7 @@ TO DO:
 
 % function psc_vs_light_polygon(obj)
 % obj = m075.s0004;
-obj = m076.s0116;
+obj = m000.s0004;
 
 %%  USER INPUT ============================================================
 
@@ -125,9 +125,9 @@ rsTestPulseOnsetTime = 1;
 % Affects data display: 
 ymin = -1500;           %-2050
 ymax = 600;             %50
-cellImageFileNameDIC = 's1c1_z1_moved1_dic.tif';
-cellImageFileNameAlexa = 's1c1_z1_moved1_647.tif';
-cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220728 m076 dms loop';
+cellImageFileNameDIC = 's3c1_dic_1x.tif';
+cellImageFileNameAlexa = 's3c1_647_SUM_Stack.tif';
+cellImageDir = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Ephys\2022\20220726 m000 dls loop';
 
 % Affects data saving:
 savefileto = 'D:\Temp\From MATLAB 2022 08 31 psc';
@@ -955,6 +955,84 @@ ylabel('Subtracted Baseline Current (pA)');
 xlabel('Sweeps');
 title([obj.file ' baseline current'],'Interpreter','none');
 movegui('southwest');
+
+
+%% PLOT 8 - summed PSCs
+
+% sum all the square averages
+summedPSC = sum(yBaselineSubAllMeanBySquare,2);
+
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - summed PSCs')); % naming figure file
+hold on;
+plot(x, yBaselineSubAllMeanBySquare,'Color',[0, 0, 0, 0.25]);
+plot(x, summedPSC,'Color','black','LineWidth',0.7); 
+line([xmin xmax],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--');
+axis([xmin xmax ymin ymax]);
+
+% adding light stim - individual pulses   
+% note that this code will use light stim parameters from the last sweep!
+% if light stim is not the same accross all sweeps, this will be
+% misleading!
+for nStim=1:length(lightPulseStart)
+    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax),-inwardORoutward*(ymax)],'Color',[0 0.4470 0.7410],'LineWidth',10)
+end
+
+% add scale bar
+xmaxScale = xmax;
+xminScale = xmin;
+line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
+line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
+text(xmaxScale-(xmaxScale-xminScale),ymin+((ymax-ymin)/10),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
+text(xmaxScale-(xmaxScale-xminScale),ymin+((ymax-ymin)/3),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+
+hold off;    
+set(gca,'Visible','off');
+
+
+%% PLOT 9 - heatmap of normalized PSCs (normalized to summed PSC)
+
+% set hetmap edges
+heatmapMin = 0;
+heatmapMax = 1;
+
+% peak current of summed PSCs
+min(summedPSC(pulseOnset:afterLightDataPoint))
+
+% normalize average peak-by-square by summed peak
+normalizedPSC = min(yBaselineSubAllMeanBySquare(pulseOnset:afterLightDataPoint,:))/min(summedPSC(pulseOnset:afterLightDataPoint));
+
+% organize data for heatmap
+dataForHeatmap = reshape(normalizedPSC,gridColumns,[]).';
+
+% resize heatmap
+resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImage,2)], 'nearest');
+
+% make heatmap without the heatmap function
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - heatmap 1')); % naming figure file
+imshow(resizedHeatmap,'Colormap',parula,'DisplayRange', [heatmapMin,heatmapMax], 'Border', 'tight');
+set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
+c = colorbar;
+c.Label.String = 'Normalized PSC';
+
+
+%% PLOT 10 - heatmap of normalized PSCs (normalized to largest PSC)
+
+% normalize average peak-by-square by largest peak
+maxPSC = min(min(yBaselineSubAllMeanBySquare(pulseOnset:afterLightDataPoint,:)));
+normalizedToMaxPSC = min(yBaselineSubAllMeanBySquare(pulseOnset:afterLightDataPoint,:))/maxPSC;
+
+% organize data for heatmap
+dataForHeatmap = reshape(normalizedToMaxPSC,gridColumns,[]).';
+
+% resize heatmap
+resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImage,2)], 'nearest');
+
+% make heatmap without the heatmap function
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - heatmap 2')); % naming figure file
+imshow(resizedHeatmap,'Colormap',parula,'DisplayRange', [heatmapMin,heatmapMax], 'Border', 'tight');
+set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
+c = colorbar;
+c.Label.String = 'Normalized PSC';
 
 
 %% EXPORTING XLS files ==========================================

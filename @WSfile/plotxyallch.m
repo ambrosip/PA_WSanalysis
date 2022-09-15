@@ -55,7 +55,7 @@ function plotxyallch(obj, varargin)
         plot(x,y);
         yminhere = min(y)-5;
         ymaxhere = max(y)+5;
-        axis([xmin xmax yminhere ymaxhere])
+%         axis([xmin xmax yminhere ymaxhere])
 %         xlabel('Time (s)');
         ylabel(strcat(obj.header.Acquisition.ActiveChannelNames(channel), ' (', obj.header.Acquisition.AnalogChannelUnits(channel), ')'));
         end

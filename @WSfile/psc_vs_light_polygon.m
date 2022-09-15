@@ -105,8 +105,8 @@ function psc_vs_light_polygon(obj)
 %%  USER INPUT ============================================================
 
 % Affects data analysis - Organizing data by o-stim grid
-gridColumns = 5;
-gridRows = 5;
+gridColumns = 7;
+gridRows = 7;
 
 % Affects data analysis - Finding/quantifyting oIPSCs
 discardedSweeps = [];
@@ -120,14 +120,14 @@ thresholdInDataPts = 5;             % ALERT! Changed from 10 to 5
 rsTestPulseOnsetTime = 1;
 
 % Affects data display: 
-ymin = -1500;           %-2050
-ymax = 600;             %50
-cellImageFileNameDIC = 's3c3_dic.tif';
-cellImageFileNameAlexa = 's3c3_647_sum stack.tif';
-cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220815 m370 asc spiral';
+ymin = -1500;           %-2050      -3600
+ymax = 600;             %50         600
+cellImageFileNameDIC = 's2c4_z1_dic.tif';
+cellImageFileNameAlexa = 's2c4_SUM_Stack.tif';
+cellImageDir = 'E:\Priscilla - BACKUP 20200319\Ephys\2022\20220914 m729 asc spiral';
 
 % Affects data saving:
-savefileto = 'D:\Temp\From MATLAB 2022 09 02 psc polygon';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-09-14 polygon asc spiral m729';
 
 % % Affects oIPSC decay fit - Not currently implemented in polygon code
 % bGuess = 1;             % -1000     % 1
@@ -179,9 +179,9 @@ end
 
 % now checking if the total number of sweeps is a multiple of the total
 % number of squares. If not, remove the extra sweeps from the end.
-totalSweeps = length(allSweeps);
+totalSweeps = length(allSweeps)
 totalSquares = gridColumns * gridRows;
-sweepsPerSquare = totalSweeps / totalSquares;
+sweepsPerSquare = totalSweeps / totalSquares
 if mod(totalSweeps, totalSquares) ~= 0
     lastSweepNumber = lastSweepNumber - mod(totalSweeps, totalSquares);
     allSweeps = firstSweepNumber:lastSweepNumber;
@@ -276,20 +276,32 @@ for sweepNumber = allSweeps
         isDiscarded = 1;
         x = NaN(sweepDurationInDataPts, 1);
         y = NaN(sweepDurationInDataPts, 1);
+        
+        % not doing baseline subtraction
+        yBaselineSub = NaN(sweepDurationInDataPts, 1);
+        baselineCurrent = NaN;        
+        
+        % not calculating series resistance
+        rsBaselineCurrent = NaN;
+        
     else         
         isDiscarded = 0;
         [x,y] = obj.xy(sweepNumber, 1);  
+        
+        % baseline subtraction
+        baselineStart = lightPulseStart(1) - baselineDurationInDataPts
+        yBaselineSub = y-mean(y(baselineStart:lightPulseStart(1)));
+        baselineCurrent = mean(y(baselineStart:lightPulseStart(1)));
+        
+        % calculating series resistance
+        rsBaselineCurrent = mean(y(rsBaselineDataPointInterval));
+        
     end
     
     % store info about which sweeps were discarded
     isDiscardedBySweep = [isDiscardedBySweep; isDiscarded];
     %----------------------------------------------------------------------
     
-    
-    % baseline subtraction
-    baselineStart = lightPulseStart(1) - baselineDurationInDataPts;
-    yBaselineSub = y-mean(y(baselineStart:lightPulseStart(1)));
-    baselineCurrent = mean(y(baselineStart:lightPulseStart(1)));
     
     % saving data for niceplot
     % y data for each sweep is in a column
@@ -299,7 +311,6 @@ for sweepNumber = allSweeps
     
     
     % calculating series resistance
-    rsBaselineCurrent = mean(y(rsBaselineDataPointInterval));
     rsTransientCurrent = min(y(rsFirstTransientDataPointInterval));
     dCurrent = rsTransientCurrent-rsBaselineCurrent;
     dVoltage = -5;
@@ -323,82 +334,94 @@ for sweepNumber = allSweeps
     % this code is overkill here cuz there is only one light pulse but whatever
     for pulseOnset = lightPulseStart.'
         
-        afterLightDataPoint = pulseOnset + lightPulseAnalysisWindowInDataPts;
+        if ismember(sweepNumber, discardedSweeps) 
             
-        % get amplitude and location (index) of lightEvokedCurrents
-        % outward current is +1
-        % inward current is 0 or -1
-        if inwardORoutward == 1 
-            [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = max(yBaselineSub(pulseOnset:afterLightDataPoint));
-            timeTo10percentOfPeakInDataPoints = find(yBaselineSub(pulseOnset:afterLightDataPoint) >= 0.1 * lightEvokedCurrentAmp, 1);
-            timeTo90percentOfPeakInDataPoints = find(yBaselineSub(pulseOnset:afterLightDataPoint) >= 0.9 * lightEvokedCurrentAmp, 1);
-        else
-            [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = min(yBaselineSub(pulseOnset:afterLightDataPoint));
-            timeTo10percentOfPeakInDataPoints = find(yBaselineSub(pulseOnset:afterLightDataPoint) <= 0.1 * lightEvokedCurrentAmp, 1);
-            timeTo90percentOfPeakInDataPoints = find(yBaselineSub(pulseOnset:afterLightDataPoint) <= 0.9 * lightEvokedCurrentAmp, 1);
+            lightEvokedCurrentAmp = NaN;
+            lightEvokedCurrentLoc = NaN;
+            timeTo10percentOfPeakInDataPoints = NaN;
+            timeTo90percentOfPeakInDataPoints = NaN;
+            lightEvokedResponseOnsetLatencyInDataPoints = NaN;
+            
+        else        
+            
+            afterLightDataPoint = pulseOnset + lightPulseAnalysisWindowInDataPts;
+
+            % get amplitude and location (index) of lightEvokedCurrents
+            % outward current is +1
+            % inward current is 0 or -1
+            if inwardORoutward == 1 
+                [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = max(yBaselineSub(pulseOnset:afterLightDataPoint));
+                timeTo10percentOfPeakInDataPoints = find(yBaselineSub(pulseOnset:afterLightDataPoint) >= 0.1 * lightEvokedCurrentAmp, 1);
+                timeTo90percentOfPeakInDataPoints = find(yBaselineSub(pulseOnset:afterLightDataPoint) >= 0.9 * lightEvokedCurrentAmp, 1);
+            else
+                [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = min(yBaselineSub(pulseOnset:afterLightDataPoint));
+                timeTo10percentOfPeakInDataPoints = find(yBaselineSub(pulseOnset:afterLightDataPoint) <= 0.1 * lightEvokedCurrentAmp, 1);
+                timeTo90percentOfPeakInDataPoints = find(yBaselineSub(pulseOnset:afterLightDataPoint) <= 0.9 * lightEvokedCurrentAmp, 1);
+            end
+
+            % get onset latency of lightEvokedCurrents
+            %%% Rationale for finding light evoked response latency: I am looking
+            % for a monotonic change of the signal for at least "x" data points 
+            % (x=threshold), and I am selecting the first occurence of this monotonic change.       
+            %%% The expected direction of the monotonic change is determined
+            % by the optarg "inwardORoutward". If the value is 1, the function
+            % will look for a monotonic increase (outward current), and if the
+            % value is -1, the function will look for a monotonic decrease
+            % (inward current).        
+            %%% y(lightOnsetDataPoint:lightOffDataPoint) is the signal during light pulse        
+            %%% zeros(threshold,1)+(inwardORoutward) is a vector with "threshold" 
+            % number of rows containing -1 or 1, depending on the value of the
+            % optarg "inwardORoutward"        
+            %%% function diff calculates difference between data points        
+            %%% function sign only keeps info about decrease (-1) or increase (1) in signal        
+            %%% function conv2 performs convolution, looking for a sequence of
+            % "threshold" points of value equal to the value stored in
+            % "inwardORoutward" (-1 or 1). I think conv2 collapses all found 
+            % elements into a single element of value "threshold" and moves 
+            % forward in its search. So if threshold=20, inwardORoutward=-1,
+            % and there are 40 elements of value -1 in sequence (one after the
+            % other), conv2 will spit out a vector with 2 elements, both of
+            % value 20.       
+            %%% function find looks for the index of the elements equal to threshold in the output of the convolution        
+            %%% function min looks for the min index (aka the first data point
+            % that marks the start of a monotonic change in signal for "x"
+            % points (x=threshold).
+            lightEvokedResponseOnsetLatencyInDataPoints = min(find(conv2(sign(diff(y(pulseOnset:afterLightDataPoint))), zeros(thresholdInDataPts,1)+(inwardORoutward), 'valid')==thresholdInDataPts));
+       
         end
         
-        % put all currents from a particular sweep in a row (each column is
-        % a pulse)
-        lightEvokedCurrentsAmp = [lightEvokedCurrentsAmp, lightEvokedCurrentAmp];
+        % put all currents from a particular sweep in a row (each column is a pulse)
+        lightEvokedCurrentsAmp = [lightEvokedCurrentsAmp, lightEvokedCurrentAmp]
         lightEvokedCurrentsLoc = [lightEvokedCurrentsLoc, lightEvokedCurrentLoc];
-               
-        % get onset latency of lightEvokedCurrents
-        %%% Rationale for finding light evoked response latency: I am looking
-        % for a monotonic change of the signal for at least "x" data points 
-        % (x=threshold), and I am selecting the first occurence of this monotonic change.       
-        %%% The expected direction of the monotonic change is determined
-        % by the optarg "inwardORoutward". If the value is 1, the function
-        % will look for a monotonic increase (outward current), and if the
-        % value is -1, the function will look for a monotonic decrease
-        % (inward current).        
-        %%% y(lightOnsetDataPoint:lightOffDataPoint) is the signal during light pulse        
-        %%% zeros(threshold,1)+(inwardORoutward) is a vector with "threshold" 
-        % number of rows containing -1 or 1, depending on the value of the
-        % optarg "inwardORoutward"        
-        %%% function diff calculates difference between data points        
-        %%% function sign only keeps info about decrease (-1) or increase (1) in signal        
-        %%% function conv2 performs convolution, looking for a sequence of
-        % "threshold" points of value equal to the value stored in
-        % "inwardORoutward" (-1 or 1). I think conv2 collapses all found 
-        % elements into a single element of value "threshold" and moves 
-        % forward in its search. So if threshold=20, inwardORoutward=-1,
-        % and there are 40 elements of value -1 in sequence (one after the
-        % other), conv2 will spit out a vector with 2 elements, both of
-        % value 20.       
-        %%% function find looks for the index of the elements equal to threshold in the output of the convolution        
-        %%% function min looks for the min index (aka the first data point
-        % that marks the start of a monotonic change in signal for "x"
-        % points (x=threshold).
-        lightEvokedResponseOnsetLatencyInDataPoints = min(find(conv2(sign(diff(y(pulseOnset:afterLightDataPoint))), zeros(thresholdInDataPts,1)+(inwardORoutward), 'valid')==thresholdInDataPts));
-      
+
         % Convert data points to milliseconds (1000 multiplication is conversion from seconds to milliseconds)
         lightEvokedResponseOnsetLatencyInMilliSeconds = 1000*lightEvokedResponseOnsetLatencyInDataPoints/samplingFrequency;
         lightEvokedResponsePeakLatencyInMilliSeconds = 1000*lightEvokedCurrentLoc/samplingFrequency;
         timeTo10percentOfPeakInMilliSeconds = 1000*timeTo10percentOfPeakInDataPoints/samplingFrequency;
         timeTo90percentOfPeakInMilliSeconds = 1000*timeTo90percentOfPeakInDataPoints/samplingFrequency;
         riseTimeInMilliSeconds = timeTo90percentOfPeakInMilliSeconds - timeTo10percentOfPeakInMilliSeconds;       
-        
+
         % check these things to avoid errors while exporting data
         if isempty(lightEvokedResponseOnsetLatencyInMilliSeconds)
             lightEvokedResponseOnsetLatencyInMilliSeconds = NaN;
         end
-        
+
         if isempty(lightEvokedResponsePeakLatencyInMilliSeconds)
             lightEvokedResponsePeakLatencyInMilliSeconds = NaN;
         end
-        
+
         if isempty(timeTo10percentOfPeakInMilliSeconds)
             timeTo10percentOfPeakInMilliSeconds = NaN;
         end
-        
+
         if isempty(timeTo90percentOfPeakInMilliSeconds)
             timeTo90percentOfPeakInMilliSeconds = NaN;
         end
-        
+
         if isempty(riseTimeInMilliSeconds)
             riseTimeInMilliSeconds = NaN;
         end
+        
         
         % put all latencies from a particular sweep in a row
         allLightEvokedResponseOnsetLatencyInMilliSeconds = [allLightEvokedResponseOnsetLatencyInMilliSeconds, lightEvokedResponseOnsetLatencyInMilliSeconds];        
@@ -410,7 +433,7 @@ for sweepNumber = allSweeps
     end
     
     % store all currents from a cell (each column is a pulse; each row is a sweep)
-    lightEvokedCurrentsAllSweeps = [lightEvokedCurrentsAllSweeps; lightEvokedCurrentsAmp];
+    lightEvokedCurrentsAllSweeps = [lightEvokedCurrentsAllSweeps; lightEvokedCurrentsAmp]
     allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps = [allLightEvokedResponseOnsetLatencyInMilliSecondsAllSweeps; allLightEvokedResponseOnsetLatencyInMilliSeconds];
     allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps = [allLightEvokedResponsePeakLatencyInMilliSecondsAllSweeps; allLightEvokedResponsePeakLatencyInMilliSeconds];
     allTimeTo10percentOfPeakInMilliSecondsAllSweeps = [allTimeTo10percentOfPeakInMilliSecondsAllSweeps; allTimeTo10percentOfPeakInMilliSeconds];
@@ -472,10 +495,10 @@ dataCell = [mouseNumber, ...
     lightPulseAnalysisWindowInSeconds, ...
     thresholdInDataPts, ...
     rsTestPulseOnsetTime, ...
-    mean(allRs), ...
+    mean(allRs, 'omitnan'), ...
     min(allRs), ...
     max(allRs), ...
-    mean(baselineCurrentAll), ...
+    mean(baselineCurrentAll, 'omitnan'), ...
     min(baselineCurrentAll), ...
     max(baselineCurrentAll)];
 
@@ -970,6 +993,84 @@ ylabel('Subtracted Baseline Current (pA)');
 xlabel('Sweeps');
 title([obj.file ' baseline current'],'Interpreter','none');
 movegui('southwest');
+
+
+%% PLOT 8 - summed PSCs
+
+% sum all the square averages
+summedPSC = sum(yBaselineSubAllMeanBySquare,2);
+
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - summed PSCs')); % naming figure file
+hold on;
+plot(x, yBaselineSubAllMeanBySquare,'Color',[0, 0, 0, 0.25]);
+plot(x, summedPSC,'Color','black','LineWidth',0.7); 
+line([xmin xmax],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--');
+axis([xmin xmax ymin ymax]);
+
+% adding light stim - individual pulses   
+% note that this code will use light stim parameters from the last sweep!
+% if light stim is not the same accross all sweeps, this will be
+% misleading!
+for nStim=1:length(lightPulseStart)
+    line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax),-inwardORoutward*(ymax)],'Color',[0 0.4470 0.7410],'LineWidth',10)
+end
+
+% add scale bar
+xmaxScale = xmax;
+xminScale = xmin;
+line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
+line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
+text(xmaxScale-(xmaxScale-xminScale),ymin+((ymax-ymin)/10),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
+text(xmaxScale-(xmaxScale-xminScale),ymin+((ymax-ymin)/3),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+
+hold off;    
+set(gca,'Visible','off');
+
+
+%% PLOT 9 - heatmap of normalized PSCs (normalized to summed PSC)
+
+% set hetmap edges
+heatmapMin = 0;
+heatmapMax = 1;
+
+% peak current of summed PSCs
+summedPeak = min(summedPSC(pulseOnset:afterLightDataPoint))
+
+% normalize average peak-by-square by summed peak
+normalizedPSC = min(yBaselineSubAllMeanBySquare(pulseOnset:afterLightDataPoint,:))/min(summedPSC(pulseOnset:afterLightDataPoint));
+
+% organize data for heatmap
+dataForHeatmap = reshape(normalizedPSC,gridColumns,[]).';
+
+% resize heatmap
+resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImage,2)], 'nearest');
+
+% make heatmap without the heatmap function
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - heatmap 1')); % naming figure file
+imshow(resizedHeatmap,'Colormap',parula,'DisplayRange', [heatmapMin,heatmapMax], 'Border', 'tight');
+set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
+c = colorbar;
+c.Label.String = 'Normalized PSC';
+
+
+%% PLOT 10 - heatmap of normalized PSCs (normalized to largest PSC)
+
+% normalize average peak-by-square by largest peak
+maxPSC = min(min(yBaselineSubAllMeanBySquare(pulseOnset:afterLightDataPoint,:)));
+normalizedToMaxPSC = min(yBaselineSubAllMeanBySquare(pulseOnset:afterLightDataPoint,:))/maxPSC;
+
+% organize data for heatmap
+dataForHeatmap = reshape(normalizedToMaxPSC,gridColumns,[]).';
+
+% resize heatmap
+resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImage,2)], 'nearest');
+
+% make heatmap without the heatmap function
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - heatmap 2')); % naming figure file
+imshow(resizedHeatmap,'Colormap',parula,'DisplayRange', [heatmapMin,heatmapMax], 'Border', 'tight');
+set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
+c = colorbar;
+c.Label.String = 'Normalized PSC';
 
 
 %% EXPORTING XLS files ==========================================

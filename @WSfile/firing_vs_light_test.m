@@ -85,6 +85,15 @@ ASSUMPTIONS:
 
 TO DO:
     - complete documentation
+
+COMMON ERRORS:
+    - Array indices must be positive integers or logical values.
+
+      Error in WSfile/firing_vs_light_test (line 506)
+      xForDy(end) = [];   % remove last point from xAxis
+
+        happens when you don't have AP before the light stim
+
 %}
 
 function firing_vs_light_test(obj)
@@ -106,17 +115,17 @@ lightExtensionFactor = 1;
 preAPinSeconds = 0.005;            
 postAPinSeconds = 0.01;           
 preAPbaselineDurationSeconds = 0.002;
-ddyValleyThreshold = 60;
-ddyPeakThreshold = 35;
+ddyValleyThreshold = 15;
+ddyPeakThreshold = 15;
   
 % Affects data display: 
-ymax = 75;
-ymaxhist = 15;
+ymax = 150;
+ymaxhist = 30;
 zoomWindow = 0.25;
 ymaxIsiCV = 150;
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-07-12 polygon DATs';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-09-12 chrimson not excited by blue light';
 
 
 %% PREP - get info from file and create arrays ==================
