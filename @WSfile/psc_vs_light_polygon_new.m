@@ -6,7 +6,9 @@ Author: PA
 
 This function is used to analyze light-evoked PSCs in sCRACM experiments using the polygon.
 This function was derived from psc_vs_light_polygon, but went through A LOT of rewritting.
-ROI: Region Of Interest (subarea of the field that was illuminated)
+The data organization is very different, to better handle discarded sweeps
+without losing track of which sweeps belong to which ROIs (Regions Of
+Interest - subarea of the field that was illuminated).
 
 INPUTS explained:
     - gridColumns: number of columns in the polygon ROI grid
@@ -35,12 +37,35 @@ INPUTS explained:
     - thresholdInDataPts: min number of points changing in a monotonic
     fashion during the lightPulseAnalysisWindow to find PSC onset. Early in
     Ambrosi et al 2022, this was set to 10. Later, it was set to 5 (to
-    acommodate the identification of smaller PSCs)
+    acommodate the identification of smaller PSCs). In the polygon
+    analysis, it was initially set to 5. However, I noticed that my code
+    was overestimating the failure rate (oIPSCs were clearly detected by
+    visual inspection, but failed to be detected by the code). This was due
+    to noise in the recording hindering the detection of monotonic
+    changes. To address this, I added an extra step in the analysis to
+    smooth the data a little bit. I am using a moving average filter with a
+    very narrow span (see smoothSpan) so that minor dataPoint to dataPoint
+    fluctuations are dampened without significantly altering the kinetics
+    of the recorded PSCs. After this change, setting thresholdInDataPts to 5
+    is no longer good - it's too easy: the code underestimates the failure
+    rate and find oIPSCs were there are none (based on visual inspection).
+    Thus, the current default of this value is 10 --> a monotonic change in
+    current for at least 1 ms.
 
     - amplitudeThreshold: min amplitude of light-evoked response to
     consider it a real response and not a failure. Do not need to worry
     about sign (+ or -). The default 25 chosen based on the noise level of
     my rig, which is ~20 pA (as of 2022-09-21).
+
+    - smoothSpan: number of data points averaged in the smoothing filter.
+    If you change this value, you might have to change thresholdInDataPts
+    as well. The default value is 3, which basically means that each
+    dataPoint will be replaced by the average of 3 dataPoints. This mild
+    smoothing ensures that noise fluctuations are dampened without lowpass
+    filterding the data too much. If you increase smoothSpan, the kinetics
+    of the detected PSCs will be slower than the real kinetics. A quick
+    test revealed that setting smoothSpan to 5 is already enough to mess
+    with onset latency and peak amplitude a bit.
 
     - rsTestPulseOnsetTime: onset of voltage step used to calculate series
     resistance.
@@ -81,6 +106,7 @@ INPUTS defaults:
     lightPulseAnalysisWindowInSeconds = 0.02;
     thresholdInDataPts = 5;     
     amplitudeThreshold = 25;
+    smoothSpan = 3; 
 
     % Affects data analysis - Calculating Rs
     rsTestPulseOnsetTime = 1;
@@ -135,8 +161,9 @@ singleLightPulse = 1;
 inwardORoutward = -1;                       % 1 (positive) is outward; -1 (negative) in inward
 baselineDurationInSeconds = 0.01;
 lightPulseAnalysisWindowInSeconds = 0.015;  % ALERT: changed from 0.02 to 0.01 to 0.015 on 2022-09-21
-thresholdInDataPts = 5;                     % ALERT! Changed from 10 to 5
+thresholdInDataPts = 10;                    % ALERT! Changed from 10 to 5 to 10 (2022-09-23)
 amplitudeThreshold = 25;                    % ALERT! this is new (2022-09-21)
+smoothSpan = 3;                             % ALERT! this is new (2022-09-23)
 
 % Affects data analysis - Calculating Rs
 rsTestPulseOnsetTime = 1;
@@ -151,7 +178,7 @@ cellImageFileNameAlexa = 's2c4_MAX_Stack Rendered Paths.tif';
 cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220914 m729 asc spiral';
 
 % Affects data saving:
-savefileto = 'D:\Temp\From MATLAB 2022 09 23';
+savefileto = 'D:\Temp\From MATLAB 2022 09 23 filtered';
 
 
 %% PREP - get monitor info for plot display organization =====================================================
@@ -344,7 +371,10 @@ for ROI = 1:totalROIs
         %----------------------------------------------------------------------
         
         % get data from channel 1 (current recording)
-        [x,y] = obj.xy(sweepNumber, 1);  
+        [x,y] = obj.xy(sweepNumber, 1);
+        
+        % smooth data with moving average filter
+        y = smooth(y,smoothSpan);
 
         % baseline subtraction
         baselineStart = lightPulseStart(1) - baselineDurationInDataPts;

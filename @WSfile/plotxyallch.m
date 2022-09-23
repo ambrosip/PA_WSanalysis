@@ -69,8 +69,11 @@ function plotxyallch(obj, varargin)
         for sweepNumber = allSweeps  
             figure('name', strcat(obj.file,' (',num2str(sweepNumber),') - all Channels'));
             [x,y] = obj.xy(sweepNumber, 1);
+            yFiltered = smooth(y,5);
             subplot(totalActiveChannels,1,1)
+            hold on;
             plot(x,y);
+            plot(x,yFiltered);
             axis([xmin xmax ymin ymax])
     %         xlabel('Time (s)');
             ylabel(strcat(obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorChannelName, ' (', obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits, ')'));
