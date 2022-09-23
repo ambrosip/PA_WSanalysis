@@ -105,8 +105,8 @@ function psc_vs_light_polygon(obj)
 %%  USER INPUT ============================================================
 
 % Affects data analysis - Organizing data by o-stim grid
-gridColumns = 7;
-gridRows = 7;
+gridColumns = 5;
+gridRows = 5;
 
 % Affects data analysis - Finding/quantifyting oIPSCs
 discardedSweeps = [];
@@ -122,12 +122,12 @@ rsTestPulseOnsetTime = 1;
 % Affects data display: 
 ymin = -1500;           %-2050      -3600
 ymax = 600;             %50         600
-cellImageFileNameDIC = 's2c4_z1_dic.tif';
-cellImageFileNameAlexa = 's2c4_SUM_Stack.tif';
-cellImageDir = 'E:\Priscilla - BACKUP 20200319\Ephys\2022\20220914 m729 asc spiral';
+cellImageFileNameDIC = 's2c3_z1_dic.tif';
+cellImageFileNameAlexa = 's2c3_MAX_Stack Rendered Paths.tif';
+cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220914 m729 asc spiral';
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-09-14 polygon asc spiral m729';
+savefileto = 'D:\Temp\From MATLAB 2022 09 16 spirals';
 
 % % Affects oIPSC decay fit - Not currently implemented in polygon code
 % bGuess = 1;             % -1000     % 1
@@ -237,7 +237,7 @@ for sweepNumber = allSweeps
     
     % continue to get light stim info
     lightOnsetTime = lightPulseStart(1)/samplingFrequency;                       % in seconds
-    stimDur = (lightPulseEnd(end)-lightPulseStart(end))/samplingFrequency;       % duration of each light pulse in the train (s)
+    stimDur = (lightPulseEnd(end)-lightPulseStart(end))/samplingFrequency       % duration of each light pulse in the train (s)
 
     % if the light stim is a train (singleLightPulse = 0), compute light
     % train information. 

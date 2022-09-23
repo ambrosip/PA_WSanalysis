@@ -32,10 +32,10 @@ TO DO:
 % function polygon_img_crop()
 %%  USER INPUT ============================================================
 
-gridColumns = 5;
-gridRows = 5;
-cellImageFileName = 'pre.tif';
-cellImageDir = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Ephys\2022\20220913 polygon photobleaching\fifth test';
+gridColumns = 7;
+gridRows = 7;
+cellImageFileName = 'photobleaching_post.tif';
+cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220915 m731 des spiral';
 
 
 %% PREP - add path

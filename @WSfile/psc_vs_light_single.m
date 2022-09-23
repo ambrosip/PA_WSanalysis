@@ -42,7 +42,7 @@ function psc_vs_light_single(obj)
 %%%  USER INPUT ==================================================
 
 % Affects data analysis:
-lightStimCh = 4;
+lightStimCh = 2;
 discardedSweeps = [];
 discardedSweepsFromEnd = 0;
 inwardORoutward = -1;    % 1 (positive) is outward; -1 (negative) in inward
@@ -61,7 +61,7 @@ ymin = -1500;       %-2050   % -375
 ymax = 600;          %50    % 150
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-09-14 polygon asc spiral m729';
+savefileto = 'D:\Temp\From MATLAB 2022 09 16 spirals';
 
 
 %% PREP - get info from file and create arrays ==================
