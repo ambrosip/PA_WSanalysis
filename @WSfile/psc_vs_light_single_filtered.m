@@ -38,18 +38,20 @@ TO DO:
     TO DO
 %}
 
-function psc_vs_light_single(obj)
+function psc_vs_light_single_filtered(obj)
 %%%  USER INPUT ==================================================
 
 % Affects data analysis:
 lightStimCh = 4;
 discardedSweeps = [];
 discardedSweepsFromEnd = 0;
-inwardORoutward = -1;    % 1 (positive) is outward; -1 (negative) in inward
+inwardORoutward = 1;    % 1 (positive) is outward; -1 (negative) in inward
 baselineDurationInSeconds = 0.01;
 lightPulseAnalysisWindowInSeconds = 0.02;
 thresholdInDataPts = 5; %% ALERT! Changed from 10 to 5
-rsTestPulseOnsetTime = 1; %% ALERT! Changed from 1 to 0.1
+rsTestPulseOnsetTime = 1; 
+smoothSpan = 3;
+calculateDecay = 0;
 
 % Affects decay fit
 bGuess = 1;         % -1000     % 1
@@ -57,11 +59,11 @@ fastTauGuess = 0.01;    % in seconds
 slowTauGuess = 0.1;     % in seconds
 
 % Affects data display:
-ymin = -375;       %-2050   % -375     % -1500
-ymax = 150;          %50    % 150       % 600
+ymin = -1500;       %-2050   % -375     % -1500
+ymax = 600;          %50    % 150       % 600
 
 % Affects data saving:
-savefileto = 'E:\AJ ephys data';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-10-18 chr2 power curve';
 
 
 %% PREP - get info from file and create arrays ==================
@@ -142,6 +144,9 @@ for sweepNumber = allSweeps
 
     % get raw data
     [x,y] = obj.xy(sweepNumber, 1);
+    
+    % smooth data with moving average filter
+    y = smooth(y,smoothSpan);
     
     % baseline subtraction
     baselineStart = lightPulseStart(1) - baselineDurationInDataPts;
@@ -370,11 +375,30 @@ g = fittype('a*exp(-x/fastTau) + b*exp(-x/slowTau)');
 % coefficientNames = coeffnames(g)
 % I guessed StartPoint values by manually adjusting a double exponential
 % The single exponential was NOT giving me a good fit
-[decayFit,gof,output] = fit(xSubset,yBaselineSubAllMeanSubset,g,'StartPoint',[lightEvokedCurrentAmp, bGuess, fastTauGuess, slowTauGuess]);
+% if statement to avoid errors
+if calculateDecay == 1
+    [decayFit,gof,output] = fit(xSubset,yBaselineSubAllMeanSubset,g,'StartPoint',[lightEvokedCurrentAmp, bGuess, fastTauGuess, slowTauGuess]);
+    
+    % save coefficients a and b
+    decayFitA = decayFit.a;
+    decayFitB = decayFit.b;
+    
+    % convert s to ms
+    decayFitFastTau = decayFit.fastTau * 1000;
+    decayFitSlowTau = decayFit.slowTau * 1000;    
+    
+    % save this variable
+    gofrsquare = gof.rsquare
+else
+    decayFit = NaN;
+    decayFitA = NaN;
+    decayFitB = NaN;
+    decayFitFastTau = NaN;
+    decayFitSlowTau = NaN;
+    gofrsquare = NaN;
+end
+    
 
-% save coefficients a and b
-decayFitA = decayFit.a;
-decayFitB = decayFit.b;
 
 % % For troubleshooting and estimating StartPoints:
 % figure;
@@ -398,10 +422,6 @@ if isempty(onsetLatencyInDataPoints)
     onsetLatencyInMilliSeconds = NaN;
     onsetLatencyInDataPoints = NaN;
 end
-
-% convert s to ms
-decayFitFastTau = decayFit.fastTau * 1000
-decayFitSlowTau = decayFit.slowTau * 1000
 
 % calculate riseTime in MilliSeconds
 riseTimeInMilliSeconds = latencyTo90percentOfPeakInMilliSeconds - latencyTo10percentOfPeakInMilliSeconds
@@ -444,7 +464,7 @@ dataCell = [mouseNumber, ...
     decayFitSlowTau, ...
     decayFitA, ...
     decayFitB, ...
-    gof.rsquare];
+    gofrsquare];
 
 
 %% Color-blind diverging color scheme
@@ -649,7 +669,9 @@ figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - Nic
 hold on;
 % plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
 plot(x, mean(yBaselineSubAll,2),'Color','black','LineWidth',0.7); 
-plot(xSubset+round(lightEvokedCurrentLoc/samplingFrequency,6), decayFit(xSubset))
+if calculateDecay == 1
+    plot(xSubset+round(lightEvokedCurrentLoc/samplingFrequency,6), decayFit(xSubset))
+end
 plot(lightEvokedCurrentLoc/samplingFrequency, lightEvokedCurrentAmp, 'o', 'Color', 'red');
 line([onsetLatencyInDataPoints/samplingFrequency onsetLatencyInDataPoints/samplingFrequency], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
 line([latencyTo10percentOfPeakInDataPoints/samplingFrequency latencyTo10percentOfPeakInDataPoints/samplingFrequency], [ymin ymax], 'Color',[0.5 0.5 0.5],'LineStyle','--');
