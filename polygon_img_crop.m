@@ -32,9 +32,9 @@ TO DO:
 % function polygon_img_crop()
 %%  USER INPUT ============================================================
 
-gridColumns = 7;
-gridRows = 7;
-cellImageFileName = 'photobleaching_post.tif';
+gridColumns = 20;
+gridRows = 20;
+cellImageFileName = 's4c3_5x_dic_after all recordings.tif';
 cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220915 m731 des spiral';
 
 

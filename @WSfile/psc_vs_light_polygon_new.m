@@ -17,6 +17,12 @@ INPUTS explained:
 
     - discardedSweeps: specific sweeps that should NOT be analyzed due to
     artifacts. If I want to discard sweep 0024, just write 24.
+        For problem files, these are the criteria for choosing discarded
+        sweeps: (1) 2 voltage test pulses or 2 light pulses in the same
+        sweeps; or (2) test/light pulses too close to the beginning or the
+        end of the sweep; or (3) incorrect ROI/sweep assignment --> if you
+        discarded a sweep due to multiple light pulses, the next sweeps are
+        going to be incorrectly assigned to their ROIs.
 
     - lightChannel: channel where the info about the light stim is stored.
     Usually 2 (LED 1), 3 (LED 2), or 4 (polygon). 
@@ -67,6 +73,10 @@ INPUTS explained:
     test revealed that setting smoothSpan to 5 is already enough to mess
     with onset latency and peak amplitude a bit.
 
+    - discardROIsWithLowFreq: boolean variable (0 or 1) determining whether
+    to discard "PerROI" data from ROIs with success rate < 50% (1) or not
+    (0).
+
     - rsTestPulseOnsetTime: onset of voltage step used to calculate series
     resistance.
 
@@ -107,6 +117,7 @@ INPUTS defaults:
     thresholdInDataPts = 5;     
     amplitudeThreshold = 25;
     smoothSpan = 3; 
+    discardROIsWithLowFreq = 1; 
 
     % Affects data analysis - Calculating Rs
     rsTestPulseOnsetTime = 1;
@@ -150,8 +161,8 @@ function psc_vs_light_polygon_new(obj)
 %%  USER INPUT ============================================================
 
 % Affects data analysis - Organizing data by o-stim grid
-gridColumns = 7;
-gridRows = 7;
+gridColumns = 5;
+gridRows = 5;
 
 % Affects data analysis - Finding/quantifyting oIPSCs
 discardedSweeps = [];
@@ -161,9 +172,11 @@ singleLightPulse = 1;
 inwardORoutward = -1;                       % 1 (positive) is outward; -1 (negative) in inward
 baselineDurationInSeconds = 0.01;
 lightPulseAnalysisWindowInSeconds = 0.015;  % ALERT: changed from 0.02 to 0.01 to 0.015 on 2022-09-21
-thresholdInDataPts = 10;                    % ALERT! Changed from 10 to 5 to 10 (2022-09-23)
+thresholdInDataPts = 8;                     % ALERT! Changed from 10 to 5 to 10 to 8 (2022-09-24)
 amplitudeThreshold = 25;                    % ALERT! this is new (2022-09-21)
 smoothSpan = 3;                             % ALERT! this is new (2022-09-23)
+discardROIsWithLowFreq = 1;                 % ALERT! this is new (2022-09-24)
+problemFile = 0;                            % ALERT! this is new (2022-09-24)
 
 % Affects data analysis - Calculating Rs
 rsTestPulseOnsetTime = 1;
@@ -173,12 +186,12 @@ voltageCmdChannel = 2;
 % Affects data display: 
 ymin = -3600;           %-2050      -3600
 ymax = 600;             %50         600
-cellImageFileNameDIC = 's2c4_z1_dic.tif';
-cellImageFileNameAlexa = 's2c4_MAX_Stack Rendered Paths.tif';
-cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220914 m729 asc spiral';
+cellImageFileNameDIC = 's3c1_dic_1x.tif';
+cellImageFileNameAlexa = 's3c1_MAX_Stack Rendered Paths.tif';
+cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220726 m000 dls loop';
 
 % Affects data saving:
-savefileto = 'D:\Temp\From MATLAB 2022 09 23 filtered';
+savefileto = 'D:\Temp\From MATLAB 2022 09 24 reanalyze all';
 
 
 %% PREP - get monitor info for plot display organization =====================================================
@@ -267,6 +280,8 @@ allRiseTimeInMilliSecondsPerSweep = [];
 baselineCurrentAll = [];
 data = [];
 dataInROI = cell(totalROIs,1);
+yAroundLightPulseAll = [];
+heavyEditingAll = [];
 
 % clearing cell arrays for safety
 % (if you use this code as a script, data will not linger from one analysis
@@ -286,6 +301,7 @@ stdOnsetLatencyPerROI = [];
 %% ROI BY ROI AND SWEEP BY SWEEP ANALYSIS ===================================================================================
 
 % get data from sweeps in file (only the subset we will analyze)
+% ROI: region on interest (subarea illuminated)
 for ROI = 1:totalROIs  
     
     column = 0;
@@ -313,7 +329,7 @@ for ROI = 1:totalROIs
 %         lightPulseStart = find(diff(yLight>1)>0);
 %         lightPulseEnd = find(diff(yLight<1)>0);
 
-        % this code that makes more sense
+        % code #1 that makes more sense
         % look for a very positive and very negative derivative
         % ALERT: have not tested this code for multiple light pulses
         lightPulseStart = find(diff(yLight)>1);
@@ -347,6 +363,7 @@ for ROI = 1:totalROIs
             stimInterval = 0;
             stimFreq = 1;
             lightDur = stimDur;
+            % ALERT: hard-coded xmax
             % jesus christ I had to change this xmax from data-based to
             % kind of hard-coded so that the time scale bar has a round number.
             % might be worth messing with the scale bar in the future.
@@ -372,6 +389,20 @@ for ROI = 1:totalROIs
         
         % get data from channel 1 (current recording)
         [x,y] = obj.xy(sweepNumber, 1);
+              
+        % checking for problem sweeps in which the total duration of the
+        % recorded data does not match the planned duration
+        heavyEditing = 0;
+        plannedSweepDurationInDataPoints = obj.header.SweepDuration * samplingFrequency;
+        if size(x,1) > plannedSweepDurationInDataPoints
+            % remove extra data to avoid errors in the concatenation
+            % happening next
+            heavyEditing = 1;
+            heavyEditingAll = [heavyEditingAll, heavyEditing];
+            x(plannedSweepDurationInDataPoints+1:end) = [];
+            y(plannedSweepDurationInDataPoints+1:end) = [];
+        end
+        %----------------------------------------------------------------------      
         
         % smooth data with moving average filter
         y = smooth(y,smoothSpan);
@@ -381,7 +412,18 @@ for ROI = 1:totalROIs
         yBaselineSub = y-mean(y(baselineStart:lightPulseStart(1)));
         baselineCurrent = mean(y(baselineStart:lightPulseStart(1)));
         %----------------------------------------------------------------------       
-
+        
+        % if the timing of the light pulse changes accross sweeps, let's
+        % keep only the data around the lightpulse - so that we plot the
+        % right thing later
+        % saving a subset of the data around the lightpulse
+        xminDataPts = round(xmin * samplingFrequency);
+        xmaxDataPts = round(xmax * samplingFrequency);
+        xAroundLightPulse = x(xminDataPts:xmaxDataPts);
+        yAroundLightPulse = yBaselineSub(xminDataPts:xmaxDataPts);
+        yAroundLightPulseAll = [yAroundLightPulseAll, yAroundLightPulse]; 
+        %----------------------------------------------------------------------             
+               
         % saving data for niceplot
         % y data for each sweep is in a column
         yBaselineSubAll = [yBaselineSubAll, yBaselineSub]; 
@@ -398,6 +440,10 @@ for ROI = 1:totalROIs
             rsTestPulseOnsetTime = rsTestPulseDataPoint/samplingFrequency;
             rsBaselineDataPointInterval = ((rsTestPulseOnsetTime-0.05)*samplingFrequency):(rsTestPulseOnsetTime*samplingFrequency);
             rsFirstTransientDataPointInterval = (rsTestPulseOnsetTime*samplingFrequency):(rsTestPulseOnsetTime+0.0025)*samplingFrequency;
+            
+            % trying to troubleshoot an error that I don't understand
+            rsBaselineDataPointInterval = round(rsBaselineDataPointInterval(1)):round(rsBaselineDataPointInterval(end));
+            rsFirstTransientDataPointInterval = round(rsFirstTransientDataPointInterval(1)):round(rsFirstTransientDataPointInterval(end));
         end
         %----------------------------------------------------------------------
         
@@ -552,7 +598,18 @@ for ROI = 1:totalROIs
         % store "raw" data in cell array
         % each ROI is stored in a row
         % each sweep within a ROI is stored in a column
-        dataInROI(ROI,column) = {yBaselineSub};
+        % adding an if statement to deal with problematic files
+        % if any sweep went through heavyEditing due to inconsistent o-stim
+        % timing, do this:
+%         if any(heavyEditingAll)   % UGH this is not good enough cuz
+%         problem sweeps might happen AFTER normal sweeps, messing up with
+%         the data organization and gibing errors.
+        % let's go with a user-input based check UGH
+        if problemFile
+            dataInROI(ROI,column) = {yAroundLightPulse};
+        else
+            dataInROI(ROI,column) = {yBaselineSub};
+        end
         
         % store key data for statistics (mean, SD, median) later
         peaksInROI(ROI,column) = {allLightEvokedCurrentsAmp};
@@ -584,8 +641,8 @@ for ROI = 1:totalROIs
             gridRows, ...
             plannedSweepsPerROI, ...
             seriesResistance, ...
-            baselineCurrent]; 
-        
+            baselineCurrent, ...
+            heavyEditing];         
     end 
     
     meanDataInROI = [meanDataInROI, mean(cell2mat(dataInROI(ROI,:)),2)];
@@ -627,6 +684,13 @@ data = [data, ...
 
 % sum all the ROI averages
 summedCurrent = sum(meanDataInROI,2);
+
+% adjusting pulseOnset value if this is a problem file
+% remember that xmin = lightOnsetTime - baselineDurationInSeconds;
+if problemFile == 1
+    pulseOnset = baselineDurationInSeconds * samplingFrequency;
+    afterLightDataPoint = pulseOnset + lightPulseAnalysisWindowInDataPts;
+end    
 
 % get the kinetics of the summed PSC - to compare with kinetics of PSC
 % evoked by whole field illumination
@@ -687,9 +751,30 @@ stdOnsetLatencyPerROI_noFailures = stdOnsetLatencyPerROI;
 stdOnsetLatencyPerROI_noFailures(failedROIs) = NaN;
 
 
+%% CELL ANALYSIS - exclude "PerROI" data in ROIs with >50% failures ==============================================
+% this is akin to one of the criteria in Ambrosi et al for classifying a
+% cells as "shows an oIPSC" - here's the quote from the methods: "In rare sweeps,
+% mIPSCs were mislabeled as oIPSCs. Thus, a cell was labeled as ‘‘shows an
+% oIPSC’’ only if oIPSCs were detected in more than 50% of the recorded
+% sweeps. Cells that did not fit this criteria were labeled as ‘‘no
+% oIPSC’."
+
+if discardROIsWithLowFreq == 1
+    % find ROIs in which success rate is <50%
+    % aka according to this criteria, there are not light-evoked events in this ROI
+    failedROIs = find(successRatePerROI<0.5);
+
+    % remove data from "PerROI" variables 
+    meanPeakPerROI_noFailures(failedROIs) = NaN;
+    meanOnsetLatencyPerROI_noFailures(failedROIs) = NaN;
+    meanRiseTimePerROI_noFailures(failedROIs) = NaN;
+    stdOnsetLatencyPerROI_noFailures(failedROIs) = NaN;    
+end
+
+
 %% CELL ANALYSIS - data storage =================================================================
 
-% 
+% store subset of analyzed sweeps
 allAnalyzedSweeps = setdiff(allSweeps,discardedSweeps);
 
 % Store cell-specific data
@@ -707,6 +792,8 @@ dataCell = [mouseNumber, ...
     lightPulseAnalysisWindowInSeconds, ...
     thresholdInDataPts, ...
     amplitudeThreshold, ...
+    discardROIsWithLowFreq, ...
+    problemFile, ...
     rsTestPulseOnsetTime, ...
     autoRsOnsetTime, ...
     voltageCmdChannel, ...
@@ -832,7 +919,7 @@ outerHeight = pos(4)/2;
 set(gcf,'InnerPosition',[0 maxHeight-innerHeight innerWidth innerHeight]);
 
 
-%% PLOT 3 - cropped Alexa cell image with grid ===============================================================================
+%% PLOT 2 - cropped Alexa cell image with grid ===============================================================================
 % make sure you're getting the image taken with zoom = 1
 % concatenate strings from user input to get full path to figure file
 cellImageFileDir = strcat(cellImageDir,'\',cellImageFileNameAlexa);
@@ -887,7 +974,7 @@ hold off;
 set(gcf,'InnerPosition',[2*innerWidth maxHeight-innerHeight innerWidth innerHeight]);
 
 
-%% PLOT 5 - Rs ===============================================================================================
+%% PLOT 3 - Rs ===============================================================================================
 
 figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - Rs all')); % naming figure file
 plot(allAnalyzedSweeps, allRs,'-o');
@@ -901,7 +988,7 @@ title([obj.file ' rs'],'Interpreter','none');
 movegui('southeast');
 
 
-%% PLOT 6 - Tiled oIPSC amplitude =========================================================================
+%% PLOT 4 - Tiled oIPSC amplitude =========================================================================
 
 % create figure & name it
 figure('name', strcat(fileName, '_', analysisDate, ' - psc_vs_light_polygon - tiled niceplots'));
@@ -914,7 +1001,13 @@ for ROI = 1:totalROIs
     
     % plot individual sweeps
     for sweep = cell2mat(relativeSweepsInROI(ROI))
-        plot(x, yBaselineSubAll(:, sweep),'Color',[0, 0, 0, 0.25]);
+        % is this is a problem file (aka the light onset is not consistent
+        % accross sweeps), plot the data subset around the light pulse
+        if problemFile ==1
+            plot(xAroundLightPulse, yAroundLightPulseAll(:, sweep),'Color',[0, 0, 0, 0.25]);
+        else
+            plot(x, yBaselineSubAll(:, sweep),'Color',[0, 0, 0, 0.25]);
+        end
     end
     
     % plot average acrross sweeps
@@ -974,7 +1067,7 @@ t.Padding = 'compact';
 set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
 
 
-%% PLOT 7 - subtracted baseline current =====================================================
+%% PLOT 5 - subtracted baseline current =====================================================
 
 figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - baseline current')); % naming figure file
 plot(allAnalyzedSweeps, baselineCurrentAll,'-o');
@@ -985,7 +1078,7 @@ title([obj.file ' baseline current'],'Interpreter','none');
 movegui('southwest');
 
 
-%% PLOT 8 - summed PSCs
+%% PLOT 6 - summed PSCs
 
 % match the xmin and xmax from psc_vs_light_single
 xminHere = lightOnsetTime-0.02;
@@ -993,8 +1086,13 @@ xmaxHere = lightOnsetTime+0.2;
 
 figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - summed PSCs')); % naming figure file
 hold on;
-plot(x, meanDataInROI,'Color',[0, 0, 0, 0.25]);
-plot(x, summedCurrent,'Color','black','LineWidth',0.7); 
+if problemFile ==1
+    plot(xAroundLightPulse, meanDataInROI,'Color',[0, 0, 0, 0.25]);
+    plot(xAroundLightPulse, summedCurrent,'Color','black','LineWidth',0.7); 
+else
+    plot(x, meanDataInROI,'Color',[0, 0, 0, 0.25]);
+    plot(x, summedCurrent,'Color','black','LineWidth',0.7); 
+end
 line([xminHere xmaxHere],[0, 0],'Color',[0.5 0.5 0.5],'LineStyle','--');
 axis([xminHere xmaxHere ymin ymax]);
 
@@ -1020,7 +1118,7 @@ set(gcf,'Position',[1400 550 500 400]);
 movegui('south');
 
 
-%% PLOT 12 - heatmap of success rate
+%% PLOT 7 - heatmap of success rate (0 to 100%)
 
 % organize data for heatmap
 dataForHeatmap = reshape(successRatePerROI,gridColumns,[]).';
@@ -1029,38 +1127,48 @@ dataForHeatmap = reshape(successRatePerROI,gridColumns,[]).';
 resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImage,2)], 'nearest');
 
 % make heatmap without the heatmap function
-figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - success heatmap')); % naming figure file
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - success heatmap 1')); % naming figure file
 % imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [0,100], 'Border', 'tight');
 imshow(resizedHeatmap,'Colormap',customColorMapPink,'DisplayRange', [0,1], 'Border', 'tight');
-title('p(oIPSC)');
+title('P(oIPSC)');
 set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
 c = colorbar;
-c.Label.String = 'p(oIPSC)';
+c.Label.String = 'P(oIPSC)';
 
 
-%% PLOT 10 - heatmap of normalized PSCs (normalized to largest PSC)
+%% PLOT 8 - heatmap of success rate (50% to 100%)
+
+% organize data for heatmap
+dataForHeatmap = reshape(successRatePerROI,gridColumns,[]).';
+
+% resize heatmap
+resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImage,2)], 'nearest');
+
+% make heatmap without the heatmap function
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - success heatmap 2')); % naming figure file
+imshow(resizedHeatmap,'Colormap',customColorMapPink,'DisplayRange', [0.5,1], 'Border', 'tight');
+title('P(oIPSC)');
+set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
+c = colorbar;
+c.Label.String = 'P(oIPSC)';
+
+
+%% PLOT 9 - heatmap of normalized PSCs (normalized to largest PSC)
 
 % set hetmap edges
 heatmapMin = 0;
 heatmapMax = 1;
 
-% normalize average peak-by-square by largest peak
-% ALERT might want to change calculation of maxPSC to use meanPeakPerROI
-% instead of allLightEvokedCurrentsPerSweep - cuz the max meanPeakPerROI will most
-% likely be lower than the max allLightEvokedCurrentsPerSweep - DONE
+% normalize meanPeakPerROI by largest peak
 if inwardORoutward == 1
-    maxPSC = max(meanPeakPerROI);
+    maxPSC = max(meanPeakPerROI_noFailures);
 else
-    maxPSC = min(meanPeakPerROI);
+    maxPSC = min(meanPeakPerROI_noFailures);
 end
-normalizedToMaxPSC = meanPeakPerROI/maxPSC;
-
-% exclude data from ROIs with 0% success rate
-normalizedToMaxPSC_noFailures = normalizedToMaxPSC;
-normalizedToMaxPSC_noFailures(failedROIs) = NaN;
+normalizedToMaxPSC = meanPeakPerROI_noFailures/maxPSC;
 
 % organize data for heatmap
-dataForHeatmap = reshape(normalizedToMaxPSC_noFailures,gridColumns,[]).';
+dataForHeatmap = reshape(normalizedToMaxPSC,gridColumns,[]).';
 
 % resize heatmap
 resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImage,2)], 'nearest');
@@ -1075,7 +1183,7 @@ c = colorbar;
 c.Label.String = 'Normalized oIPSC amplitude';
 
 
-%% PLOT 11.1 - heatmap of onset latencies 
+%% PLOT 10 - heatmap of onset latencies 
 
 % organize data for heatmap
 dataForHeatmap = reshape(meanOnsetLatencyPerROI_noFailures,gridColumns,[]).';
@@ -1087,14 +1195,14 @@ resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImag
 figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - latency heatmap')); % naming figure file
 % fig = imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [0,10], 'Border', 'tight');
 fig = imshow(resizedHeatmap,'Colormap',flipud(customColorMapBlue),'DisplayRange', [0,10], 'Border', 'tight');
-title('oIPSC onset latency')
+title('oIPSC onset latency (ms)')
 set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
 set(fig, 'AlphaData', ~isnan(resizedHeatmap));
 c = colorbar;
-c.Label.String = 'Onset Latency';
+c.Label.String = 'Onset Latency (ms)';
 
 
-%% PLOT 11.1 - heatmap of onset latency jitter 
+%% PLOT 11 - heatmap of onset latency jitter 
 
 % organize data for heatmap
 dataForHeatmap = reshape(stdOnsetLatencyPerROI_noFailures,gridColumns,[]).';
@@ -1106,14 +1214,14 @@ resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImag
 figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - jitter heatmap')); % naming figure file
 % fig = imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [0,10], 'Border', 'tight');
 fig = imshow(resizedHeatmap,'Colormap',flipud(customColorMapSky),'DisplayRange', [0,5], 'Border', 'tight');
-title('oIPSC onset latency jitter')
+title('oIPSC onset latency jitter (ms)')
 set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
 set(fig, 'AlphaData', ~isnan(resizedHeatmap));
 c = colorbar;
-c.Label.String = 'Onset Latency Jitter';
+c.Label.String = 'Onset Latency Jitter (ms)';
 
 
-%% PLOT 11.1 - heatmap of rise time 
+%% PLOT 12 - heatmap of rise time 
 
 % organize data for heatmap
 dataForHeatmap = reshape(meanRiseTimePerROI_noFailures,gridColumns,[]).';
@@ -1125,7 +1233,7 @@ resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImag
 figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - rise heatmap')); % naming figure file
 % fig = imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [0,10], 'Border', 'tight');
 fig = imshow(resizedHeatmap,'Colormap',flipud(customColorMapSky),'DisplayRange', [0,5], 'Border', 'tight');
-title('oIPSC rise time')
+title('oIPSC rise time (ms)')
 set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
 set(fig, 'AlphaData', ~isnan(resizedHeatmap));
 c = colorbar;
@@ -1181,6 +1289,7 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'plannedSweepsPerROI', ...      
     'seriesResistance(Mohm)', ...
     'baselineCurrent(pA)', ...
+    'heavyEditing(1)orNot(0)', ...
     oPSCvariableNamesFailure{:}, ...
     oPSCvariableNamesAmplitude{:}, ...
     oPSCvariableNamesOnsetLatency{:}, ...
@@ -1214,6 +1323,9 @@ filename = strcat(fileName, '_', analysisDate, " - psc_vs_light_polygon - ROI_by
 fulldirectory = strcat(savefileto,'\',filename,'.xls');        
 dataInCellFormat = {};
 dataInCellFormat = num2cell(dataCellMultipleRows);
+dataInCellFormat = [dataInCellFormat, ...
+    repmat({cellImageFileNameDIC},totalROIs,1), ...
+    repmat({cellImageFileNameAlexa},totalROIs,1)];
 labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     {'mouse', ...
     'date', ...
@@ -1228,7 +1340,9 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'baselineDurationInSeconds', ...
     'lightPulseAnalysisWindowInSeconds', ...
     'thresholdInDataPts', ...
-    'amplitudeThreshold(pA)', ...  
+    'amplitudeThreshold(pA)', ...
+    'discardROIsWithLowFreq', ...
+    'isProblemFile(1)orNot(0)', ...
     'rsTestPulseOnsetTime', ...
     'autoRsOnsetTime(1)orManual(0)', ...
     'voltageCmdChannel', ...
@@ -1255,7 +1369,9 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'AVGpeakAmp(pA)', ...
     'AVGonsetLatency(ms)', ...
     'AVGriseTime(ms)', ...
-    'SDonsetLatency(ms)'});
+    'SDonsetLatency(ms)', ...
+    'cellImageFileNameDIC', ...
+    'cellImageFileNameAlexa'});
 writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the ROI_by_ROI xls file')
 
