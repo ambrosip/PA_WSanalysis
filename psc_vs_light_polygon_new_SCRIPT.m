@@ -13,6 +13,27 @@ INPUTS explained:
 
     - gridRows: number of rows in the polygon ROI grid
 
+    - orderedGrid: booleaen variable (0 or 1) determining whether you used
+    an ordered grid or not using the polygon. In an ordered grid, ROIs are
+    stimulated in order - the o-stim moves from the top left to the
+    bottom right. For instance, if you have an ordered 3x3 grid, this would be the
+    order of the ROIs:
+     1     2     3
+     4     5     6
+     7     8     9
+
+    - orderOfROIs: column representing the order of the illuminated ROIs
+    when using a non-ordered grid. When piloting sCRACM, I used ordered
+    grids to make on-line and off-line analysis easier. However, the gold
+    standard for these experiments is to randomize the o-stim order. I
+    decided to use a pseudo-random order that maximizes the distance
+    between each o-stim. I called this design "spaced out". The orderOfROIs
+    of the ordered 3x3 grid shown above would be:
+    [1 2 3 4 5 6 7 8 9]'
+    (the little apostrophe at the end transposes the row into a column)
+    The orderOfROIs of the design "5x5 spaced out" is:
+    [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]'     
+
     - discardedSweeps: specific sweeps that should NOT be analyzed due to
     artifacts. If I want to discard sweep 0024, just write 24.
 
@@ -70,6 +91,8 @@ INPUTS defaults:
     % Affects data analysis - Organizing data by o-stim grid
     gridColumns = 5;
     gridRows = 5;
+    orderedGrid = 0;       
+    orderOfROIs = [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]';
 
     % Affects data analysis - Finding/quantifyting oIPSCs
     discardedSweeps = [];
@@ -118,8 +141,7 @@ TO DO:
 % obj = m729.s0246;
 % obj = m729.s0111;
 % obj = m729.s0371;
-% obj = m731.s0007
-obj = m729.s0111;
+obj = m731.s0007
 
 % function psc_vs_light_polygon_new(obj)
 %%  USER INPUT ============================================================
@@ -127,9 +149,11 @@ obj = m729.s0111;
 % Affects data analysis - Organizing data by o-stim grid
 gridColumns = 5;
 gridRows = 5;
+orderedGrid = 1;       % 0 if NOT ordered, 1 if ordered
+orderOfROIs = [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]';     % this is the order of the design 5x5 spaced out
 
 % Affects data analysis - Finding/quantifyting oIPSCs
-discardedSweeps = [165:235];
+discardedSweeps = [];
 lightChannel = 4;
 ledPowerChannel = 3;
 singleLightPulse = 1; 
@@ -148,12 +172,12 @@ voltageCmdChannel = 2;
 % Affects data display: 
 ymin = -3600;           %-2050      -3600
 ymax = 600;             %50         600
-cellImageFileNameDIC = 's2c3_z1_dic.tif';
-cellImageFileNameAlexa = 's2c3_MAX_Stack Rendered Paths.tif';
-cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220914 m729 asc spiral';
+cellImageFileNameDIC = 's2c1_dic.tif';
+cellImageFileNameAlexa = 's2c1_SUM_Stack Rendered Paths.tif';
+cellImageDir = 'E:\Data';
 
 % Affects data saving:
-savefileto = 'D:\Temp\From MATLAB 2022 09 23 filtered';
+savefileto = 'E:\Data';
 
 
 %% PREP - get monitor info for plot display organization =====================================================
@@ -228,6 +252,21 @@ for row=1:totalROIs
     % keep track of how many sweeps are in each ROI
     sweepsPerROI(row) = size(sweeps,2);
 end
+
+% re-ordering sweeps into the appropriate ROIs
+% if the grid is ordered, the first sweep corresponds to the top left ROI
+% and the last sweep corresponds to the bottom right ROI.
+% the code in general assumes that the grid IS ordered. If it is NOT, you
+% need to adjust it.
+% orderedGrid = 0 if the grid is NOT ordered
+if orderedGrid == 0
+    sweepsInROI = sweepsInROI(orderOfROIs);  
+    % if the first number in orderOfROIs is 8, matlab will move the 8th
+    % item in sweepsInROI to the first row. If the 13th number of
+    % orderOfROIs is 1, matlab will move the first row of
+    % sweepsInROI to the 13th row.    
+    % DO NOT re-order relativeSweepsInROI - I made this mistake earlier
+end 
 
 % creating matrixes/arrays that will be filled later
 allRs = [];
@@ -889,7 +928,7 @@ for ROI = 1:totalROIs
     
     % plot individual sweeps
     for sweep = cell2mat(relativeSweepsInROI(ROI))
-        plot(x, yBaselineSubAll(:, sweep),'Color',[0, 0, 0, 0.25]);
+        plot(x, yBaselineSubAll(:, sweep),'Color',[0, 0, 0, 0.25]);        
     end
     
     % plot average acrross sweeps

@@ -1,6 +1,7 @@
 %{ 
 DOCUMENTATION
 Created: 2022 09 21
+Last Edited: 2022 11 04
 Works? Yes
 Author: PA
 
@@ -9,11 +10,34 @@ This function was derived from psc_vs_light_polygon, but went through A LOT of r
 The data organization is very different, to better handle discarded sweeps
 without losing track of which sweeps belong to which ROIs (Regions Of
 Interest - subarea of the field that was illuminated).
+The code was further improved to accomodate custom ordered grids in
+addition to ordered grids.
 
 INPUTS explained:
     - gridColumns: number of columns in the polygon ROI grid
 
     - gridRows: number of rows in the polygon ROI grid
+
+    - orderedGrid: booleaen variable (0 or 1) determining whether you used
+    an ordered grid or not using the polygon. In an ordered grid, ROIs are
+    stimulated in order - the o-stim moves from the top left to the
+    bottom right. For instance, if you have an ordered 3x3 grid, this would be the
+    order of the ROIs:
+     1     2     3
+     4     5     6
+     7     8     9
+
+    - orderOfROIs: column representing the order of the illuminated ROIs
+    when using a non-ordered grid. When piloting sCRACM, I used ordered
+    grids to make on-line and off-line analysis easier. However, the gold
+    standard for these experiments is to randomize the o-stim order. I
+    decided to use a pseudo-random order that maximizes the distance
+    between each o-stim. I called this design "spaced out". The orderOfROIs
+    of the ordered 3x3 grid shown above would be:
+    [1 2 3 4 5 6 7 8 9]'
+    (the little apostrophe at the end transposes the row into a column)
+    The orderOfROIs of the design "5x5 spaced out" is:
+    [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]' 
 
     - discardedSweeps: specific sweeps that should NOT be analyzed due to
     artifacts. If I want to discard sweep 0024, just write 24.
@@ -95,6 +119,8 @@ INPUTS defaults:
     % Affects data analysis - Organizing data by o-stim grid
     gridColumns = 5;
     gridRows = 5;
+    orderedGrid = 0;    % 0 if NOT ordered, 1 if ordered  
+    orderOfROIs = [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]';     % this is the order of the design 5x5 spaced out
 
     % Affects data analysis - Finding/quantifyting oIPSCs
     discardedSweeps = [];
@@ -128,7 +154,6 @@ OUTPUTS:
     XLS
 
 ASSUMPTIONS: 
-    - An ordered polygon grid design was used - aka not random
     - Width and frequency of polygon stim is the the same as LED o-stim
     (only relevant if you use the polygon channel as the light stim
     channel)
@@ -150,15 +175,17 @@ function psc_vs_light_polygon_new(obj)
 %%  USER INPUT ============================================================
 
 % Affects data analysis - Organizing data by o-stim grid
-gridColumns = 7;
-gridRows = 7;
+gridColumns = 5;
+gridRows = 5;
+orderedGrid = 0;       % 0 if NOT ordered, 1 if ordered
+orderOfROIs = [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]';     % this is the order of the design 5x5 spaced out
 
 % Affects data analysis - Finding/quantifyting oIPSCs
 discardedSweeps = [];
 lightChannel = 4;
 ledPowerChannel = 3;
 singleLightPulse = 1; 
-inwardORoutward = -1;                       % 1 (positive) is outward; -1 (negative) in inward
+inwardORoutward = 1;                       % 1 (positive) is outward; -1 (negative) in inward
 baselineDurationInSeconds = 0.01;
 lightPulseAnalysisWindowInSeconds = 0.015;  % ALERT: changed from 0.02 to 0.01 to 0.015 on 2022-09-21
 thresholdInDataPts = 10;                    % ALERT! Changed from 10 to 5 to 10 (2022-09-23)
@@ -171,14 +198,14 @@ autoRsOnsetTime = 0;
 voltageCmdChannel = 2;
 
 % Affects data display: 
-ymin = -3600;           %-2050      -3600
-ymax = 600;             %50         600
-cellImageFileNameDIC = 's2c4_z1_dic.tif';
-cellImageFileNameAlexa = 's2c4_MAX_Stack Rendered Paths.tif';
-cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220914 m729 asc spiral';
+ymin = -1850;           %-2050      -3600
+ymax = 250;             %50         600
+cellImageFileNameDIC = 's1c1_z1_dic2.tif';
+cellImageFileNameAlexa = 's1c1_z1_647_SUM_Stack.tif';
+cellImageDir = 'E:\Priscilla - BACKUP 20200319\Ephys\2022\20221102 m570 dat nphr';
 
 % Affects data saving:
-savefileto = 'D:\Temp\From MATLAB 2022 09 23 filtered';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-11-03 dat nphr spaced out grid';
 
 
 %% PREP - get monitor info for plot display organization =====================================================
@@ -253,6 +280,21 @@ for row=1:totalROIs
     % keep track of how many sweeps are in each ROI
     sweepsPerROI(row) = size(sweeps,2);
 end
+
+% re-ordering sweeps into the appropriate ROIs
+% if the grid is ordered, the first sweep corresponds to the top left ROI
+% and the last sweep corresponds to the bottom right ROI.
+% the code in general assumes that the grid IS ordered. If it is NOT, you
+% need to adjust it.
+% orderedGrid = 0 if the grid is NOT ordered
+if orderedGrid == 0
+    sweepsInROI = sweepsInROI(orderOfROIs);   
+    % if the first number in orderOfROIs is 8, matlab will move the 8th
+    % item in sweepsInROI to the first row. If the 13th number of
+    % orderOfROIs is 1, matlab will move the first row of
+    % sweepsInROI to the 13th row.   
+    % DO NOT re-order relativeSweepsInROI - I made this mistake earlier
+end 
 
 % creating matrixes/arrays that will be filled later
 allRs = [];
