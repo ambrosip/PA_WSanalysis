@@ -7,7 +7,8 @@ numvarargs = length(varargin);
 
 % USED AFter 2020-03-20 (due to long latency of chrimson-evoked light responses)
 % Adjusted for Talia's protocol settings
-optargs = {-1 0.02 15 0.29 0.3 0.005 0.24 0.44 -10000 500 0.1 'D:\CORONAVIRUS DATA\From MATLAB'}; 
+% optargs = {-1 0.02 15 0.29 0.3 0.005 0.24 0.44 -10000 500 0.1 'D:\CORONAVIRUS DATA\From MATLAB'}; 
+optargs = {-1 0.02 2 0.99 1 0.001 0.95 1.05 -100 500 0.1 'E:\TEMP'};     % For AJ
 optargs(1:numvarargs) = varargin;
 [inwardORoutward, analysisTimeWindow, threshold, baselineOnsetTime, lightOnsetTime, lightDuration, xmin, xmax, ymin, ymax, rsTestPulseOnsetTime, savefileto] = optargs{:};
 
@@ -22,7 +23,7 @@ baselineOnsetDataPoint = baselineOnsetTime*sampleRate;
 rsBaselineDataPointInterval = ((rsTestPulseOnsetTime-0.05)*sampleRate):(rsTestPulseOnsetTime*sampleRate);
 rsFirstTransientDataPointInterval = (rsTestPulseOnsetTime*sampleRate):(rsTestPulseOnsetTime+0.0025)*sampleRate;
 mouseNumber = getMouseNumber(obj);
-experimentDate = getExperimentDate(obj);
+% experimentDate = getExperimentDate(obj);
 
 % matrixes that will be filled
 lightEvokedCurrents = [];
@@ -136,7 +137,9 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         dataPerSweepCh1 = [dataPerSweepCh1, y];
         lightEvokedCurrents = [lightEvokedCurrents, min(y(lightOnsetDataPoint:afterLightDataPoint))];  
               
-        data = [data; mouseNumber, experimentDate, sweepNumber, seriesResistance, lightEvokedCurrent, lightEvokedResponseLatencyInMilliSeconds];
+        % UPDATE 2022-11-02: I removed experimentDate from data and from
+        % the csv code to accomodate AJ's data
+        data = [data; mouseNumber, sweepNumber, seriesResistance, lightEvokedCurrent, lightEvokedResponseLatencyInMilliSeconds];
         allRs = [allRs, seriesResistance];
         allLightEvokedResponseLatencyInMilliSeconds = [allLightEvokedResponseLatencyInMilliSeconds, lightEvokedResponseLatencyInMilliSeconds];
         
@@ -206,8 +209,10 @@ allLightEvokedResponseLatencyInMilliSeconds = [];
         fulldirectory = strcat(savefileto,'\',filename,'.csv');        
         dataInCellFormat = {};
         dataInCellFormat = num2cell(data);
+        % UPDATE 2022-11-02: I removed experimentDate from data and from
+        % the csv code (labeledData) to accomodate AJ's data
         labeledData = cell2table(dataInCellFormat,'VariableNames',...
-            {'mouse', 'date', 'sweep', 'seriesResistance', 'lightEvokedCurrent', 'responseLatency'});
+            {'mouse', 'sweep', 'seriesResistance', 'lightEvokedCurrent', 'responseLatency'});
         writetable(labeledData,fulldirectory);
         disp('I saved it')
         disp('Change directory if you want this saved elsewhere!')     

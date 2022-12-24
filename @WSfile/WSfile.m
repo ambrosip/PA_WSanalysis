@@ -90,6 +90,7 @@ classdef WSfile
         psc_vs_light_polygon(obj)
         psc_vs_light_polygon_new(obj)
         psc_vs_light_single_filtered(obj)
+        firing_vs_light_polygon_new(obj)
 
         
         function obj = WSfile(fileName)
