@@ -251,7 +251,7 @@ function psc_vs_light_polygon(obj)
 gridColumns = 5;
 gridRows = 5;
 orderedGrid = 0;       % 0 if NOT ordered, 1 if ordered
-orderOfROIs = [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]';     % this is the order of the design 5x5 spaced out
+orderOfROIs = spaced5x5;     
 
 % Affects data analysis - Finding/quantifyting oIPSCs
 discardedSweeps = [];
@@ -287,6 +287,19 @@ bottomCrop = 58;  % old: 51   new: 58   % in pixels        % ALERT! this is new 
 
 % Affects data saving:
 savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-12-25 sCRACM code improvement';
+
+
+%% Storing polygon designs
+
+% this is the order of the design 5x5 spaced out
+spaced5x5 = [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]';
+
+% this is the order of the design 9x9 spaced out
+spaced9x9 = [50 10 46 73 12 25 69 27 2 4 48 38 40 79 42 67 75 77 44 34 14 32 36 59 71 53 65 6 22 64 16 30 81 57 55 63 8 20 18 28 1 51 9 23 61 78 54 68 76 3 47 49 21 7 24 60 26 66 11 45 39 33 5 62 80 56 70 74 41 43 15 17 52 31 13 58 72 35 37 19 29]';
+
+% check 
+reshape(spaced5x5,5,5).';
+reshape(spaced9x9,9,9).';
 
 
 %% PREP - get monitor info for plot display organization =====================================================

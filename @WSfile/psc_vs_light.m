@@ -60,7 +60,7 @@ rsTestPulseOnsetTime = 1;
 ymax = 600;
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-10-18 chr2 power curve';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-12-21 chr2 chrimson m152';
 
 
 %% PREP - get info from file and create arrays ==================

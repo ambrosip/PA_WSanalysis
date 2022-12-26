@@ -3,7 +3,7 @@ DOCUMENTATION
 Created: 2022 09 21
 Edited on: 2022 11 04; 2022 12 24; 2022 12 25
 Major github merge: 2022 12 24
-Works? Need to check
+Works? Yes
 Author: PA
 
 This function is used to analyze light-evoked PSCs in sCRACM experiments using the polygon.
@@ -18,6 +18,11 @@ o-stims was messed up during acquisition.
 FYI I sometimes use the words "square" and "ROI" interchangeably.
 2022 12 25 edit: custom crop to accomodate changed in polygon's mirror
 calibration
+By 2022 12 25, these are the channel standards:
+ch1: data
+ch2: voltage command
+ch3: LED command
+ch4: polygon command
 
 INPUTS explained:
     - gridColumns: number of columns in the polygon ROI grid
@@ -246,8 +251,7 @@ function psc_vs_light_polygon(obj)
 gridColumns = 5;
 gridRows = 5;
 orderedGrid = 0;       % 0 if NOT ordered, 1 if ordered
-% orderOfROIs = [1:25]';
-orderOfROIs = [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]';     % this is the order of the design 5x5 spaced out
+orderOfROIs = spaced5x5;     
 
 % Affects data analysis - Finding/quantifyting oIPSCs
 discardedSweeps = [];
@@ -273,16 +277,25 @@ ymin = -3600;           %-2050      -3600
 ymax = 600;             %50         600        
 
 % Affects data display - polygon grid overlay & crop
-cellImageFileNameDIC = 's3c1_dic_1x.tif';
-cellImageFileNameAlexa = 's3c1_MAX_Stack Rendered Paths.tif';
-cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220726 m000 dls loop';
+cellImageFileNameDIC = 's1c1_z1_dic.tif';
+cellImageFileNameAlexa = 's1c1_z1_647.tif';
+cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20221221 m934 des spiral';
 leftCrop = 0;     % old: 0    new: 0    % in pixels        % ALERT! this is new (2022-12-25)   
 rightCrop = 14;    % old: 0    new: 14   % in pixels        % ALERT! this is new (2022-12-25)
 topCrop = 106;    % old: 100  new: 106  % in pixels        % ALERT! this is new (2022-12-25)
-bottomCrop = 5;  % old: 51   new: 58   % in pixels        % ALERT! this is new (2022-12-25)
+bottomCrop = 58;  % old: 51   new: 58   % in pixels        % ALERT! this is new (2022-12-25)
 
 % Affects data saving:
 savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-12-25 sCRACM code improvement';
+
+
+%% Storing polygon designs
+
+% this is the order of the design 5x5 spaced out
+spaced5x5 = [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]';
+
+% this is the order of the design 9x9 spaced out
+spaced9x9 = [50 10 46 73 12 25 69 27 2 4 48 38 40 79 42 67 75 77 44 34 14 32 36 59 71 53 65 6 22 64 16 30 81 57 55 63 8 20 ];
 
 
 %% PREP - get monitor info for plot display organization =====================================================
