@@ -1,8 +1,6 @@
 %{ 
 DOCUMENTATION
 Created: 2022 09 21
-Edited on: 2022 11 04; 2022 12 24; 2022 12 25
-Major github merge: 2022 12 24
 Works? Yes
 Author: PA
 
@@ -11,44 +9,11 @@ This function was derived from psc_vs_light_polygon, but went through A LOT of r
 The data organization is very different, to better handle discarded sweeps
 without losing track of which sweeps belong to which ROIs (Regions Of
 Interest - subarea of the field that was illuminated).
-The code was further improved to accomodate custom ordered grids in
-addition to ordered grids.
-The code was also modified to handle "problem files" in which the timing of
-o-stims was messed up during acquisition.
-FYI I sometimes use the words "square" and "ROI" interchangeably.
-2022 12 25 edit: custom crop to accomodate changed in polygon's mirror
-calibration
-By 2022 12 25, these are the channel standards:
-ch1: data
-ch2: voltage command
-ch3: LED command
-ch4: polygon command
 
 INPUTS explained:
     - gridColumns: number of columns in the polygon ROI grid
 
     - gridRows: number of rows in the polygon ROI grid
-
-    - orderedGrid: booleaen variable (0 or 1) determining whether you used
-    an ordered grid or not using the polygon. In an ordered grid, ROIs are
-    stimulated in order - the o-stim moves from the top left to the
-    bottom right. For instance, if you have an ordered 3x3 grid, this would be the
-    order of the ROIs:
-     1     2     3
-     4     5     6
-     7     8     9
-
-    - orderOfROIs: column representing the order of the illuminated ROIs
-    when using a non-ordered grid. When piloting sCRACM, I used ordered
-    grids to make on-line and off-line analysis easier. However, the gold
-    standard for these experiments is to randomize the o-stim order. I
-    decided to use a pseudo-random order that maximizes the distance
-    between each o-stim. I called this design "spaced out". The orderOfROIs
-    of the ordered 3x3 grid shown above would be:
-    [1 2 3 4 5 6 7 8 9]'
-    (the little apostrophe at the end transposes the row into a column)
-    The orderOfROIs of the design "5x5 spaced out" is:
-    [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]' 
 
     - discardedSweeps: specific sweeps that should NOT be analyzed due to
     artifacts. If I want to discard sweep 0024, just write 24.
@@ -60,18 +25,7 @@ INPUTS explained:
         going to be incorrectly assigned to their ROIs.
 
     - lightChannel: channel where the info about the light stim is stored.
-    Usually 2 (LED 1), 3 (LED 2), or 4 (polygon). If a digital output was
-    used (my default for the polygon), the only usable info in this channel
-    is timing (the start/end of the light pulse and duration of the light
-    pulse). If an analog output was used (my default for the Mightex's
-    LEDs), this channel has timing and amplitude information (0-100% LED
-    power is represented as 0-5 V). When using small LED power, the
-    signal/noise ratio for timing info is shitty, so I genrally opted to
-    use the polygon channel for timing info and the LED channel for
-    amplitude info (see variable below).
-
-    - ledPowerChannel: channel where the info about the LED power is
-    stored if the LED driver was triggered with an analog output (0-5 V).
+    Usually 2 (LED 1), 3 (LED 2), or 4 (polygon). 
 
     - singleLightPulse: boolean variable (0 or 1) determining whether this
     sweep has a single light pulse (1) or a train of light pulses (0).
@@ -106,7 +60,7 @@ INPUTS explained:
 
     - amplitudeThreshold: min amplitude of light-evoked response to
     consider it a real response and not a failure. Do not need to worry
-    about sign (+ or -). The default 25 was chosen based on the noise level of
+    about sign (+ or -). The default 25 chosen based on the noise level of
     my rig, which is ~20 pA (as of 2022-09-21).
 
     - smoothSpan: number of data points averaged in the smoothing filter.
@@ -122,17 +76,6 @@ INPUTS explained:
     - discardROIsWithLowFreq: boolean variable (0 or 1) determining whether
     to discard "PerROI" data from ROIs with success rate < 50% (1) or not
     (0).
-
-    - problemFile: boolean variable (0 or 1) determining whether the timing
-    of the o-stims got messed up during acquisition, which will require the
-    code to look for the unique timing of each o-stim in all sweeps and
-    discard sweeps in which a huge fucking mess would occur.
-        For problem files, these are the criteria for choosing discarded
-        sweeps: (1) 2 voltage test pulses or 2 light pulses in the same
-        sweeps; or (2) test/light pulses too close to the beginning or the
-        end of the sweep; or (3) incorrect ROI/sweep assignment --> if you
-        discarded a sweep due to multiple light pulses, the next sweeps are
-        going to be incorrectly assigned to their ROIs.
 
     - rsTestPulseOnsetTime: onset of voltage step used to calculate series
     resistance.
@@ -156,36 +99,17 @@ INPUTS explained:
 
     - cellImageDir: folder where cell image file is located
 
-    - leftCrop: the polygon mirror area is smaller than the field of view
-    of the rig camera. To properly overlay the grid onto the images taken
-    from the rig, I need to crop the image from ocular. This crop requires
-    four parameters: leftCrop, rightCrop, topCrop and bottomCrop. The first
-    corresponds to the number of pixels in the x-axis betwween the left-most 
-    edge of the photo and the left-most edge of the mirror grid.
-
-    - rightCrop: number of pixels between the right-most edge of the
-    polygon's mirror grid and the right edge of the ocular picture.
-
-    - topCrop: number of pixels between the top-most edge of the
-    polygon's mirror grid and the top edge of the ocular picture.
-
-    - bottomCrop: number of pixels between the bottom edge of the
-    polygon's mirror grid and the bottom edge of the ocular picture.
-
     - savefileto: save CSV files to this folder.
 
 INPUTS defaults:
     % Affects data analysis - Organizing data by o-stim grid
     gridColumns = 5;
     gridRows = 5;
-    orderedGrid = 0;    % 0 if NOT ordered, 1 if ordered  
-    orderOfROIs = [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]';     % this is the order of the design 5x5 spaced out
 
     % Affects data analysis - Finding/quantifyting oIPSCs
     discardedSweeps = [];
     discardedSweepsFromEnd = 0;
     lightChannel = 4;
-    ledPowerChannel = 3;
     singleLightPulse = 1; 
     inwardORoutward = -1;               
     baselineDurationInSeconds = 0.01;
@@ -194,25 +118,18 @@ INPUTS defaults:
     amplitudeThreshold = 25;
     smoothSpan = 3; 
     discardROIsWithLowFreq = 1; 
-    problemFile = 0;
 
     % Affects data analysis - Calculating Rs
     rsTestPulseOnsetTime = 1;
     autoRsOnsetTime = 0;
     voltageCmdChannel = 2;
 
-    % Affects data display - oIPSC amplitude range (in pA): 
-    ymin = -1500;           %-2050      -3600      -1500
-    ymax = 600;             %50         600        600
-
-    % Affects data display - polygon grid overlay & crop
-    cellImageFileNameDIC = 's3c1_dic_1x.tif';
-    cellImageFileNameAlexa = 's3c1_MAX_Stack Rendered Paths.tif';
-    cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220726 m000 dls loop';
-    leftCrop = 0;     % in pixels              % ALERT! this is new (2022-12-25)
-    rightCrop = 0;    % in pixels
-    topCrop = 100;    % in pixels
-    bottomCrop = 51;  % in pixels
+    % Affects data display: 
+    ymin = -1500;           %-2050
+    ymax = 600;             %50
+    cellImageFileNameDIC = 's1c1_z1_moved1_dic.tif';
+    cellImageFileNameAlexa = 's1c1_z1_moved1_647.tif';
+    cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220728 m076 dms loop';
 
     % Affects data saving:
     savefileto = 'D:\Temp\From MATLAB 2022 08 31 psc';    
@@ -222,7 +139,7 @@ OUTPUTS:
     XLS
 
 ASSUMPTIONS: 
-    - The same ROI order was used throughout the file
+    - An ordered polygon grid design was used - aka not random
     - Width and frequency of polygon stim is the the same as LED o-stim
     (only relevant if you use the polygon channel as the light stim
     channel)
@@ -233,10 +150,6 @@ BEWARE:
 TO DO:
     - noticed weird bug on 8/31/22: if I include the last sweep on the
     discarded sweeps list, matlab does not plot any of the tiled niceplots!
-    - check github merge consequences
-    - add plot of avg traces (accross sweeps) per ROI & avg oIPSC peak per
-    ROI ignoring failures (similar analysis pipeline from Mao Lab and
-    Gordon Sheppard)
 %}
 
 % obj = m729.s0246;
@@ -244,14 +157,12 @@ TO DO:
 % obj = m729.s0371;
 % obj = m731.s0007
 
-function psc_vs_light_polygon(obj)
+function psc_vs_light_polygon_new_outdated(obj)
 %%  USER INPUT ============================================================
 
 % Affects data analysis - Organizing data by o-stim grid
 gridColumns = 5;
 gridRows = 5;
-orderedGrid = 0;       % 0 if NOT ordered, 1 if ordered
-orderOfROIs = [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]';     % this is the order of the design 5x5 spaced out
 
 % Affects data analysis - Finding/quantifyting oIPSCs
 discardedSweeps = [];
@@ -269,24 +180,18 @@ problemFile = 0;                            % ALERT! this is new (2022-09-24)
 
 % Affects data analysis - Calculating Rs
 rsTestPulseOnsetTime = 1;
-autoRsOnsetTime = 1;
+autoRsOnsetTime = 0;
 voltageCmdChannel = 2;
 
-% Affects data display - oIPSC amplitude range (in pA): 
-ymin = -3600;           %-2050      -3600       
-ymax = 600;             %50         600        
-
-% Affects data display - polygon grid overlay & crop
-cellImageFileNameDIC = 's1c1_z1_dic.tif';
-cellImageFileNameAlexa = 's1c1_z1_647.tif';
-cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20221221 m934 des spiral';
-leftCrop = 0;     % old: 0    new: 0    % in pixels        % ALERT! this is new (2022-12-25)   
-rightCrop = 14;    % old: 0    new: 14   % in pixels        % ALERT! this is new (2022-12-25)
-topCrop = 106;    % old: 100  new: 106  % in pixels        % ALERT! this is new (2022-12-25)
-bottomCrop = 58;  % old: 51   new: 58   % in pixels        % ALERT! this is new (2022-12-25)
+% Affects data display: 
+ymin = -3600;           %-2050      -3600
+ymax = 600;             %50         600
+cellImageFileNameDIC = 's3c1_dic_1x.tif';
+cellImageFileNameAlexa = 's3c1_MAX_Stack Rendered Paths.tif';
+cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20220726 m000 dls loop';
 
 % Affects data saving:
-savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-12-25 sCRACM code improvement';
+savefileto = 'D:\Temp\From MATLAB 2022 09 24 reanalyze all';
 
 
 %% PREP - get monitor info for plot display organization =====================================================
@@ -361,21 +266,6 @@ for row=1:totalROIs
     % keep track of how many sweeps are in each ROI
     sweepsPerROI(row) = size(sweeps,2);
 end
-
-% re-ordering sweeps into the appropriate ROIs
-% if the grid is ordered, the first sweep corresponds to the top left ROI
-% and the last sweep corresponds to the bottom right ROI.
-% the code in general assumes that the grid IS ordered. If it is NOT, you
-% need to adjust it.
-% orderedGrid = 0 if the grid is NOT ordered
-if orderedGrid == 0
-    sweepsInROI = sweepsInROI(orderOfROIs);   
-    % if the first number in orderOfROIs is 8, matlab will move the 8th
-    % item in sweepsInROI to the first row. If the 13th number of
-    % orderOfROIs is 1, matlab will move the first row of
-    % sweepsInROI to the 13th row.   
-    % DO NOT re-order relativeSweepsInROI - I made this mistake earlier
-end 
 
 % creating matrixes/arrays that will be filled later
 allRs = [];
@@ -713,7 +603,7 @@ for ROI = 1:totalROIs
         % timing, do this:
 %         if any(heavyEditingAll)   % UGH this is not good enough cuz
 %         problem sweeps might happen AFTER normal sweeps, messing up with
-%         the data organization and giving errors.
+%         the data organization and gibing errors.
         % let's go with a user-input based check UGH
         if problemFile
             dataInROI(ROI,column) = {yAroundLightPulse};
@@ -731,12 +621,7 @@ for ROI = 1:totalROIs
         data = [data; ...
             mouseNumber, ...
             experimentDate, ...
-            sweepNumber, ...   
-            ROI, ...
-            gridColumns, ...
-            gridRows, ...
-            orderedGrid, ...
-            plannedSweepsPerROI, ...
+            sweepNumber, ...         
             lightChannel, ...
             ledPowerChannel, ...
             singleLightPulse, ...        
@@ -745,8 +630,6 @@ for ROI = 1:totalROIs
             lightPulseAnalysisWindowInSeconds, ...
             thresholdInDataPts, ...
             amplitudeThreshold, ...
-            smoothSpan, ...
-            problemFile, ...
             rsTestPulseOnsetTime, ...
             autoRsOnsetTime, ...
             voltageCmdChannel, ...
@@ -754,6 +637,9 @@ for ROI = 1:totalROIs
             stimFreq, ...
             lightDur, ...
             ledPower, ...
+            gridColumns, ...
+            gridRows, ...
+            plannedSweepsPerROI, ...
             seriesResistance, ...
             baselineCurrent, ...
             heavyEditing];         
@@ -876,10 +762,6 @@ stdOnsetLatencyPerROI_noFailures(failedROIs) = NaN;
 if discardROIsWithLowFreq == 1
     % find ROIs in which success rate is <50%
     % aka according to this criteria, there are not light-evoked events in this ROI
-    % ALERT: might want to soft code the failure threshold! Instead of
-    % discarding ROIs with > 50% failures, I might want to change that to
-    % >75% failures or something, as I increase the number of sweeps per
-    % ROI!
     failedROIs = find(successRatePerROI<0.5);
 
     % remove data from "PerROI" variables 
@@ -899,11 +781,7 @@ allAnalyzedSweeps = setdiff(allSweeps,discardedSweeps);
 dataCell = [mouseNumber, ...
     experimentDate, ...
     firstSweepNumber, ...
-    lastSweepNumber, ...    
-    gridColumns, ...
-    gridRows, ...
-    orderedGrid, ...
-    plannedSweepsPerROI, ...   
+    lastSweepNumber, ...
     length(discardedSweeps), ...
     length(allAnalyzedSweeps), ...
     lightChannel, ...
@@ -913,8 +791,7 @@ dataCell = [mouseNumber, ...
     baselineDurationInSeconds, ...
     lightPulseAnalysisWindowInSeconds, ...
     thresholdInDataPts, ...
-    amplitudeThreshold, ...   
-    smoothSpan, ...    
+    amplitudeThreshold, ...
     discardROIsWithLowFreq, ...
     problemFile, ...
     rsTestPulseOnsetTime, ...
@@ -924,6 +801,9 @@ dataCell = [mouseNumber, ...
     stimFreq, ...
     lightDur, ...
     ledPower, ...
+    gridColumns, ...
+    gridRows, ...
+    plannedSweepsPerROI, ...
     mean(allRs, 'omitnan'), ...
     min(allRs), ...
     max(allRs), ...
@@ -980,35 +860,24 @@ cellImageFileDir = strcat(cellImageDir,'\',cellImageFileNameDIC);
 cellImage = imread(cellImageFileDir);
 
 % crop image according to the polygon's mirror calibration
-% Old code (prior to 2022 12 21):
-% % I verified this in PPT lol
-% % the original image is 1376 x 1024 pixels
-% % ASSUMPTION ALERT: the calibration of the polygon will not change over time
-% % I need to crop the top 100 pixels and the bottom 51 pixels
-% % imcrop determines the rectangle to keep in the following form: [XMIN YMIN WIDTH HEIGHT]
-% % note that y increases from top to bottom, so ymin should match my
-% % required "top crop".
-% % I do not need to crop along the x axis, so xmin = 1 and width = 1376
-% % the height is 1024 - 100 - 51 = 873
-% croppedImage = imcrop(cellImage, [1,100,1376,873]);
-
-% custom-crop based on user input (in case the polygon's mirror calibration changes,
-% like it did on 2022 12 21)
-cropXmin = 1 + leftCrop;
-cropWidth = 1376 - rightCrop - leftCrop;
-cropYmin = 1 + topCrop;
-cropHeight = 1024 - topCrop - bottomCrop;
-croppedImage = imcrop(cellImage, [cropXmin, cropYmin, cropWidth, cropHeight]);
-
-% name and create figure
+% I verified this in PPT lol
+% the original image is 1376 x 1024 pixels
+% ASSUMPTION ALERT: the calibration of the polygon will not change over time
+% I need to crop the top 100 pixels and the bottom 51 pixels
+% imcrop determines the rectangle to keep in the following form: [XMIN YMIN WIDTH HEIGHT]
+% note that y increases from top to bottom, so ymin should match my
+% required "top crop".
+% I do not need to crop along the x axis, so xmin = 1 and width = 1376
+% the height is 1024 - 100 - 51 = 873
+croppedImage = imcrop(cellImage, [1,100,1376,873]);
 figure('name', strcat(fileName, '_', analysisDate, ' - psc_vs_light_polygon - DIC image grid'));
 hold on;
 imshow(croppedImage, 'Border', 'tight');
 
 % calculate parameters for scale bar
 % ASSUMPTION ALERT: pixelsPerMicron corresponds to my usual 40x objective at 1x zoom
-xmaxImg = size(croppedImage,2);    % in pixels, should be 1376 (prior to 2022 12 21)
-ymaxImg = size(croppedImage,1);    % in pixels, should be 874 (prior to 2022 12 21)
+xmaxImg = size(croppedImage,2);    % in pixels, should be 1376
+ymaxImg = size(croppedImage,1);    % in pixels, should be 874
 scaleDistanceFromEdge = 50;     % in pixels
 scaleBarSize = 50;              % in um
 pixelsPerMicron = 873 / 222.2;  % 222.2 um in 873 pixels
@@ -1073,11 +942,7 @@ end
 invertedImage = imcomplement(cellImage);
 
 % crop image according to the polygon's mirror calibration
-cropXmin = 1 + leftCrop;
-cropWidth = 1376 - rightCrop - leftCrop;
-cropYmin = 1 + topCrop;
-cropHeight = 1024 - topCrop - bottomCrop;
-croppedImage = imcrop(invertedImage, [cropXmin, cropYmin, cropWidth, cropHeight]);
+croppedImage = imcrop(invertedImage, [1,100,1376,873]);
 figure('name', strcat(fileName, '_', analysisDate, ' - psc_vs_light_polygon - Alexa image grid'));
 hold on;
 imshow(croppedImage, 'Border', 'tight');
@@ -1129,14 +994,14 @@ movegui('southeast');
 figure('name', strcat(fileName, '_', analysisDate, ' - psc_vs_light_polygon - tiled niceplots'));
 t = tiledlayout(gridRows, gridColumns);
 
-% plotting niceplots 
+% plotting histogram plot 
 for ROI = 1:totalROIs
     nexttile
     hold on;
     
     % plot individual sweeps
     for sweep = cell2mat(relativeSweepsInROI(ROI))
-        % if this is a problem file (aka the light onset is not consistent
+        % is this is a problem file (aka the light onset is not consistent
         % accross sweeps), plot the data subset around the light pulse
         if problemFile ==1
             plot(xAroundLightPulse, yAroundLightPulseAll(:, sweep),'Color',[0, 0, 0, 0.25]);
@@ -1151,7 +1016,7 @@ for ROI = 1:totalROIs
     axis([xmin xmax ymin ymax]);    
     
     % adding light stim - individual pulses   
-    % ALERT: note that this code will use light stim parameters from the last sweep!
+    % note that this code will use light stim parameters from the last sweep!
     % if light stim is not the same accross all sweeps, this will be
     % misleading!
     for nStim=1:length(lightPulseStart)
@@ -1168,7 +1033,7 @@ for ROI = 1:totalROIs
 %         xticklabels([]);
 %     end
     
-    % remove x and y labels from all ROIs
+    % remove x and y labels from all squares
     xticklabels([]);
     yticklabels([]);
     
@@ -1404,11 +1269,6 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     {'mouse', ...
     'date', ...
     'sweep', ...
-    'ROI', ...
-    'gridColumns', ...
-    'gridRows', ...
-    'isOrderedGrid(1)orNot(0)', ...
-    'plannedSweepsPerROI', ...
     'lightChannel', ...
     'ledPowerChannel', ...
     'singleLightPulse(1)orTrain(0)', ...
@@ -1417,15 +1277,16 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'lightPulseAnalysisWindowInSeconds', ...
     'thresholdInDataPts', ...
     'amplitudeThreshold(pA)', ...  
-    'smoothSpan(dataPts)', ...
-    'isProblemFile(1)orNot(0)', ...
     'rsTestPulseOnsetTime', ...
     'autoRsOnsetTime(1)orManual(0)', ...
     'voltageCmdChannel', ...
     'lightPulseDur(s)', ... 
     'lightStimFreq(Hz)', ...
     'lightDur(s)', ...   
-    'ledPower(V)', ...   
+    'ledPower(V)', ...
+    'gridColumns', ...
+    'gridRows', ...
+    'plannedSweepsPerROI', ...      
     'seriesResistance(Mohm)', ...
     'baselineCurrent(pA)', ...
     'heavyEditing(1)orNot(0)', ...
@@ -1470,10 +1331,6 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'date', ...
     'firstSweep', ...
     'lastSweep', ...
-    'gridColumns', ...
-    'gridRows', ...
-    'isOrderedGrid(1)orNot(0)', ...
-    'plannedSweepsPerROI', ...   
     'nDiscardedSweeps', ...
     'nAnalyzedSweeps', ...
     'lightChannel', ...
@@ -1484,7 +1341,6 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'lightPulseAnalysisWindowInSeconds', ...
     'thresholdInDataPts', ...
     'amplitudeThreshold(pA)', ...
-    'smoothSpan(dataPts)', ...
     'discardROIsWithLowFreq', ...
     'isProblemFile(1)orNot(0)', ...
     'rsTestPulseOnsetTime', ...
@@ -1493,7 +1349,10 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'lightPulseDur(s)', ... 
     'lightStimFreq(Hz)', ...
     'lightDur(s)', ...   
-    'ledPower(V)', ... 
+    'ledPower(V)', ...
+    'gridColumns', ...
+    'gridRows', ...
+    'plannedSweepsPerROI', ...    
     'AVGseriesResistance(Mohm)', ...
     'MINseriesResistance(Mohm)', ...
     'MAXseriesResistance(Mohm)', ...

@@ -150,6 +150,11 @@ BEWARE:
 
 TO DO:
     - test with light train
+    - add led power measurement? things might get tricky with trains if I
+    take timing info from the polygon channel and not from the actual LED
+    channel though. Because a polygon train would change the ROI with every
+    pulse.
+
 %}
 
 function firing_vs_light_polygon_new(obj)
@@ -311,6 +316,7 @@ sweepNumberArrayBySweep = {};
 %% ROI BY ROI AND SWEEP BY SWEEP ANALYSIS ===================================================================================
 
 % get data from sweeps in file (only the subset we will analyze)
+% ROI: region on interest (subarea illuminated)
 for ROI = 1:totalROIs  
     
     column = 0;
@@ -346,9 +352,14 @@ for ROI = 1:totalROIs
         % ALERT let's just use the polygon TTL pulse for now, since the analog
         % output is soooo small, making the detection of the light pulse start
         % and end times really hard with simple methods.
+        % aka, use code #1 and change the lightChannel to the polygon channel
+        % instead of the LED channel.
 
         % code #1 - works
         % look for a big change 
+        % ALERT: this code is a bit different from the one in
+        % psc_vs_light_polygon but I have no energy to test the
+        % implications right now (2022 12 24)
         lightPulseStart = find(diff(ych2>1)>0);
         lightPulseEnd = find(diff(ych2<1)>0);
 
