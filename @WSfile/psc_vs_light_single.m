@@ -42,13 +42,13 @@ function psc_vs_light_single(obj)
 %%%  USER INPUT ==================================================
 
 % Affects data analysis:
-lightStimCh = 4;
+lightStimCh = 2;
 discardedSweeps = [];
 discardedSweepsFromEnd = 0;
 inwardORoutward = -1;    % 1 (positive) is outward; -1 (negative) in inward
 baselineDurationInSeconds = 0.01;
-lightPulseAnalysisWindowInSeconds = 0.02;
-thresholdInDataPts = 5; %% ALERT! Changed from 10 to 5
+lightPulseAnalysisWindowInSeconds = 0.02;   %% ALERT! Changed from 0.02 to 0.015 on 2023/3/4   
+thresholdInDataPts = 8; %% ALERT! Changed from 10 to 5; now changed to 8 on 2023/3/4 
 rsTestPulseOnsetTime = 1; %% ALERT! Changed from 1 to 0.1
 
 % Affects decay fit
@@ -57,11 +57,11 @@ fastTauGuess = 0.01;    % in seconds
 slowTauGuess = 0.1;     % in seconds
 
 % Affects data display:
-ymin = -375;       %-2050   % -375     % -1500
-ymax = 150;          %50    % 150       % 600
+ymin = -3600;       %-2050   % -375     % -1500
+ymax = 600;          %50    % 150       % 600
 
 % Affects data saving:
-savefileto = 'E:\AJ ephys data';
+savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 03 04 m986 scracm';
 
 
 %% PREP - get info from file and create arrays ==================

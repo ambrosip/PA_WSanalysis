@@ -245,16 +245,29 @@ TO DO:
 % obj = m731.s0007
 
 function psc_vs_light_polygon(obj)
+%% Storing polygon designs ================================================
+
+% this is the order of the design 5x5 spaced out
+spaced5x5 = [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]';
+
+% this is the order of the design 9x9 spaced out
+spaced9x9 = [50 10 46 73 12 25 69 27 2 4 48 38 40 79 42 67 75 77 44 34 14 32 36 59 71 53 65 6 22 64 16 30 81 57 55 63 8 20 18 28 1 51 9 23 61 78 54 68 76 3 47 49 21 7 24 60 26 66 11 45 39 33 5 62 80 56 70 74 41 43 15 17 52 31 13 58 72 35 37 19 29]';
+
+% check 
+reshape(spaced5x5,5,5).';
+reshape(spaced9x9,9,9).';
+
+
 %%  USER INPUT ============================================================
 
 % Affects data analysis - Organizing data by o-stim grid
 gridColumns = 5;
 gridRows = 5;
 orderedGrid = 0;       % 0 if NOT ordered, 1 if ordered
-orderOfROIs = spaced5x5;     
+orderOfROIs = spaced5x5;     % choose above if NOT ordered, NaN if ordered
 
 % Affects data analysis - Finding/quantifyting oIPSCs
-discardedSweeps = [];
+discardedSweeps = [4445:4519];
 lightChannel = 4;
 ledPowerChannel = 3;
 singleLightPulse = 1; 
@@ -277,29 +290,76 @@ ymin = -3600;           %-2050      -3600
 ymax = 600;             %50         600        
 
 % Affects data display - polygon grid overlay & crop
-cellImageFileNameDIC = 's1c1_z1_dic.tif';
-cellImageFileNameAlexa = 's1c1_z1_647.tif';
-cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20221221 m934 des spiral';
+cellImageFileNameDIC = 's3c2_1x_dic.tif';
+cellImageFileNameAlexa = 's3c2_MAX_Stack Rendered Paths.tif';
+cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2023\20230303 m986 dls';
 leftCrop = 0;     % old: 0    new: 0    % in pixels        % ALERT! this is new (2022-12-25)   
 rightCrop = 14;    % old: 0    new: 14   % in pixels        % ALERT! this is new (2022-12-25)
 topCrop = 106;    % old: 100  new: 106  % in pixels        % ALERT! this is new (2022-12-25)
 bottomCrop = 58;  % old: 51   new: 58   % in pixels        % ALERT! this is new (2022-12-25)
 
 % Affects data saving:
-savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-12-25 sCRACM code improvement';
+savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 03 04 m986 scracm';
 
+% Affects data display
+gridFillHorizontal = 1;         % 0.067 for 15 column
+gridFillVertical = 1;       % 0.067 for 15 line
 
-%% Storing polygon designs
-
-% this is the order of the design 5x5 spaced out
-spaced5x5 = [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]';
-
-% this is the order of the design 9x9 spaced out
-spaced9x9 = [50 10 46 73 12 25 69 27 2 4 48 38 40 79 42 67 75 77 44 34 14 32 36 59 71 53 65 6 22 64 16 30 81 57 55 63 8 20 18 28 1 51 9 23 61 78 54 68 76 3 47 49 21 7 24 60 26 66 11 45 39 33 5 62 80 56 70 74 41 43 15 17 52 31 13 58 72 35 37 19 29]';
-
-% check 
-reshape(spaced5x5,5,5).';
-reshape(spaced9x9,9,9).';
+% % %%  USER INPUT ============================================================
+% % 
+% % % Affects data analysis - Organizing data by o-stim grid
+% % gridColumns = 5;
+% % gridRows = 5;
+% % orderedGrid = 0;       % 0 if NOT ordered, 1 if ordered
+% % orderOfROIs = spaced5x5;     
+% % 
+% % % Affects data analysis - Finding/quantifyting oIPSCs
+% % discardedSweeps = [];
+% % lightChannel = 4;
+% % ledPowerChannel = 3;
+% % singleLightPulse = 1; 
+% % inwardORoutward = -1;                       % 1 (positive) is outward; -1 (negative) in inward
+% % baselineDurationInSeconds = 0.01;
+% % lightPulseAnalysisWindowInSeconds = 0.015;  % ALERT: changed from 0.02 to 0.01 to 0.015 on 2022-09-21
+% % thresholdInDataPts = 8;                     % ALERT! Changed from 10 to 5 to 10 to 8 (2022-09-24)
+% % amplitudeThreshold = 25;                    % ALERT! this is new (2022-09-21)
+% % smoothSpan = 3;                             % ALERT! this is new (2022-09-23)
+% % discardROIsWithLowFreq = 1;                 % ALERT! this is new (2022-09-24)
+% % problemFile = 0;                            % ALERT! this is new (2022-09-24)
+% % 
+% % % Affects data analysis - Calculating Rs
+% % rsTestPulseOnsetTime = 1;
+% % autoRsOnsetTime = 1;
+% % voltageCmdChannel = 2;
+% % 
+% % % Affects data display - oIPSC amplitude range (in pA): 
+% % ymin = -3600;           %-2050      -3600       
+% % ymax = 600;             %50         600        
+% % 
+% % % Affects data display - polygon grid overlay & crop
+% % cellImageFileNameDIC = 's1c1_z1_dic.tif';
+% % cellImageFileNameAlexa = 's1c1_z1_647.tif';
+% % cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2022\20221221 m934 des spiral';
+% % leftCrop = 0;     % old: 0    new: 0    % in pixels        % ALERT! this is new (2022-12-25)   
+% % rightCrop = 14;    % old: 0    new: 14   % in pixels        % ALERT! this is new (2022-12-25)
+% % topCrop = 106;    % old: 100  new: 106  % in pixels        % ALERT! this is new (2022-12-25)
+% % bottomCrop = 58;  % old: 51   new: 58   % in pixels        % ALERT! this is new (2022-12-25)
+% % 
+% % % Affects data saving:
+% % savefileto = 'D:\Temp\2023 02 13';
+% % 
+% % 
+% % %% Storing polygon designs
+% % 
+% % % this is the order of the design 5x5 spaced out
+% % spaced5x5 = [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]';
+% % 
+% % % this is the order of the design 9x9 spaced out
+% % spaced9x9 = [50 10 46 73 12 25 69 27 2 4 48 38 40 79 42 67 75 77 44 34 14 32 36 59 71 53 65 6 22 64 16 30 81 57 55 63 8 20 18 28 1 51 9 23 61 78 54 68 76 3 47 49 21 7 24 60 26 66 11 45 39 33 5 62 80 56 70 74 41 43 15 17 52 31 13 58 72 35 37 19 29]';
+% % 
+% % % check 
+% % reshape(spaced5x5,5,5).';
+% % reshape(spaced9x9,9,9).';
 
 
 %% PREP - get monitor info for plot display organization =====================================================
@@ -854,6 +914,26 @@ summedCurrentTimeTo90percentOfPeakInMilliSeconds = 1000*summedCurrentTimeTo90per
 summedCurrentRiseTimeInMilliSeconds = summedCurrentTimeTo90percentOfPeakInMilliSeconds - summedCurrentTimeTo10percentOfPeakInMilliSeconds; 
 
 
+%% CELL ANALYSIS - charge per ROI
+% average area under the curve according to Gordon Sheppard's suggestion
+
+% meanDataInROI should have ROI columns.
+
+size(meanDataInROI)
+
+% gather current in response to light from light onset to light onset +
+% user defined interval (15 ms if lightPulseAnalysisWindowInSeconds = 0.015)
+dataSubsetForCharge = meanDataInROI(pulseOnset:afterLightDataPoint,:);
+size(dataSubsetForCharge)
+
+% find area under the curve using trapz
+% use dim 2 to integrate over each column
+avgChargeInROI = trapz(dataSubsetForCharge,1)
+
+% adjust charge value according to sampling rate
+avgChargeInROI = avgChargeInROI * 1/samplingFrequency
+
+
 %% CELL ANALYSIS - exclude "PerROI" data in ROIs with 100% failures ==============================================
 
 % get success rate
@@ -956,7 +1036,8 @@ dataCellMultipleRows = [repmat(dataCell,totalROIs,1), ...
     meanPeakPerROI_noFailures', ...
     meanOnsetLatencyPerROI_noFailures', ...
     meanRiseTimePerROI_noFailures', ...
-    stdOnsetLatencyPerROI_noFailures'];
+    stdOnsetLatencyPerROI_noFailures', ...
+    avgChargeInROI'];
 
 % note: I can't export sweepsInROI easily because ROIs might have different
 % total number of sweeps
@@ -1028,13 +1109,40 @@ pixelsPerMicron = 873 / 222.2;  % 222.2 um in 873 pixels
 scaleBarSizeInPixels = scaleBarSize * pixelsPerMicron;
 
 % add polygon grid to figure
+% also keep track of points to make rectangles if fill is NOT 1 (see below)
+allYpos = [];
 for row = 1:gridRows+1
     ypos = (row-1)*ymaxImg/gridRows;
-    yline(ypos, 'Color', 'k', 'LineWidth', 0.5);
+    allYpos = [allYpos; ypos];
+    if gridFillHorizontal == 1 && gridFillVertical == 1
+        yline(ypos, 'Color', 'k', 'LineWidth', 0.5);
+    end
 end
+
+allXpos = [];
 for col = 1:gridColumns+1
     xpos = (col-1)*xmaxImg/gridColumns;
-    xline(xpos, 'Color', 'k', 'LineWidth', 0.5);
+    allXpos = [allXpos; xpos];
+    if gridFillHorizontal == 1 && gridFillVertical == 1
+        xline(xpos, 'Color', 'k', 'LineWidth', 0.5);
+    end
+end
+
+% add rectangles to figure if the grid fill is NOT 1 (aka the o-stim ROI is
+% smaller than the full ROI)
+% first figure out the dimensions of the rectangle
+ROIwidth = gridFillHorizontal * xmaxImg/gridColumns;
+ROIheight = gridFillVertical * ymaxImg/gridRows;
+extraWidth = (1 - gridFillHorizontal) * xmaxImg/gridColumns;
+extraHeight = (1 - gridFillVertical) * ymaxImg/gridRows;
+if gridFillHorizontal ~= 1 || gridFillVertical ~= 1
+    for row = 1:length(allYpos)-1
+        for col = 1:length(allXpos)-1
+            ROIx = allXpos(col) + extraWidth/2;
+            ROIy = allYpos(row) + extraHeight/2;
+            rectangle('Position', [ROIx, ROIy, ROIwidth, ROIheight]);
+        end
+    end
 end
 
 % add scale bar to figure
@@ -1096,13 +1204,40 @@ hold on;
 imshow(croppedImage, 'Border', 'tight');
 
 % add polygon grid to figure
+% also keep track of points to make rectangles if fill is NOT 1 (see below)
+allYpos = [];
 for row = 1:gridRows+1
     ypos = (row-1)*ymaxImg/gridRows;
-    yline(ypos, 'Color', 'k', 'LineWidth', 0.5);
+    allYpos = [allYpos; ypos];
+    if gridFillHorizontal == 1 && gridFillVertical == 1
+        yline(ypos, 'Color', 'k', 'LineWidth', 0.5);
+    end
 end
+
+allXpos = [];
 for col = 1:gridColumns+1
     xpos = (col-1)*xmaxImg/gridColumns;
-    xline(xpos, 'Color', 'k', 'LineWidth', 0.5);
+    allXpos = [allXpos; xpos];
+    if gridFillHorizontal == 1 && gridFillVertical == 1
+        xline(xpos, 'Color', 'k', 'LineWidth', 0.5);
+    end
+end
+
+% add rectangles to figure if the grid fill is NOT 1 (aka the o-stim ROI is
+% smaller than the full ROI)
+% first figure out the dimensions of the rectangle
+ROIwidth = gridFillHorizontal * xmaxImg/gridColumns;
+ROIheight = gridFillVertical * ymaxImg/gridRows;
+extraWidth = (1 - gridFillHorizontal) * xmaxImg/gridColumns;
+extraHeight = (1 - gridFillVertical) * ymaxImg/gridRows;
+if gridFillHorizontal ~= 1 || gridFillVertical ~= 1
+    for row = 1:length(allYpos)-1
+        for col = 1:length(allXpos)-1
+            ROIx = allXpos(col) + extraWidth/2;
+            ROIy = allYpos(row) + extraHeight/2;
+            rectangle('Position', [ROIx, ROIy, ROIwidth, ROIheight]);
+        end
+    end
 end
 
 % add scale bar to figure
@@ -1213,6 +1348,64 @@ t.Padding = 'compact';
 % FYI this only adjusts the outer figure size, not the inner figure size...
 % set(gcf,'OuterPosition',[1 1 outerWidth outerHeight]);
 set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
+
+
+%% PLOT 4.2 - tiled averages
+
+% create figure & name it
+figure('name', strcat(fileName, '_', analysisDate, ' - psc_vs_light_polygon - tiled avgs'));
+t = tiledlayout(gridRows, gridColumns);
+
+% plotting niceplots 
+for ROI = 1:totalROIs
+    nexttile
+    hold on;
+    
+    % plot avg
+    if problemFile ==1
+        plot(xAroundLightPulse, meanDataInROI(:, ROI),'Color',[0, 0, 0, 1]);
+    else
+        plot(x, meanDataInROI(:,ROI),'Color',[0, 0, 0, 1]);
+    end
+    
+    axis([xmin xmax ymin ymax]);    
+    
+    % adding light stim - individual pulses   
+    % ALERT: note that this code will use light stim parameters from the last sweep!
+    % if light stim is not the same accross all sweeps, this will be
+    % misleading!
+    for nStim=1:length(lightPulseStart)
+        line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax),-inwardORoutward*(ymax)],'Color',[0 0.4470 0.7410],'LineWidth',5)
+    end
+    
+    % remove x and y labels from all ROIs
+    xticklabels([]);
+    yticklabels([]);
+    
+    % add scale bar to last plot
+    if ROI == gridRows * gridColumns
+        xmaxScale = xmax;
+        xminScale = xmin;
+        line([xmaxScale-(xmaxScale-xminScale)/11,xmaxScale],[ymin,ymin],'Color','k')
+        line([xmaxScale,xmaxScale],[ymin,ymin+((ymax-ymin)/7)],'Color','k')
+        text(xmaxScale-(xmaxScale-xminScale),ymin+((ymax-ymin)/10),strcat(num2str(1000*(xmaxScale-xminScale)/11)," ms"))
+        text(xmaxScale-(xmaxScale-xminScale),ymin+((ymax-ymin)/3),strcat(num2str((ymax-ymin)/7)," ",obj.header.Ephys.ElectrodeManager.Electrodes.element1.MonitorUnits))
+
+    end
+    
+    hold off;    
+    set(gca,'Visible','off');
+
+end
+
+t.TileSpacing = 'compact';
+t.Padding = 'compact';
+
+% set figure size to the same as the cropped cell image
+% FYI this only adjusts the outer figure size, not the inner figure size...
+% set(gcf,'OuterPosition',[1 1 outerWidth outerHeight]);
+set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
+
 
 
 %% PLOT 5 - subtracted baseline current =====================================================
@@ -1329,6 +1522,35 @@ title('Normalized oIPSC amplitude')
 set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
 c = colorbar;
 c.Label.String = 'Normalized oIPSC amplitude';
+
+
+%% PLOT 9.2 - heatmap of average charge (AUC) normalized to largest charge
+
+% set hetmap edges
+heatmapMin = 0;
+heatmapMax = 1;
+
+% normalize meanPeakPerROI by largest peak
+if inwardORoutward == 1
+    maxCharge = max(avgChargeInROI);
+else
+    maxCharge = min(avgChargeInROI);
+end
+normalizedToMaxCharge = avgChargeInROI/maxCharge;
+
+% organize data for heatmap
+dataForHeatmap = reshape(normalizedToMaxCharge,gridColumns,[]).';
+
+% resize heatmap
+resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImage,2)], 'nearest');
+
+% make heatmap without the heatmap function
+figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - avg charge heatmap')); % naming figure file
+imshow(resizedHeatmap,'Colormap',customColorMapVermillion,'DisplayRange', [heatmapMin,heatmapMax], 'Border', 'tight');
+title('Normalized avg charge')
+set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
+c = colorbar;
+c.Label.String = 'Normalized AVG charge';
 
 
 %% PLOT 10 - heatmap of onset latencies 
@@ -1524,6 +1746,7 @@ labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
     'AVGonsetLatency(ms)', ...
     'AVGriseTime(ms)', ...
     'SDonsetLatency(ms)', ...
+    'avgChargeInROI(pA*ms)', ...
     'cellImageFileNameDIC', ...
     'cellImageFileNameAlexa'});
 writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');

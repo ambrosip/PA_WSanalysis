@@ -50,7 +50,7 @@ function psc_vs_light(obj)
 lightStimCh = 2;
 discardedSweeps = [];
 discardedSweepsFromEnd = 0;
-inwardORoutward = 1;    % 1 (positive) is outward; -1 (negative) is inward
+inwardORoutward = -1;    % 1 (positive) is outward; -1 (negative) is inward
 baselineDurationInSeconds = 0.5;
 lightPulseAnalysisWindowInSeconds = 0.02;
 thresholdInDataPts = 5; %% ALERT! Changed from 10 to 5
@@ -60,7 +60,7 @@ rsTestPulseOnsetTime = 1;
 ymax = 600;
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2022\2022-12-21 chr2 chrimson m152';
+savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 03 04 m986 scracm';
 
 
 %% PREP - get info from file and create arrays ==================
