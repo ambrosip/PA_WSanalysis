@@ -253,21 +253,29 @@ spaced5x5 = [8 16 14 23 3 10 12 25 21 19 6 18 1 5 11 4 22 15 13 7 2 20 24 17 9]'
 % this is the order of the design 9x9 spaced out
 spaced9x9 = [50 10 46 73 12 25 69 27 2 4 48 38 40 79 42 67 75 77 44 34 14 32 36 59 71 53 65 6 22 64 16 30 81 57 55 63 8 20 18 28 1 51 9 23 61 78 54 68 76 3 47 49 21 7 24 60 26 66 11 45 39 33 5 62 80 56 70 74 41 43 15 17 52 31 13 58 72 35 37 19 29]';
 
+% this is the order of the design 6x6 max sep
+spaced6x6 = [18 31 33 9 35 5 16 22 27 3 7 25 14 29 20 1 11 15 12 24 36 17 13 23 2 4 8 32 28 21 6 34 10 26 19 30]';
+
+% this is the order of the design 11x7 random1
+random11x7v1 = [33 65 9 38 46 68 48 62 20 51 47 53 75 35 30 69 71 13 6 34 16 2 44 28 27 73 31 61 39 21 22 8 58 19 63 42 52 66 1 72 26 5 25 18 45 64 29 3 60 56 70 76 41 14 10 32 23 54 15 50 36 67 24 77 37 40 74 57 43 59 17 4 55 12 11 7 49]';
+
 % check 
 reshape(spaced5x5,5,5).';
 reshape(spaced9x9,9,9).';
+reshape(spaced6x6,6,6).';
+reshape(random11x7v1,11,7).';
 
 
 %%  USER INPUT ============================================================
 
 % Affects data analysis - Organizing data by o-stim grid
-gridColumns = 5;
-gridRows = 5;
+gridColumns = 6;
+gridRows = 6;
 orderedGrid = 0;       % 0 if NOT ordered, 1 if ordered
-orderOfROIs = spaced5x5;     % choose above if NOT ordered, NaN if ordered
+orderOfROIs = spaced6x6;     % choose above if NOT ordered, NaN if ordered
 
 % Affects data analysis - Finding/quantifyting oIPSCs
-discardedSweeps = [4445:4519];
+discardedSweeps = [];
 lightChannel = 4;
 ledPowerChannel = 3;
 singleLightPulse = 1; 
@@ -290,16 +298,16 @@ ymin = -3600;           %-2050      -3600
 ymax = 600;             %50         600        
 
 % Affects data display - polygon grid overlay & crop
-cellImageFileNameDIC = 's3c2_1x_dic.tif';
-cellImageFileNameAlexa = 's3c2_MAX_Stack Rendered Paths.tif';
-cellImageDir = 'D:\NU server\Priscilla - BACKUP 20200319\Ephys\2023\20230303 m986 dls';
+cellImageFileNameDIC = 's2c1_40x_1x_dic.tif';
+cellImageFileNameAlexa = 's2c1_max_z_Stack Rendered Paths.tif';
+cellImageDir = 'E:\Priscilla - BACKUP 20200319\Ephys\2023\20230407 m813 asc';
 leftCrop = 0;     % old: 0    new: 0    % in pixels        % ALERT! this is new (2022-12-25)   
 rightCrop = 14;    % old: 0    new: 14   % in pixels        % ALERT! this is new (2022-12-25)
 topCrop = 106;    % old: 100  new: 106  % in pixels        % ALERT! this is new (2022-12-25)
 bottomCrop = 58;  % old: 51   new: 58   % in pixels        % ALERT! this is new (2022-12-25)
 
 % Affects data saving:
-savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 03 04 m986 scracm';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 04 07 m813 scracm';
 
 % Affects data display
 gridFillHorizontal = 1;         % 0.067 for 15 column
