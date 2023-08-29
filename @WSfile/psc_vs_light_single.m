@@ -57,11 +57,11 @@ fastTauGuess = 0.01;    % in seconds
 slowTauGuess = 0.1;     % in seconds
 
 % Affects data display:
-ymin = -3600;       %-2050   % -375     % -1500
-ymax = 600;          %50    % 150       % 600
+ymin = -12000;      % -4200   % -3600   % -2050   % -375     % -1500
+ymax = 600;        % 700     % 600     % 50      % 150      % 600
 
 % Affects data saving:
-savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 03 04 m986 scracm';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 08 24 scracm des m117';
 
 
 %% PREP - get info from file and create arrays ==================

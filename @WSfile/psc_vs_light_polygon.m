@@ -269,10 +269,10 @@ reshape(random11x7v1,11,7).';
 %%  USER INPUT ============================================================
 
 % Affects data analysis - Organizing data by o-stim grid
-gridColumns = 6;
-gridRows = 6;
+gridColumns = 5;
+gridRows = 5;
 orderedGrid = 0;       % 0 if NOT ordered, 1 if ordered
-orderOfROIs = spaced6x6;     % choose above if NOT ordered, NaN if ordered
+orderOfROIs = spaced5x5;     % choose above if NOT ordered, NaN if ordered
 
 % Affects data analysis - Finding/quantifyting oIPSCs
 discardedSweeps = [];
@@ -298,16 +298,16 @@ ymin = -3600;           %-2050      -3600
 ymax = 600;             %50         600        
 
 % Affects data display - polygon grid overlay & crop
-cellImageFileNameDIC = 's2c1_40x_1x_dic.tif';
-cellImageFileNameAlexa = 's2c1_max_z_Stack Rendered Paths.tif';
-cellImageDir = 'E:\Priscilla - BACKUP 20200319\Ephys\2023\20230407 m813 asc';
-leftCrop = 0;     % old: 0    new: 0    % in pixels        % ALERT! this is new (2022-12-25)   
-rightCrop = 14;    % old: 0    new: 14   % in pixels        % ALERT! this is new (2022-12-25)
-topCrop = 106;    % old: 100  new: 106  % in pixels        % ALERT! this is new (2022-12-25)
-bottomCrop = 58;  % old: 51   new: 58   % in pixels        % ALERT! this is new (2022-12-25)
+cellImageFileNameDIC = 's3c3_5_2_647.tif';
+cellImageFileNameAlexa = 's3c3_5_2_647.tif';
+cellImageDir = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Ephys\2023\20230818 m041 dms';
+leftCrop = 0;     % old: 0    new (2022-12-25): 0    % in pixels        % ALERT! this is new (2023-08-20)   
+rightCrop = 8;    % old: 0    new (2022-12-25): 14   % in pixels        % ALERT! this is new (2023-08-20)
+topCrop = 69;    % old: 100  new (2022-12-25): 106  % in pixels        % ALERT! this is new (2023-08-20)
+bottomCrop = 88;  % old: 51   new (2022-12-25): 58   % in pixels        % ALERT! this is new (2023-08-20)
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 04 07 m813 scracm';
+savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 08 24 scracm des m117';
 
 % Affects data display
 gridFillHorizontal = 1;         % 0.067 for 15 column
@@ -397,14 +397,15 @@ lightPulseAnalysisWindowInDataPts = lightPulseAnalysisWindowInSeconds * sampling
 rsBaselineDataPointInterval = ((rsTestPulseOnsetTime-0.05)*samplingFrequency):(rsTestPulseOnsetTime*samplingFrequency);
 rsFirstTransientDataPointInterval = (rsTestPulseOnsetTime*samplingFrequency):(rsTestPulseOnsetTime+0.0025)*samplingFrequency;
 
+% getting sweep numbers from file name
+[firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj); 
+
 % add 'subset' to fileName in case discardedSweeps is not empty
 % to prevent overwritting of saved files with the whole dataset
 if ~isempty(discardedSweeps)
     fileName = strcat(obj.file, '_subset');
+    allSweeps = setdiff(allSweeps, discardedSweeps);
 end
-
-% getting sweep numbers from file name
-[firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj); 
 
 % ALERT: NEED TO TEST
 % checking for incomplete sweeps and adding them to the list of discarded sweeps
