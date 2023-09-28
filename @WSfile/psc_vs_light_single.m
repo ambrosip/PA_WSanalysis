@@ -52,7 +52,7 @@ thresholdInDataPts = 8; %% ALERT! Changed from 10 to 5; now changed to 8 on 2023
 rsTestPulseOnsetTime = 1; %% ALERT! Changed from 1 to 0.1
 
 % Affects decay fit
-bGuess = 1;         % -1000     % 1
+bGuess = 1;         % -1000     % 1      %-500
 fastTauGuess = 0.01;    % in seconds
 slowTauGuess = 0.1;     % in seconds
 
@@ -61,7 +61,7 @@ ymin = -12000;      % -4200   % -3600   % -2050   % -375     % -1500
 ymax = 600;        % 700     % 600     % 50      % 150      % 600
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 08 24 scracm des m117';
+savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 09 18 scracm asc m928';
 
 
 %% PREP - get info from file and create arrays ==================

@@ -298,16 +298,16 @@ ymin = -3600;           %-2050      -3600
 ymax = 600;             %50         600        
 
 % Affects data display - polygon grid overlay & crop
-cellImageFileNameDIC = 's3c3_5_2_647.tif';
-cellImageFileNameAlexa = 's3c3_5_2_647.tif';
-cellImageDir = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Ephys\2023\20230818 m041 dms';
-leftCrop = 0;     % old: 0    new (2022-12-25): 0    % in pixels        % ALERT! this is new (2023-08-20)   
-rightCrop = 8;    % old: 0    new (2022-12-25): 14   % in pixels        % ALERT! this is new (2023-08-20)
-topCrop = 69;    % old: 100  new (2022-12-25): 106  % in pixels        % ALERT! this is new (2023-08-20)
-bottomCrop = 88;  % old: 51   new (2022-12-25): 58   % in pixels        % ALERT! this is new (2023-08-20)
+cellImageFileNameDIC = 's3c2_40_1_647_2.tif';
+cellImageFileNameAlexa = 's3c2_MAX_Stack Rendered Paths.tif';
+cellImageDir = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Ephys\2023\20230725 m928 asc';
+leftCrop = 0;     % old: 0    old (2022-12-25): 0     new (2023-08-20): 0    % in pixels        % ALERT! this is new (2023-08-20)   
+rightCrop = 14;    % old: 0    old (2022-12-25): 14    new (2023-08-20): 8    % in pixels        % ALERT! this is new (2023-08-20)
+topCrop = 106;     % old: 100  old (2022-12-25): 106   new (2023-08-20): 69   % in pixels        % ALERT! this is new (2023-08-20)
+bottomCrop = 58;  % old: 51   old (2022-12-25): 58    new (2023-08-20): 88   % in pixels        % ALERT! this is new (2023-08-20)
 
 % Affects data saving:
-savefileto = 'R:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 08 24 scracm des m117';
+savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 09 18 scracm asc m928';
 
 % Affects data display
 gridFillHorizontal = 1;         % 0.067 for 15 column
