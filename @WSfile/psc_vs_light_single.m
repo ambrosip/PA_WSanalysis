@@ -47,7 +47,7 @@ discardedSweeps = [];
 discardedSweepsFromEnd = 0;
 inwardORoutward = -1;    % 1 (positive) is outward; -1 (negative) in inward
 baselineDurationInSeconds = 0.01;
-lightPulseAnalysisWindowInSeconds = 0.02;   %% ALERT! Changed from 0.02 to 0.015 on 2023/3/4   
+lightPulseAnalysisWindowInSeconds = 0.045;   %% ALERT! Changed from 0.02 to 0.015 on 2023/3/4 to 0.045 on 2024-10-30
 thresholdInDataPts = 8; %% ALERT! Changed from 10 to 5; now changed to 8 on 2023/3/4 
 rsTestPulseOnsetTime = 1; %% ALERT! Changed from 1 to 0.1
 
@@ -61,7 +61,7 @@ ymin = -12000;      % -4200   % -3600   % -2050   % -375     % -1500
 ymax = 600;        % 700     % 600     % 50      % 150      % 600
 
 % Affects data saving:
-savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 09 18 scracm asc m928';
+savefileto = '/Users/priscilla/OHSU Dropbox/Priscilla Ambrosi/Dropbox - Lerner Lab/Ambrosi et al_sCRACM 2024/Data Analysis/2024-10-29';
 
 
 %% PREP - get info from file and create arrays ==================

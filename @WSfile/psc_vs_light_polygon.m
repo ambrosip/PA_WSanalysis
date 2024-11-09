@@ -281,7 +281,7 @@ ledPowerChannel = 3;
 singleLightPulse = 1; 
 inwardORoutward = -1;                       % 1 (positive) is outward; -1 (negative) in inward
 baselineDurationInSeconds = 0.01;
-lightPulseAnalysisWindowInSeconds = 0.015;  % ALERT: changed from 0.02 to 0.01 to 0.015 on 2022-09-21
+lightPulseAnalysisWindowInSeconds = 0.045;  % ALERT: changed from 0.02 to 0.01 to 0.015 on 2022-09-21. Changed to 0.045 on 2024-10-29 - matches the hard-coded xmax used in the tiled niceplots
 thresholdInDataPts = 8;                     % ALERT! Changed from 10 to 5 to 10 to 8 (2022-09-24)
 amplitudeThreshold = 25;                    % ALERT! this is new (2022-09-21)
 smoothSpan = 3;                             % ALERT! this is new (2022-09-23)
@@ -293,7 +293,9 @@ rsTestPulseOnsetTime = 1;
 autoRsOnsetTime = 1;
 voltageCmdChannel = 2;
 
-% Affects data display - oIPSC amplitude range (in pA): 
+% Affects data display - oIPSC amplitude range (in pA):
+% use the [-2050 50] range for a scale bar of 300 pA
+% use the [-3600 600] range for a scale bar of 600 pA
 ymin = -3600;           %-2050      -3600       
 ymax = 600;             %50         600        
 

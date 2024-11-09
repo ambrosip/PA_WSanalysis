@@ -29,7 +29,11 @@ function saveAllFigs(varargin)
       FigHandle = FigList(iFig);
       FigName = FigList(iFig).Name;
       set(0, 'CurrentFigure', FigHandle);
-      saveas(FigHandle,fullfile(FolderName, [FigName '.tiff']));
+
+      % I don't know why but I had to change '.tiff' to '.tif' on Nov 6
+      % 2024 because MATLAB refused to run the code. I think the culprit is
+      % the ezcalcium code
+      % saveas(FigHandle,fullfile(FolderName, [FigName '.tif']));
       
       % forces matlab to save fig as a vector
       FigHandle.Renderer = 'painters';

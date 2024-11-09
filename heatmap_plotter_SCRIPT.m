@@ -21,10 +21,40 @@ customColorMapSky = [linspace(1,86/255,256)' linspace(1,180/255,256)'  linspace(
 
 %% USER INPUT
 
-fileName = "Des p(oIPSC) avg (5 cells)";
+fileName = "DLS charge 11";
 gridColumns = 5;
-data = [0.32	0.62	0.64	0.76	0.46	0.48	0.58	0.62	0.56	0.28	0.36	0.6	0.8	0.42	0.26	0.54	0.66	0.78	0.34	0.28	0.48	0.5	0.56	0.46	0.26];
-colorMap = customColorMapPink;
+
+data = [-1.395583831
+1.462061013
+20.16957327
+269.1716853
+571.8620352
+3.901190044
+2.672372396
+247.581724
+730.3691447
+642.2853708
+22.83733762
+224.9259151
+658.2883853
+530.884407
+46.58557992
+65.03587502
+436.0195361
+118.1861431
+8.358286257
+7.263175734
+54.35374747
+62.72955424
+6.028239292
+12.12763765
+4.896397561]';
+% data = [0.32	0.62	0.64	0.76	0.46	0.48	0.58	0.62	0.56	0.28	0.36	0.6	0.8	0.42	0.26	0.54	0.66	0.78	0.34	0.28	0.48	0.5	0.56	0.46	0.26];
+colorMap = customColorMapVermillion;
+
+% set hetmap edges
+heatmapMin = 0;
+heatmapMax = 1800;
 
 
 %% PREP
@@ -58,10 +88,6 @@ maxWidth = monitorPositions(1,3) - 100;
 
 %% PLOT 9.2 - heatmap of average charge (AUC) normalized to largest charge
 
-% set hetmap edges
-heatmapMin = 0;
-heatmapMax = 1;
-
 % organize data for heatmap
 dataForHeatmap = reshape(data,gridColumns,[]).';
 
@@ -70,11 +96,11 @@ resizedHeatmap = imresize(dataForHeatmap, [cropHeight cropWidth], 'nearest');
 
 % make heatmap without the heatmap function
 % figure('name', strcat(fileName, " ", analysisDate, ' - avg charge heatmap')); % naming figure file
-figure('name', strcat(fileName, " ", analysisDate, ' - avg p(oIPSC)')); % naming figure file
+figure('name', strcat(fileName, " ", analysisDate, ' - charge')); % naming figure file
 imshow(resizedHeatmap,'Colormap',colorMap,'DisplayRange', [heatmapMin,heatmapMax], 'Border', 'tight');
 % title('ALl cells normalized avg charge')
-title('ALL cells normalized avg charge')
+title('charge')
 % set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
 c = colorbar;
 % c.Label.String = 'Normalized AVG charge';
-c.Label.String = 'p(oIPSC)';
+c.Label.String = 'pA';
