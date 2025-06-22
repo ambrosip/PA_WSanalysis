@@ -1,4 +1,6 @@
-function concatenateXLSfiles(dirName)
+dirName='/Users/priscilla/OHSU Dropbox/Priscilla Ambrosi/Dropbox - Lerner Lab/Ambrosi et al_sCRACM 2024/Data Analysis/2025-02-05 analysis window 15 ms';
+
+% function concatenateXLSfiles(dirName)
 
 addpath(dirName)
 analysisDate =  datestr(datetime('today'),'yyyy-mm-dd');
@@ -27,10 +29,11 @@ analysisDate =  datestr(datetime('today'),'yyyy-mm-dd');
 
 
 
-%% concatenating all files with a particular prefix and suffix in DIR into a single XLS file 
+%% concatenating all files with a particular suffix in DIR into a single XLS file 
 
 % find all the xls files in dir 
-files=dir(fullfile(dirName, '*led*sCRACM_40x_11x5*_ROI_by_ROI.xls'));
+% files=dir(fullfile(dirName, 'DLS*', '*sCRACM_40x_5x5_ROI_by_ROI.xls'));
+files=dir(fullfile(dirName, '*sCRACM_40x_5x5_ROI_by_ROI.xls'));
 
 % get the names of the files
 filesNames={files.name}';
@@ -44,11 +47,12 @@ for i=1:numel(filesNames)
 end
 
 % save xls file with data 
-filename = strcat(analysisDate, " - LED - sCRACM_40x_11x5_ROI_by_ROI - concatenated.xls");
+filename = strcat(analysisDate, " - LED - sCRACM_40x_5x5_ROI_by_ROI - concatenated.xls");
 % filename = strcat(analysisDate, " - sCRACM_40x_5x5_ROI_by_ROI - concatenated");
 fulldirectory = fullfile(dirName,filename);
 % fulldirectory = strcat(dirName,'\',filename,'.xls');
 writetable(concatenatedXLS,fulldirectory);
+% writematrix(concatenatedXLS,fulldirectory);
 
 
 
@@ -207,4 +211,4 @@ writetable(concatenatedXLS,fulldirectory);
 % writetable(concatenatedXLSratio,fulldirectory);
 
 
-end
+

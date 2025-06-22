@@ -50,7 +50,7 @@ TO DO:
 
 
 
-function polygon_img_crop(cellImageFile, cellImageDir, leftCrop, rightCrop, topCrop, bottomCrop, gridColumns, gridRows, prefix)
+function polygon_img_crop(cellImageFile, cellImageDir, leftCrop, rightCrop, topCrop, bottomCrop, gridColumns, gridRows, prefix, renameFiles, cellNamePrefix)
 %%  USER INPUT ============================================================
 
 gridFillHorizontal = 1;     % 0.067 for 15 column
@@ -126,7 +126,11 @@ cropHeight = 1024 - topCrop - bottomCrop;
 croppedImage = imcrop(cellImage, [cropXmin, cropYmin, cropWidth, cropHeight]);
 
 % name and create figure
-fig1 = figure('name', strcat(fileName, prefix, cellImageFileName, '_cropped_on_', analysisDate));
+if renameFiles == 1
+    fig1 = figure('name', strcat(cellNamePrefix, prefix));
+else
+    fig1 = figure('name', strcat(fileName, prefix, cellImageFileName, '_cropped_on_', analysisDate));
+end
 ax1 = axes(fig1);
 hold on;
 imshow(croppedImage, 'Border', 'tight');
@@ -223,7 +227,11 @@ invertedImage = imcomplement(cellImage);
 croppedImage = imcrop(invertedImage, [cropXmin, cropYmin, cropWidth, cropHeight]);
 
 % create fig
-fig2 = figure('name', strcat(fileName, prefix, cellImageFileName, '_cropped_on_', analysisDate, ' - inverted'));
+if renameFiles == 1
+    fig2 = figure('name', strcat(cellNamePrefix, prefix, ' - inverted'));
+else
+    fig2 = figure('name', strcat(fileName, prefix, cellImageFileName, '_cropped_on_', analysisDate, ' - inverted'));
+end
 ax2 = axes(fig2);
 hold on;
 imshow(croppedImage, 'Border', 'tight');

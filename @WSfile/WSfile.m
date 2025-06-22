@@ -92,7 +92,8 @@ classdef WSfile
         firing_vs_light_polygon_new(obj)
         psc_vs_light_polygon_new(obj, leftCrop, rightCrop, topCrop, bottomCrop, gridColumns, gridRows, orderOfROIs)
         psc_vs_light_single_new(obj)
-
+        psc_vs_light_polygon_batch(obj, leftCrop, rightCrop, topCrop, bottomCrop, gridColumns, gridRows, orderOfROIs, discardedSweeps, saveDir, addNamePrefix, namePrefix)
+        psc_vs_light_single_batch(obj,lightStimCh,saveDir,addNamePrefix,namePrefix)
 
         
         function obj = WSfile(fileName)

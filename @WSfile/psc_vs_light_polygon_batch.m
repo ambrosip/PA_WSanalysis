@@ -3,11 +3,16 @@ DOCUMENTATION
 Created: 2022 09 21
 Edited on: 2022 11 04; 2022 12 24; 2022 12 25; 2024 10 29
 Major github merge: 2022 12 24
+Last edits:
+    2024 10 - removed lines about images
+    2024 11 - turned some user inputs into function variables for batch
+    processing of data 
 Works? Yes
 Author: PA
 
-This function is used to analyze light-evoked PSCs in sCRACM experiments using the polygon.
-This function was derived from psc_vs_light_polygon, but went through A LOT of rewritting.
+This function is used to analyze light-evoked PSCs in sCRACM experiments
+using the polygon. This function was derived from psc_vs_light_polygon, but
+went through A LOT of rewritting.
 The data organization is very different, to better handle discarded sweeps
 without losing track of which sweeps belong to which ROIs (Regions Of
 Interest - subarea of the field that was illuminated).
@@ -23,6 +28,13 @@ ch1: data
 ch2: voltage command
 ch3: LED command
 ch4: polygon command
+
+This function uses a WSfile object. Any changes to the name of this
+function and/or its inputs (the stuff within parenthesis) need to be added
+to method section of "WSfile.m"
+
+Adaptation tree:
+    psc_vs_light_polygon
 
 INPUTS explained:
     - gridColumns: number of columns in the polygon ROI grid
@@ -244,23 +256,22 @@ TO DO:
 % obj = m729.s0371;
 % obj = m731.s0007
 
-function psc_vs_light_polygon_new(obj, leftCrop, rightCrop, topCrop, bottomCrop, gridColumns, gridRows, orderOfROIs)
+function psc_vs_light_polygon_batch(obj, leftCrop, rightCrop, topCrop, bottomCrop, gridColumns, gridRows, orderOfROIs, discardedSweeps, saveDir, addNamePrefix, namePrefix)
 %%  USER INPUT ============================================================
 
 orderedGrid = 0;       % 0 if NOT ordered, 1 if ordered
 
 % Affects data analysis - Finding/quantifyting oIPSCs
-discardedSweeps = [];
 lightChannel = 4;
 ledPowerChannel = 3;
 singleLightPulse = 1; 
 inwardORoutward = -1;                       % 1 (positive) is outward; -1 (negative) in inward
 baselineDurationInSeconds = 0.01;
-lightPulseAnalysisWindowInSeconds = 0.045;  % ALERT: changed from 0.02 to 0.01 to 0.015 on 2022-09-21. Changed to 0.045 on 2024-10-29 - matches the hard-coded xmax used in the tiled niceplots
+lightPulseAnalysisWindowInSeconds = 0.015;  % ALERT: changed from 0.02 to 0.01 to 0.015 on 2022-09-21. Changed to 0.045 on 2024-10-29 - matches the hard-coded xmax used in the tiled niceplots
 thresholdInDataPts = 8;                     % ALERT! Changed from 10 to 5 to 10 to 8 (2022-09-24)
 amplitudeThreshold = 25;                    % ALERT! this is new (2022-09-21)
 smoothSpan = 3;                             % ALERT! this is new (2022-09-23)
-discardROIsWithLowFreq = 1;                 % ALERT! this is new (2022-09-24)
+discardROIsWithLowFreq = 0;                 % ALERT! this is new (2022-09-24). Changed from 1 to 0 on 2025-02-05
 problemFile = 0;                            % ALERT! this is new (2022-09-24)
 
 % Affects data analysis - Calculating Rs
@@ -276,7 +287,7 @@ ymax = 50;             %50         600
 
 % Affects data saving:
 % savefileto = 'Z:\Basic_Sciences\Phys\Lerner_Lab_tnl2633\Priscilla\Data summaries\2023\2023 09 18 scracm asc m928';
-savefileto = '/Users/priscilla/OHSU Dropbox/Priscilla Ambrosi/Dropbox - Lerner Lab/Ambrosi et al_sCRACM 2024/Data Analysis/2024-10-29';
+savefileto = saveDir;
 
 % Affects data display
 gridFillHorizontal = 1;     % 0.067 for 15 column
@@ -307,9 +318,15 @@ analysisDate =  datestr(datetime('today'),'yyyy-mm-dd');
 mouseNumber = getMouseNumber(obj);
 experimentDate = getExperimentDate(obj);
 samplingFrequency = obj.header.Acquisition.SampleRate;
-fileName = obj.file;
 sweepDurationInSec = obj.header.SweepDuration;
 sweepDurationInDataPts = sweepDurationInSec * samplingFrequency;
+
+% get ingo from h5 file or use user-defined name prefix
+if addNamePrefix == 1
+    fileName = namePrefix;
+else
+    fileName = obj.file;
+end
 
 % calculating variables based on user input - the Rs-related variables
 % might change later in the code depending on the value in autoRsOnsetTime
@@ -321,13 +338,6 @@ rsFirstTransientDataPointInterval = (rsTestPulseOnsetTime*samplingFrequency):(rs
 % getting sweep numbers from file name
 [firstSweepNumber, lastSweepNumber, allSweeps] = getSweepNumbers(obj); 
 
-% add 'subset' to fileName in case discardedSweeps is not empty
-% to prevent overwritting of saved files with the whole dataset
-if ~isempty(discardedSweeps)
-    fileName = strcat(obj.file, '_subset');
-    allSweeps = setdiff(allSweeps, discardedSweeps);
-end
-
 % ALERT: NEED TO TEST
 % checking for incomplete sweeps and adding them to the list of discarded sweeps
 % to avoid this error: "Index exceeds the number of array elements (0)". 
@@ -336,8 +346,24 @@ if numel(fieldnames(obj.sweeps)) < obj.header.NSweepsPerRun
     discardedSweeps = [discardedSweeps, lastCompleteSweep:lastSweepNumber];
 end
 
-% organizing sweeps according to total ROIs and discarding discardedSweeps
+% ALERT: NEED TO TEST
+% checking for round number of sweeps per ROI
+% to avoid this error: "Size arguments must be real integers".
 totalROIs = gridColumns * gridRows;
+extraSweeps = rem(length(allSweeps),totalROIs);
+if extraSweeps ~= 0
+    lastCompleteSweep = lastSweepNumber - extraSweeps;
+    discardedSweeps = [discardedSweeps, lastCompleteSweep+1:lastSweepNumber];
+end
+
+% add 'subset' to fileName in case discardedSweeps is not empty
+% to prevent overwritting of saved files with the whole dataset
+if ~isempty(discardedSweeps)
+    fileName = strcat(fileName, 'subset_');
+    allSweeps = setdiff(allSweeps, discardedSweeps);
+end
+
+% organizing sweeps according to total ROIs and discarding discardedSweeps
 plannedSweepsPerROI = size(allSweeps,2)/totalROIs;
 % reorganize allSweeps into an array with "totalROIs" rows and "sweepsPerROI" columns
 allSweepsReorganized = reshape(allSweeps, totalROIs, plannedSweepsPerROI);
@@ -626,7 +652,7 @@ for ROI = 1:totalROIs
             %%% function min looks for the min index (aka the first data point
             % that marks the start of a monotonic change in signal for "x"
             % points (x=threshold).
-            lightEvokedResponseOnsetLatencyInDataPoints = min(find(conv2(sign(diff(y(pulseOnset:afterLightDataPoint))), zeros(thresholdInDataPts,1)+(inwardORoutward), 'valid')==thresholdInDataPts));
+            lightEvokedResponseOnsetLatencyInDataPoints = find(conv2(sign(diff(y(pulseOnset:afterLightDataPoint))), zeros(thresholdInDataPts,1)+(inwardORoutward), 'valid')==thresholdInDataPts, 1 );
            
             % if onset was detected, get amplitude and location (index) of lightEvokedCurrents
             % also calculate rise time
@@ -863,12 +889,12 @@ summedCurrentRiseTimeInMilliSeconds = summedCurrentTimeTo90percentOfPeakInMilliS
 
 % meanDataInROI should have ROI columns.
 
-size(meanDataInROI)
+size(meanDataInROI);
 
 % gather current in response to light from light onset to light onset +
 % user defined interval (15 ms if lightPulseAnalysisWindowInSeconds = 0.015)
 dataSubsetForCharge = meanDataInROI(pulseOnset:afterLightDataPoint,:);
-size(dataSubsetForCharge)
+size(dataSubsetForCharge);
 
 % find area under the curve using trapz
 % use dim 2 to integrate over each column
@@ -1009,201 +1035,10 @@ customColorMapBlue = [linspace(1,0/255,256)' linspace(1,114/255,256)'  linspace(
 customColorMapSky = [linspace(1,86/255,256)' linspace(1,180/255,256)'  linspace(1,233/255,256)'];
 
 
-% %% PLOT 1 - cropped DIC cell image ===============================================================================
-% % make sure you're getting the image taken with zoom = 1
-% % concatenate strings from user input to get full path to figure file
-% cellImageFileDir = strcat(cellImageDir,'\',cellImageFileNameDIC);
-% 
-% % import image
-% cellImage = imread(cellImageFileDir);
-% 
-% % crop image according to the polygon's mirror calibration
-% % Old code (prior to 2022 12 21):
-% % % I verified this in PPT lol
-% % % the original image is 1376 x 1024 pixels
-% % % ASSUMPTION ALERT: the calibration of the polygon will not change over time
-% % % I need to crop the top 100 pixels and the bottom 51 pixels
-% % % imcrop determines the rectangle to keep in the following form: [XMIN YMIN WIDTH HEIGHT]
-% % % note that y increases from top to bottom, so ymin should match my
-% % % required "top crop".
-% % % I do not need to crop along the x axis, so xmin = 1 and width = 1376
-% % % the height is 1024 - 100 - 51 = 873
-% % croppedImage = imcrop(cellImage, [1,100,1376,873]);
-% 
-% % custom-crop based on user input (in case the polygon's mirror calibration changes,
-% % like it did on 2022 12 21)
-% cropXmin = 1 + leftCrop;
-% cropWidth = 1376 - rightCrop - leftCrop;
-% cropYmin = 1 + topCrop;
-% cropHeight = 1024 - topCrop - bottomCrop;
-% croppedImage = imcrop(cellImage, [cropXmin, cropYmin, cropWidth, cropHeight]);
-% 
-% % name and create figure
-% figure('name', strcat(fileName, '_', analysisDate, ' - psc_vs_light_polygon - DIC image grid'));
-% hold on;
-% imshow(croppedImage, 'Border', 'tight');
-% 
-% % calculate parameters for scale bar
-% % ASSUMPTION ALERT: pixelsPerMicron corresponds to my usual 40x objective at 1x zoom
-% xmaxImg = size(croppedImage,2);    % in pixels, should be 1376 (prior to 2022 12 21)
-% ymaxImg = size(croppedImage,1);    % in pixels, should be 874 (prior to 2022 12 21)
-% scaleDistanceFromEdge = 50;     % in pixels
-% scaleBarSize = 50;              % in um
-% pixelsPerMicron = 873 / 222.2;  % 222.2 um in 873 pixels
-% scaleBarSizeInPixels = scaleBarSize * pixelsPerMicron;
-% 
-% % add polygon grid to figure
-% % also keep track of points to make rectangles if fill is NOT 1 (see below)
-% allYpos = [];
-% for row = 1:gridRows+1
-%     ypos = (row-1)*ymaxImg/gridRows;
-%     allYpos = [allYpos; ypos];
-%     if gridFillHorizontal == 1 && gridFillVertical == 1
-%         yline(ypos, 'Color', 'k', 'LineWidth', 0.5);
-%     end
-% end
-% 
-% allXpos = [];
-% for col = 1:gridColumns+1
-%     xpos = (col-1)*xmaxImg/gridColumns;
-%     allXpos = [allXpos; xpos];
-%     if gridFillHorizontal == 1 && gridFillVertical == 1
-%         xline(xpos, 'Color', 'k', 'LineWidth', 0.5);
-%     end
-% end
-% 
-% % add rectangles to figure if the grid fill is NOT 1 (aka the o-stim ROI is
-% % smaller than the full ROI)
-% % first figure out the dimensions of the rectangle
-% ROIwidth = gridFillHorizontal * xmaxImg/gridColumns;
-% ROIheight = gridFillVertical * ymaxImg/gridRows;
-% extraWidth = (1 - gridFillHorizontal) * xmaxImg/gridColumns;
-% extraHeight = (1 - gridFillVertical) * ymaxImg/gridRows;
-% if gridFillHorizontal ~= 1 || gridFillVertical ~= 1
-%     for row = 1:length(allYpos)-1
-%         for col = 1:length(allXpos)-1
-%             ROIx = allXpos(col) + extraWidth/2;
-%             ROIy = allYpos(row) + extraHeight/2;
-%             rectangle('Position', [ROIx, ROIy, ROIwidth, ROIheight]);
-%         end
-%     end
-% end
-% 
-% % add scale bar to figure
-% % line([x x], [y y])
-% line([scaleDistanceFromEdge scaleDistanceFromEdge+scaleBarSizeInPixels],...
-%     [ymaxImg-scaleDistanceFromEdge ymaxImg-scaleDistanceFromEdge],...
-%     'LineWidth', 2, 'Color', 'k');
-% % text(x, y, string)
-% text(scaleDistanceFromEdge,...
-%     ymaxImg-2*scaleDistanceFromEdge,...
-%     strcat(num2str(scaleBarSize), " μm"),...
-%     'FontSize', 10);
-% hold off;
-% 
-% % get inner figure size and store half of those values
-% pos = get(gcf, 'InnerPosition'); %// gives x left, y bottom, width, height
-% innerWidth = pos(3)/2;
-% innerHeight = pos(4)/2;
-% 
-% % get outer figure size and store half of those values
-% pos = get(gcf, 'OuterPosition'); %// gives x left, y bottom, width, height
-% outerWidth = pos(3)/2;
-% outerHeight = pos(4)/2;
-% 
-% % set figure size to the stored values
-% set(gcf,'InnerPosition',[0 maxHeight-innerHeight innerWidth innerHeight]);
-% 
-% 
-% %% PLOT 2 - cropped Alexa cell image with grid ===============================================================================
-% % make sure you're getting the image taken with zoom = 1
-% % concatenate strings from user input to get full path to figure file
-% cellImageFileDir = strcat(cellImageDir,'\',cellImageFileNameAlexa);
-% 
-% % import image
-% cellImage = imread(cellImageFileDir);
-% 
-% % normalize image to max intensity value
-% % this is important for dealing with summed z-stacks (instead of max
-% % intensity z-stacks)
-% if max(max(cellImage))/256 > 1
-%     adjustmentFactor = (max(max(cellImage))/256) * 256;
-%     cellImage = cellImage/adjustmentFactor;
-% end
-% 
-% % invert alexa image so that black = white
-% % I wanted to do this anyway, but MATLAB also forced my hand. When I save
-% % images with my saveAllFigs function, MATLAB turns all white annotations
-% % (text and lines) from white to black, rendering my scale bar useless.
-% invertedImage = imcomplement(cellImage);
-% 
-% % crop image according to the polygon's mirror calibration
-% cropXmin = 1 + leftCrop;
-% cropWidth = 1376 - rightCrop - leftCrop;
-% cropYmin = 1 + topCrop;
-% cropHeight = 1024 - topCrop - bottomCrop;
-% croppedImage = imcrop(invertedImage, [cropXmin, cropYmin, cropWidth, cropHeight]);
-% figure('name', strcat(fileName, '_', analysisDate, ' - psc_vs_light_polygon - Alexa image grid'));
-% hold on;
-% imshow(croppedImage, 'Border', 'tight');
-% 
-% % add polygon grid to figure
-% % also keep track of points to make rectangles if fill is NOT 1 (see below)
-% allYpos = [];
-% for row = 1:gridRows+1
-%     ypos = (row-1)*ymaxImg/gridRows;
-%     allYpos = [allYpos; ypos];
-%     if gridFillHorizontal == 1 && gridFillVertical == 1
-%         yline(ypos, 'Color', 'k', 'LineWidth', 0.5);
-%     end
-% end
-% 
-% allXpos = [];
-% for col = 1:gridColumns+1
-%     xpos = (col-1)*xmaxImg/gridColumns;
-%     allXpos = [allXpos; xpos];
-%     if gridFillHorizontal == 1 && gridFillVertical == 1
-%         xline(xpos, 'Color', 'k', 'LineWidth', 0.5);
-%     end
-% end
-% 
-% % add rectangles to figure if the grid fill is NOT 1 (aka the o-stim ROI is
-% % smaller than the full ROI)
-% % first figure out the dimensions of the rectangle
-% ROIwidth = gridFillHorizontal * xmaxImg/gridColumns;
-% ROIheight = gridFillVertical * ymaxImg/gridRows;
-% extraWidth = (1 - gridFillHorizontal) * xmaxImg/gridColumns;
-% extraHeight = (1 - gridFillVertical) * ymaxImg/gridRows;
-% if gridFillHorizontal ~= 1 || gridFillVertical ~= 1
-%     for row = 1:length(allYpos)-1
-%         for col = 1:length(allXpos)-1
-%             ROIx = allXpos(col) + extraWidth/2;
-%             ROIy = allYpos(row) + extraHeight/2;
-%             rectangle('Position', [ROIx, ROIy, ROIwidth, ROIheight]);
-%         end
-%     end
-% end
-% 
-% % add scale bar to figure
-% % ASSUMPTION ALERT: same parameters as DIC image
-% % line([x x], [y y])
-% line([scaleDistanceFromEdge scaleDistanceFromEdge+scaleBarSizeInPixels],...
-%     [ymaxImg-scaleDistanceFromEdge ymaxImg-scaleDistanceFromEdge],...
-%     'LineWidth', 2, 'Color', 'k');
-% % text(x, y, string)
-% text(scaleDistanceFromEdge,...
-%     ymaxImg-2*scaleDistanceFromEdge,...
-%     strcat(num2str(scaleBarSize), " μm"),...
-%     'FontSize', 10, 'Color', 'k');
-% hold off;
-% 
-% % re-size 
-% set(gcf,'InnerPosition',[2*innerWidth maxHeight-innerHeight innerWidth innerHeight]);
-
-
 %% PLOT 3 - Rs ===============================================================================================
 
-figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - Rs all')); % naming figure file
+% figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_batch - Rs')); % naming figure file
+figure('name', strcat(fileName, 'rs')); % naming figure file
 plot(allAnalyzedSweeps, allRs,'-o');
 % plot lines marking 30% increase and 30% decrese in Rs compared to first test pulse
 line([allAnalyzedSweeps(1) allAnalyzedSweeps(end)],[allRs(1)*0.7, allRs(1)*0.7],'Color','black','LineStyle','--')
@@ -1218,7 +1053,7 @@ movegui('southeast');
 %% PLOT 4 - Tiled oIPSC amplitude =========================================================================
 
 % create figure & name it
-figure('name', strcat(fileName, '_', analysisDate, ' - psc_vs_light_polygon - tiled niceplots'));
+figure('name', strcat(fileName, 'niceplot'));
 t = tiledlayout(gridRows, gridColumns);
 
 % plotting niceplots 
@@ -1250,17 +1085,7 @@ for ROI = 1:totalROIs
     % for nStim=1:length(lightPulseStart)
     %     line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax),-inwardORoutward*(ymax)],'Color',[0 0.4470 0.7410],'LineWidth',5)
     % end
-        
-%     % remove y labels from all plots except the first
-%     if square ~= 1 
-%         yticklabels([]);
-%     end
-% 
-%     % remove x labels from all plots except the last
-%     if square ~= gridRows * gridColumns
-%         xticklabels([]);
-%     end
-    
+            
     % remove x and y labels from all ROIs
     xticklabels([]);
     yticklabels([]);
@@ -1334,7 +1159,7 @@ brownToPurpleRgbTransparent = [color1rgb/255, 0.25
                                 color10rgb/255, 0.25];
 
 % create figure & name it
-figure('name', strcat(fileName, '_', analysisDate, ' - psc_vs_light_polygon - tiled niceplots color'));
+figure('name', strcat(fileName, 'niceplot order'));
 t = tiledlayout(gridRows, gridColumns);
 
 % plotting niceplots 
@@ -1372,16 +1197,6 @@ for ROI = 1:totalROIs
     % for nStim=1:length(lightPulseStart)
     %     line([(lightPulseStart(nStim)/samplingFrequency),(lightPulseStart(nStim)/samplingFrequency)+stimDur],[-inwardORoutward*(ymax),-inwardORoutward*(ymax)],'Color',[0 0.4470 0.7410],'LineWidth',5)
     % end
-        
-%     % remove y labels from all plots except the first
-%     if square ~= 1 
-%         yticklabels([]);
-%     end
-% 
-%     % remove x labels from all plots except the last
-%     if square ~= gridRows * gridColumns
-%         xticklabels([]);
-%     end
     
     % remove x and y labels from all ROIs
     xticklabels([]);
@@ -1427,7 +1242,7 @@ t.Padding = 'compact';
 %% PLOT 4.2 - tiled averages
 
 % create figure & name it
-figure('name', strcat(fileName, '_', analysisDate, ' - psc_vs_light_polygon - tiled avgs'));
+figure('name', strcat(fileName, 'niceplot avgs'));
 t = tiledlayout(gridRows, gridColumns);
 
 % plotting niceplots 
@@ -1485,7 +1300,7 @@ t.Padding = 'compact';
 
 %% PLOT 5 - subtracted baseline current =====================================================
 
-figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - baseline current')); % naming figure file
+figure('name', strcat(fileName, 'baseline current')); % naming figure file
 plot(allAnalyzedSweeps, baselineCurrentAll,'-o');
 axis([allAnalyzedSweeps(1) inf -500 500])
 ylabel('Subtracted Baseline Current (pA)');
@@ -1500,7 +1315,7 @@ movegui('southwest');
 xminHere = lightOnsetTime-0.02;
 xmaxHere = lightOnsetTime+0.2;
 
-figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - summed PSCs')); % naming figure file
+figure('name', strcat(fileName, 'summed PSCs')); % naming figure file
 hold on;
 if problemFile ==1
     plot(xAroundLightPulse, meanDataInROI,'Color',[0, 0, 0, 0.25]);
@@ -1543,7 +1358,7 @@ dataForHeatmap = reshape(successRatePerROI,gridColumns,[]).';
 resizedHeatmap = imresize(dataForHeatmap, [cropHeight cropWidth], 'nearest');
 
 % make heatmap without the heatmap function
-fig1 = figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - success heatmap 1')); % naming figure file
+fig1 = figure('name', strcat(fileName, 'probability')); % naming figure file
 ax1 = axes('Parent',fig1);
 % imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [0,100], 'Border', 'tight');
 imshow(resizedHeatmap,'Colormap',customColorMapPink,'DisplayRange', [0,1], 'Border', 'tight', 'Parent', ax1);
@@ -1573,7 +1388,7 @@ dataForHeatmap = reshape(normalizedToMaxCharge,gridColumns,[]).';
 resizedHeatmap = imresize(dataForHeatmap, [cropHeight cropWidth], 'nearest');
 
 % make heatmap without the heatmap function
-fig2 = figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - avg charge heatmap')); % naming figure file
+fig2 = figure('name', strcat(fileName, 'charge')); % naming figure file
 ax2 = axes('Parent',fig2);
 imshow(resizedHeatmap,'Colormap',customColorMapVermillion,'DisplayRange', [heatmapMin,heatmapMax], 'Border', 'tight','Parent',ax2);
 title(ax2, strcat('Normalized avg charge - max charge = ', num2str(round(maxCharge))));
@@ -1590,7 +1405,7 @@ dataForHeatmap = reshape(meanOnsetLatencyPerROI_noFailures,gridColumns,[]).';
 resizedHeatmap = imresize(dataForHeatmap, [cropHeight cropWidth], 'nearest');
 
 % make heatmap without the heatmap function
-fig3 = figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - latency heatmap')); % naming figure file
+fig3 = figure('name', strcat(fileName, 'latency')); % naming figure file
 ax3 = axes('Parent',fig3);
 % fig = imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [0,10], 'Border', 'tight');
 fig3_1 = imshow(resizedHeatmap,'Colormap',flipud(customColorMapBlue),'DisplayRange', [0,10], 'Border', 'tight','Parent',ax3);
@@ -1610,7 +1425,7 @@ dataForHeatmap = reshape(stdOnsetLatencyPerROI_noFailures,gridColumns,[]).';
 resizedHeatmap = imresize(dataForHeatmap, [cropHeight cropWidth], 'nearest');
 
 % make heatmap without the heatmap function
-fig4=figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - jitter heatmap')); % naming figure file
+fig4=figure('name', strcat(fileName, 'jitter')); % naming figure file
 ax4 = axes('Parent',fig4);
 % fig = imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [0,10], 'Border', 'tight');
 fig4_1 = imshow(resizedHeatmap,'Colormap',flipud(customColorMapSky),'DisplayRange', [0,5], 'Border', 'tight','Parent',ax4);
@@ -1630,7 +1445,7 @@ dataForHeatmap = reshape(meanRiseTimePerROI_noFailures,gridColumns,[]).';
 resizedHeatmap = imresize(dataForHeatmap, [cropHeight cropWidth], 'nearest');
 
 % make heatmap without the heatmap function
-fig5=figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - rise heatmap')); % naming figure file
+fig5=figure('name', strcat(fileName, 'rise')); % naming figure file
 ax5=axes('Parent',fig5);
 % fig = imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [0,10], 'Border', 'tight');
 fig5_1 = imshow(resizedHeatmap,'Colormap',flipud(customColorMapSky),'DisplayRange', [0,5], 'Border', 'tight','Parent',ax5);
@@ -1664,8 +1479,9 @@ for lightPulse = 1:length(allLightEvokedCurrentsAmp)
 end
 
 % store key sweep-by-sweep data
-filename = strcat(fileName, '_', analysisDate, " - psc_vs_light_polygon - sweep_by_sweep");
-fulldirectory = strcat(savefileto,'\',filename,'.xls');        
+filename = strcat(fileName, 'sweep_by_sweep'); 
+fulldirectory = strcat(filename,'.xls'); 
+fulldirectory = fullfile(savefileto,fulldirectory); % fullfile adds OS-appropriate slash
 dataInCellFormat = {};
 dataInCellFormat = num2cell(data);
 labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
@@ -1727,8 +1543,9 @@ end
 % % end
 
 % store key ROI-by-ROI data - each row is a square
-filename = strcat(fileName, '_', analysisDate, " - psc_vs_light_polygon - ROI_by_ROI");
-fulldirectory = strcat(savefileto,'\',filename,'.xls');        
+filename = strcat(fileName, 'ROI_by_ROI'); 
+fulldirectory = strcat(filename,'.xls'); 
+fulldirectory = fullfile(savefileto,fulldirectory); % fullfile adds OS-appropriate slash
 dataInCellFormat = {};
 dataInCellFormat = num2cell(dataCellMultipleRows);
 labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
@@ -1782,242 +1599,3 @@ writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
 disp('I saved the ROI_by_ROI xls file')
 
 end
-
-
-%% Legacy code - not currently used
-
-% % %% PLOT 9 - heatmap of normalized PSCs (normalized to summed PSC)
-% % 
-% % % set hetmap edges
-% % heatmapMin = 0;
-% % heatmapMax = 1;
-% % 
-% % % peak current of summed PSCs
-% % summedPeak = min(summedPSC(pulseOnset:afterLightDataPoint))
-% % 
-% % % normalize average peak-by-square by summed peak
-% % normalizedPSC = min(yMeanPerROI(pulseOnset:afterLightDataPoint,:))/min(summedPSC(pulseOnset:afterLightDataPoint));
-% % 
-% % % organize data for heatmap
-% % dataForHeatmap = reshape(normalizedPSC,gridColumns,[]).';
-% % 
-% % % resize heatmap
-% % resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImage,2)], 'nearest');
-% % 
-% % % make heatmap without the heatmap function
-% % figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - heatmap 1')); % naming figure file
-% % imshow(resizedHeatmap,'Colormap',parula,'DisplayRange', [heatmapMin,heatmapMax], 'Border', 'tight');
-% % set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
-% % c = colorbar;
-% % c.Label.String = 'Normalized PSC';
-
-
-% % %% PLOT 11.2 - heatmap of normalized onset latencies 
-% % % this is a really confusing plot - do not recommend!
-% % 
-% % % normalize to longest latency
-% % maxLatency = max(meanOnsetLatencyPerROI);
-% % normalizedToMaxLatency = meanOnsetLatencyPerROI/maxLatency;
-% % 
-% % % organize data for heatmap
-% % dataForHeatmap = reshape(normalizedToMaxLatency,gridColumns,[]).';
-% % 
-% % % resize heatmap
-% % resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImage,2)], 'nearest');
-% % 
-% % % make heatmap without the heatmap function
-% % figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - latency heatmap')); % naming figure file
-% % % fig = imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [0,10], 'Border', 'tight');
-% % fig = imshow(resizedHeatmap,'Colormap',flipud(customColorMap),'DisplayRange', [0,1], 'Border', 'tight');
-% % title('oIPSC onset latency')
-% % set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
-% % set(fig, 'AlphaData', ~isnan(resizedHeatmap));
-% % c = colorbar;
-% % c.Label.String = 'Onset Latency';
-
-
-% % %% PLOT 12 - heatmap of failure rate
-% % % discontinued cuz success rate is more informative and fits my color
-% % % coding better
-% % 
-% % % organize data for heatmap
-% % dataForHeatmap = reshape(failureRatePerROI,gridColumns,[]).';
-% % 
-% % % resize heatmap
-% % resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImage,2)], 'nearest');
-% % 
-% % % make heatmap without the heatmap function
-% % figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - failure heatmap')); % naming figure file
-% % imshow(resizedHeatmap,'Colormap',flipud(parula),'DisplayRange', [0,100], 'Border', 'tight');
-% % set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
-% % c = colorbar;
-% % c.Label.String = 'Failure Rate (%)';
-
-
-% % %% PLOT 1 - cropped DIC cell image ===============================================================================
-% % % discontinued cuz I like the ones with the grid better
-% % % make sure you're getting the image taken with zoom = 1
-% % % concatenate strings from user input to get full path to figure file
-% % cellImageFileDir = strcat(cellImageDir,'\',cellImageFileNameDIC);
-% % 
-% % % import image
-% % cellImage = imread(cellImageFileDir);
-% % 
-% % % crop image according to the polygon's mirror calibration
-% % % I verified this in PPT lol
-% % % the original image is 1376 x 1024 pixels
-% % % ASSUMPTION ALERT: the calibration of the polygon will not change over time
-% % % I need to crop the top 100 pixels and the bottom 51 pixels
-% % % imcrop determines the rectangle to keep in the following form: [XMIN YMIN WIDTH HEIGHT]
-% % % note that y increases from top to bottom, so ymin should match my
-% % % required "top crop".
-% % % I do not need to crop along the x axis, so xmin = 1 and width = 1376
-% % % the height is 1024 - 100 - 51 = 873
-% % croppedImage = imcrop(cellImage, [1,100,1376,873]);
-% % figure('name', strcat(fileName, '_', analysisDate, ' - psc_vs_light_polygon - DIC image'));
-% % hold on;
-% % imshow(croppedImage, 'Border', 'tight');
-% % 
-% % % calculate parameters for scale bar
-% % % ASSUMPTION ALERT: pixelsPerMicron corresponds to my usual 40x objective at 1x zoom
-% % xmaxImg = size(croppedImage,2);    % in pixels, should be 1376
-% % ymaxImg = size(croppedImage,1);    % in pixels, should be 874
-% % scaleDistanceFromEdge = 50;     % in pixels
-% % scaleBarSize = 50;              % in um
-% % pixelsPerMicron = 873 / 222.2;  % 222.2 um in 873 pixels
-% % scaleBarSizeInPixels = scaleBarSize * pixelsPerMicron;
-% % 
-% % % add scale bar to figure
-% % % line([x x], [y y])
-% % line([scaleDistanceFromEdge scaleDistanceFromEdge+scaleBarSizeInPixels],...
-% %     [ymaxImg-scaleDistanceFromEdge ymaxImg-scaleDistanceFromEdge],...
-% %     'LineWidth', 2, 'Color', 'k');
-% % % text(x, y, string)
-% % text(scaleDistanceFromEdge,...
-% %     ymaxImg-2*scaleDistanceFromEdge,...
-% %     strcat(num2str(scaleBarSize), " μm"),...
-% %     'FontSize', 10);
-% % hold off;
-% % 
-% % % get inner figure size and store half of those values
-% % pos = get(gcf, 'InnerPosition'); %// gives x left, y bottom, width, height
-% % innerWidth = pos(3)/2;
-% % innerHeight = pos(4)/2;
-% % 
-% % % get outer figure size and store half of those values
-% % pos = get(gcf, 'OuterPosition'); %// gives x left, y bottom, width, height
-% % outerWidth = pos(3)/2;
-% % outerHeight = pos(4)/2;
-% % 
-% % % set figure size to the stored values
-% % set(gcf,'InnerPosition',[0 maxHeight-innerHeight innerWidth innerHeight]);
-
-
-% % %% EXPORTING XLS files - single row ==========================================
-% % 
-% % % store cell data with square-by-square info in a single row
-% % filename = strcat(fileName, '_', analysisDate, " - psc_vs_light_polygon - square_by_square cell");
-% % fulldirectory = strcat(savefileto,'\',filename,'.xls');        
-% % dataInCellFormat = {};
-% % dataInCellFormat = num2cell(dataCellSingleRow);
-% % dataInCellFormat = [dataInCellFormat, cellImageFileNameDIC, cellImageFileNameAlexa];
-% % 
-% % % create cell array with strings for naming square-by-square data
-% % % calculate the number of unique variables per square
-% % numberOfVariablesPerSquare = size([sweepsPerSquarePerSquare, ...
-% %                             mean(dataSubsetForMeanAndSD, 'omitnan'), ...
-% %                             std(dataSubsetForMeanAndSD, 'omitnan')], 2);
-% % % make a cell array with 1 row and as many columns as the number of unique
-% % % variables we have (totalSquares*numberOfVariablesPerSquare)
-% % squareVariables = cell(1,totalROIs*numberOfVariablesPerSquare);
-% % % name each variable with square number and correct label
-% % for ROI = [1:totalROIs]
-% %     startingIndex = ROI*numberOfVariablesPerSquare+1 - numberOfVariablesPerSquare;
-% %     squareVariables(startingIndex) = {strcat('sq', num2str(ROI), '-sweepsPerSquare')};
-% %     squareVariables(startingIndex+1) = {strcat('sq', num2str(ROI), '-lightEvokedPeak(pA)AVG')};
-% %     squareVariables(startingIndex+2) = {strcat('sq', num2str(ROI), '-onsetLatency(ms)AVG')};
-% %     squareVariables(startingIndex+3) = {strcat('sq', num2str(ROI), '-latencyToPeak(ms)AVG')};
-% %     squareVariables(startingIndex+4) = {strcat('sq', num2str(ROI), '-riseTime(ms)AVG')};
-% %     squareVariables(startingIndex+5) = {strcat('sq', num2str(ROI), '-lightEvokedPeak(pA)STD')};
-% %     squareVariables(startingIndex+6) = {strcat('sq', num2str(ROI), '-onsetLatency(ms)STD')};
-% %     squareVariables(startingIndex+7) = {strcat('sq', num2str(ROI), '-latencyToPeak(ms)STD')};
-% %     squareVariables(startingIndex+8) = {strcat('sq', num2str(ROI), '-riseTime(ms)STD')};
-% % end
-% % 
-% % % label & save stored data
-% % labeledData = cell2table(dataInCellFormat, 'VariableNames', ...
-% %     {'mouse', ...
-% %     'date', ...
-% %     'firstSweep', ...
-% %     'lastSweep', ...
-% %     'nSweeps', ...
-% %     'lightChannel', ...
-% %     'singleLightPulse(1)orTrain(0)', ...
-% %     'lightPulseDur(s)', ... 
-% %     'lightStimFreq(Hz)', ...
-% %     'lightDur(s)', ...   
-% %     'gridColumns', ...
-% %     'gridRows', ...
-% %     'inward(-1)ORoutward(1)', ...
-% %     'baselineDurationInSeconds', ...
-% %     'lightPulseAnalysisWindowInSeconds', ...
-% %     'thresholdInDataPts', ...
-% %     'rsTestPulseOnsetTime', ...
-% %     'AVGseriesResistance(Mohm)', ...
-% %     'MINseriesResistance(Mohm)', ...
-% %     'MAXseriesResistance(Mohm)', ...
-% %     'AVGbaselineCurrent(pA)', ...
-% %     'MINbaselineCurrent(pA)', ...
-% %     'MAXbaselineCurrent(pA)', ...
-% %     squareVariables{:}, ...
-% %     'cellImageFileNameDIC', ...
-% %     'cellImageFileNameAlexa'});
-% % writetable(labeledData, fulldirectory, 'WriteMode', 'overwritesheet');
-% % disp('I saved the square_by_square cell xls file')
-
-
-% %% PLOT 8 - heatmap of success rate (50% to 100%)
-% 
-% % organize data for heatmap
-% dataForHeatmap = reshape(successRatePerROI,gridColumns,[]).';
-% 
-% % resize heatmap
-% resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImage,2)], 'nearest');
-% 
-% % make heatmap without the heatmap function
-% figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - success heatmap 2')); % naming figure file
-% imshow(resizedHeatmap,'Colormap',customColorMapPink,'DisplayRange', [0.5,1], 'Border', 'tight');
-% title('P(oIPSC)');
-% set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
-% c = colorbar;
-% c.Label.String = 'P(oIPSC)';
-
-
-% %% PLOT 9 - heatmap of normalized PSCs (normalized to largest PSC)
-% 
-% % set hetmap edges
-% heatmapMin = 0;
-% heatmapMax = 1;
-% 
-% % normalize meanPeakPerROI by largest peak
-% if inwardORoutward == 1
-%     maxPSC = max(meanPeakPerROI_noFailures);
-% else
-%     maxPSC = min(meanPeakPerROI_noFailures);
-% end
-% normalizedToMaxPSC = meanPeakPerROI_noFailures/maxPSC;
-% 
-% % organize data for heatmap
-% dataForHeatmap = reshape(normalizedToMaxPSC,gridColumns,[]).';
-% 
-% % resize heatmap
-% resizedHeatmap = imresize(dataForHeatmap, [size(croppedImage,1) size(croppedImage,2)], 'nearest');
-% 
-% % make heatmap without the heatmap function
-% figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_polygon - amplitude heatmap')); % naming figure file
-% % imshow(resizedHeatmap,'Colormap',parula,'DisplayRange', [heatmapMin,heatmapMax], 'Border', 'tight');
-% imshow(resizedHeatmap,'Colormap',customColorMapVermillion,'DisplayRange', [heatmapMin,heatmapMax], 'Border', 'tight');
-% title('Normalized oIPSC amplitude')
-% set(gcf,'InnerPosition',[innerWidth maxHeight-innerHeight innerWidth innerHeight]);
-% c = colorbar;
-% c.Label.String = 'Normalized oIPSC amplitude';

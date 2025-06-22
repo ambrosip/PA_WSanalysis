@@ -1,14 +1,25 @@
 %{ 
 DOCUMENTATION
 Created: 2021 09 19
+Last edits: 
+    2024 10 30 - added charge calculation
+    2024 11 10 - moved lightStimCh from user input to function variable for
+    batch processing of data
+Works? Yes
 Author: PA
-Last edit: 2024 10 30 - added charge calculation
 
-This function is used to analyze the kinetics of post-synaptic currents
-(PSCs), either IPSCs, EPSCs, or ChR2-mediated currents.
+This function is used to analyze the amplitude and kinetics of
+post-synaptic currents (PSCs), either IPSCs, EPSCs, or ChR2-mediated
+currents.
 
-This code was adapted from psc_vs_light
+This function uses a WSfile object. Any changes to the name of this
+function and/or its inputs (the stuff within parenthesis) need to be added
+to method section of "WSfile.m"
 
+Adaptation tree:
+    psc_vs_light
+    psc_vs_light_single
+    
 INPUTS explained:
     TO DO
 
@@ -39,16 +50,15 @@ TO DO:
     TO DO
 %}
 
-function psc_vs_light_single_new(obj)
+function psc_vs_light_single_batch(obj,lightStimCh,saveDir,addNamePrefix,namePrefix)
 %%%  USER INPUT ==================================================
 
 % Affects data analysis:
-lightStimCh = 2;
 discardedSweeps = [];
 discardedSweepsFromEnd = 0;
 inwardORoutward = -1;    % 1 (positive) is outward; -1 (negative) in inward
 baselineDurationInSeconds = 0.01;
-lightPulseAnalysisWindowInSeconds = 0.045;   %% ALERT! Changed from 0.02 to 0.015 on 2023/3/4 to 0.045 on 2024-10-30
+lightPulseAnalysisWindowInSeconds = 0.015;   %% ALERT! Changed from 0.02 to 0.015 on 2023/3/4 to 0.045 on 2024-10-30
 thresholdInDataPts = 8; %% ALERT! Changed from 10 to 5; now changed to 8 on 2023/3/4 
 rsTestPulseOnsetTime = 1; %% ALERT! Changed from 1 to 0.1
 
@@ -62,7 +72,7 @@ ymin = -12000;      % -4200   % -3600   % -2050   % -375     % -1500
 ymax = 600;        % 700     % 600     % 50      % 150      % 600
 
 % Affects data saving:
-savefileto = '/Users/priscilla/OHSU Dropbox/Priscilla Ambrosi/Dropbox - Lerner Lab/Ambrosi et al_sCRACM 2024/Data Analysis/2024-10-29';
+savefileto = saveDir;
 
 
 %% PREP - get info from file and create arrays ==================
@@ -72,12 +82,18 @@ analysisDate =  datestr(datetime('today'),'yyyy-mm-dd');
 
 % getting info from file
 samplingFrequency = obj.header.Acquisition.SampleRate;
-fileName = obj.file;
+
+% get ingo from h5 file or use user-defined name prefix
+if addNamePrefix == 1
+    fileName = namePrefix;
+else
+    fileName = obj.file;
+end
 
 % add 'subset' to fileName in case discardedSweeps is not empty
 % to prevent overwritting of saved files with the whole dataset
 if ~isempty(discardedSweeps)
-    fileName = strcat(obj.file, '_subset');
+    fileName = strcat(fileName, '_subset');
 end
 
 % getting sweep numbers from file name
@@ -133,7 +149,7 @@ for sweepNumber = allSweeps
     lightPulseStart = find(diff(ych2>1)>0);                                      % list of light pulse onset data points
     lightPulseEnd = find(diff(ych2<1)>0);                                        % list of light pulse offset data points
     lightOnsetTime = lightPulseStart(1)/samplingFrequency;                       % onset of first light pulse in seconds
-    stimDur = (lightPulseEnd(end)-lightPulseStart(end))/samplingFrequency       % duration of each light pulse in the train (s)
+    stimDur = (lightPulseEnd(end)-lightPulseStart(end))/samplingFrequency;       % duration of each light pulse in the train (s)
     % commented out stuff below because it does not apply to a single light
     % stim:
 %     stimInterval = (lightPulseStart(2)-lightPulseStart(1))/samplingFrequency;    % interval between each pulse (s)
@@ -333,7 +349,7 @@ yBaselineSubAllMean = mean(yBaselineSubAll,2);
 
 % ASSUMPTION ALERT
 % Assuming that all sweeps have the same, single o-stim
-pulseOnset = lightPulseStart(1)
+pulseOnset = lightPulseStart(1);
 % pulseOnset = lightPulseStart.'
 afterLightDataPoint = pulseOnset + lightPulseAnalysisWindowInDataPts;
 
@@ -343,24 +359,24 @@ afterLightDataPoint = pulseOnset + lightPulseAnalysisWindowInDataPts;
 % outward current is +1
 % inward current is 0 or -1
 if inwardORoutward == 1 
-    [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = max(yBaselineSubAllMean(pulseOnset:afterLightDataPoint))
+    [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = max(yBaselineSubAllMean(pulseOnset:afterLightDataPoint));
     latencyTo10percentOfPeakInDataPoints = find(yBaselineSubAllMean(pulseOnset:afterLightDataPoint) >= 0.1 * lightEvokedCurrentAmp, 1) + pulseOnset;
     latencyTo90percentOfPeakInDataPoints = find(yBaselineSubAllMean(pulseOnset:afterLightDataPoint) >= 0.9 * lightEvokedCurrentAmp, 1) + pulseOnset;
 else
-    [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = min(yBaselineSubAllMean(pulseOnset:afterLightDataPoint))
+    [lightEvokedCurrentAmp, lightEvokedCurrentLoc] = min(yBaselineSubAllMean(pulseOnset:afterLightDataPoint));
     latencyTo10percentOfPeakInDataPoints = find(yBaselineSubAllMean(pulseOnset:afterLightDataPoint) <= 0.1 * lightEvokedCurrentAmp, 1) + pulseOnset;
     latencyTo90percentOfPeakInDataPoints = find(yBaselineSubAllMean(pulseOnset:afterLightDataPoint) <= 0.9 * lightEvokedCurrentAmp, 1) + pulseOnset;
 end
 
 % adjust latency to peak Loc
-lightEvokedCurrentLoc = lightEvokedCurrentLoc + pulseOnset
+lightEvokedCurrentLoc = lightEvokedCurrentLoc + pulseOnset;
 
 % find onset latency
 onsetLatencyInDataPoints = min(find(conv2(sign(diff(yBaselineSubAllMean(pulseOnset:afterLightDataPoint))), zeros(thresholdInDataPts,1)+(inwardORoutward), 'valid')==thresholdInDataPts));
 onsetLatencyInDataPoints = onsetLatencyInDataPoints + pulseOnset;
 
 % for decay tau calculation, find index of return to baseline after peak
-latencyToZeroAfterPeakInDataPoints = find(round(yBaselineSubAllMean(lightEvokedCurrentLoc:end)) >= 0, 1) + lightEvokedCurrentLoc
+latencyToZeroAfterPeakInDataPoints = find(round(yBaselineSubAllMean(lightEvokedCurrentLoc:end)) >= 0, 1) + lightEvokedCurrentLoc;
 
 % preparing to fit double-term exponential model to the decay data - create y subset
 xminFit = lightEvokedCurrentLoc;
@@ -402,7 +418,7 @@ decayFitB = decayFit.b;
 % hold off;
 
 % convert data points to ms
-onsetLatencyInMilliSeconds = 1000 * (onsetLatencyInDataPoints - pulseOnset) / samplingFrequency
+onsetLatencyInMilliSeconds = 1000 * (onsetLatencyInDataPoints - pulseOnset) / samplingFrequency;
 latencyToPeakInMilliSeconds = 1000 * (lightEvokedCurrentLoc - pulseOnset) / samplingFrequency;
 latencyToZeroAfterPeakInMilliSeconds = 1000 * (latencyToZeroAfterPeakInDataPoints - pulseOnset) / samplingFrequency;
 latencyTo10percentOfPeakInMilliSeconds = 1000 * (latencyTo10percentOfPeakInDataPoints - pulseOnset) / samplingFrequency;
@@ -415,11 +431,11 @@ if isempty(onsetLatencyInDataPoints)
 end
 
 % convert s to ms
-decayFitFastTau = decayFit.fastTau * 1000
-decayFitSlowTau = decayFit.slowTau * 1000
+decayFitFastTau = decayFit.fastTau * 1000;
+decayFitSlowTau = decayFit.slowTau * 1000;
 
 % calculate riseTime in MilliSeconds
-riseTimeInMilliSeconds = latencyTo90percentOfPeakInMilliSeconds - latencyTo10percentOfPeakInMilliSeconds
+riseTimeInMilliSeconds = latencyTo90percentOfPeakInMilliSeconds - latencyTo10percentOfPeakInMilliSeconds;
 
 % store all data
 dataCell = [mouseNumber, ...
@@ -545,7 +561,7 @@ brownToPurpleRgbTransparent = [color1rgb/255, 0.25
 
 %% PLOT - rs =====================================================
 
-figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - Rs all')); % naming figure file
+figure('name', strcat(fileName, 'Rs')); % naming figure file
 plot(allSweeps, allRs,'-o');
 % plot lines marking 30% increase and 30% decrese in Rs compared to first
 % test pulse
@@ -561,7 +577,7 @@ movegui('northeast');
 %% PLOT - niceplot of all sweeps - COLORS ================================
 
 % plotting niceplot     
-figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - Niceplot all colors'));
+figure('name', strcat(fileName, 'niceplot order'));
 hold on;
 for sweep = 1:size(yBaselineSubAll,2)
     plot(x, yBaselineSubAll(:,sweep),'Color',brownToPurpleRgbTransparent(sweep,:));
@@ -602,7 +618,7 @@ movegui('southeast');
 %% PLOT - niceplot of all sweeps and/or MEAN - BLACK ================================
 
 % plotting niceplot     
-figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - niceplot all'));
+figure('name', strcat(fileName, 'niceplot'));
 hold on;
 plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
 plot(x, mean(yBaselineSubAll,2),'Color','black','LineWidth',0.7); 
@@ -635,7 +651,7 @@ movegui('south');
 
 %% PLOT - subtracted baseline current =====================================================
 
-figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - baseline current')); % naming figure file
+figure('name', strcat(fileName, 'baseline current')); % naming figure file
 plot(allSweeps, baselineCurrentAll,'-o');
 axis([allSweeps(1) inf -300 300])
 ylabel('Subtracted Baseline Current (pA)');
@@ -662,7 +678,7 @@ movegui('southwest');
 %% PLOT - niceplot with kinetics - BLACK ================================
 
 % plotting niceplot     
-figure('name', strcat(fileName, " ", analysisDate, ' - psc_vs_light_single - Niceplot kinetics black'));
+figure('name', strcat(fileName, 'kinetics'));
 hold on;
 % plot(x, yBaselineSubAll,'Color',[0, 0, 0, 0.25]);
 plot(x, mean(yBaselineSubAll,2),'Color','black','LineWidth',0.7); 
@@ -721,7 +737,7 @@ for lightPulse = 1:length(lightEvokedCurrentsAmp)
 end
 
 % stores sweep by sweep data
-filename = strcat(fileName, '_', analysisDate, " - psc_vs_light_single - sweep_by_sweep");
+filename = strcat(fileName, 'sweep_by_sweep');
 % add if statement to add OS-appropriate slash
 if ismac
     fulldirectory = strcat(savefileto,'/',filename,'.xls');
@@ -787,7 +803,7 @@ for lightPulse = 1:length(lightEvokedCurrentsAmp)
 end
 
 % stores cell data
-filename = strcat(fileName, '_', analysisDate, " - psc_vs_light_single - cell");
+filename = strcat(fileName, 'cell');
 % add if statement to add OS-appropriate slash
 if ismac
     fulldirectory = strcat(savefileto,'/',filename,'.xls');
