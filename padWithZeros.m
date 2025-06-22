@@ -4,6 +4,20 @@ function paddedMatrix = padWithZeros(centerMatrix, outputSize)
 %
 % Syntax
 %   paddedMatrix = PADWITHZEROS(centerMatrix, outputSize)
+%
+% Example
+%   >> a = [1 2; 4 5];
+%   >> b = PADWITHZEROS(a, [6 4])
+%
+%   b =
+% 
+%        0     0     0     0
+%        0     0     0     0
+%        0     1     2     0
+%        0     4     5     0
+%        0     0     0     0
+%        0     0     0     0
+
 
 % Vector that stores the x and y paddings size
 % padding(1) will give the x padding and padding(2) the y padding
